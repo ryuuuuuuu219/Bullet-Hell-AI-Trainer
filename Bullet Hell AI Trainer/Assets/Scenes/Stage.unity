@@ -1475,6 +1475,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   playerPrefab: {fileID: 1000000000000000000, guid: e3123e954bb34ce08489926ca72f1ea6, type: 3}
   playerBulletPrefab: {fileID: 1000000000000000000, guid: 67e46157153a410e809cbf2bfa67f4d1, type: 3}
+  layerInfoPrefab: {fileID: 2012983374509248646, guid: a91b3f9b2aec64e4cb1155ade96137b0, type: 3}
   bossPrefab: {fileID: 1000000000000000000, guid: 26c01ff125fb4c8d8ef59ad803647aec, type: 3}
   enemyBulletPrefab: {fileID: 1000000000000000000, guid: 75f4e7c8e3064f54ac2b505640907fb6, type: 3}
 --- !u!1 &2101045571

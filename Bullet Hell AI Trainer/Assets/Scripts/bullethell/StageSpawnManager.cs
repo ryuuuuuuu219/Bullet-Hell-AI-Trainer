@@ -13,6 +13,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     [Header("Player population")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject playerBulletPrefab;
+    [SerializeField] private GameObject layerInfoPrefab;
 
     [Header("Boss")]
     [SerializeField] private GameObject bossPrefab;
@@ -23,6 +24,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
     private GameObject spawnedBoss;
     private Boss spawnedBossData;
+    private PopulationSettingsData activePopulationData;
     private float nextGenerationConditionCheckTime;
     private bool isInitialized;
 
@@ -35,6 +37,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         StopAllCoroutines();
         StageId = stageId;
         PopulationSettingsData populationData = populationSetting.LoadData();
+        activePopulationData = populationData;
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
         SpawnBoss(populationData.populationSize);
         SpawnPlayerPopulation(populationData, initialGenomes);
@@ -42,6 +45,10 @@ public sealed class StageSpawnManager : MonoBehaviour
         nextGenerationConditionCheckTime = Time.unscaledTime;
         isInitialized = true;
         StageView.RefreshGenerationLabel();
+        StageView.BuildLayerInfo(
+            layerInfoPrefab,
+            this,
+            populationData.populationSize);
     }
 
     private void Update()
@@ -238,6 +245,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         }
 
         populationSetting.SaveData(populationData);
+        activePopulationData = populationData;
 
         List<AiSaveData> nextGenomes =
             GenerationGeneticAlgorithm.BreedNextGeneration(
@@ -257,6 +265,40 @@ public sealed class StageSpawnManager : MonoBehaviour
         SpawnPlayerPopulation(populationData, nextGenomes);
         StartStagePattern();
         StageView.RefreshGenerationLabel();
+    }
+
+    public bool TryGetLayerInfo(
+        int logicalLayer,
+        out string playerName,
+        out float score)
+    {
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerAgent playerAgent) ||
+                playerAgent.LogicalLayer != logicalLayer ||
+                !player.TryGetComponent(out PlayerEvaluationTracker tracker))
+            {
+                continue;
+            }
+
+            float damage = spawnedBossData != null
+                ? spawnedBossData.GetDamage(logicalLayer)
+                : 0f;
+            PopulationSettingsData settings = activePopulationData ??
+                populationSetting.LoadData();
+            playerName = player.name;
+            score = settings.CalculateGenerationScore(
+                damage,
+                tracker.SurvivalTime,
+                tracker.EdgeCollisionCumulativeTime,
+                tracker.CenterDistanceSampledSum);
+            return true;
+        }
+
+        playerName = $"Player {logicalLayer + 1}";
+        score = 0f;
+        return false;
     }
 
     private List<GenerationCandidate> EvaluateCurrentGeneration(

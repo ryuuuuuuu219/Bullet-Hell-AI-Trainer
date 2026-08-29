@@ -19,6 +19,7 @@ public sealed class PlayerAgent : MonoBehaviour
     public void SetLogicalLayer(int value)
     {
         logicalLayer = Mathf.Max(0, value);
+        LogicalLayerVisibility.Apply(gameObject, logicalLayer);
     }
 
     public void RegisterHit(bullet source)

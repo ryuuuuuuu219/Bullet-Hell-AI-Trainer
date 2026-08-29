@@ -6,6 +6,7 @@ using UnityEngine.UI;
 public static class StageView
 {
     private const string ButtonObjectName = "Next Generation Button";
+    private const string LayerInfoScrollViewObjectName = "Scroll View";
 
     public static void Build()
     {
@@ -59,6 +60,109 @@ public static class StageView
         {
             RefreshLabel(button, populationSetting.LoadData());
         }
+    }
+
+    public static void BuildLayerInfo(
+        GameObject infoPrefab,
+        StageSpawnManager stageSpawnManager,
+        int layerCount)
+    {
+        if (infoPrefab == null || stageSpawnManager == null)
+        {
+            Debug.LogWarning("Layer info prefab or StageSpawnManager is not assigned.");
+            return;
+        }
+
+        ScrollRect infoScrollView = FindScrollRectByObjectName(
+            LayerInfoScrollViewObjectName);
+        if (infoScrollView == null || infoScrollView.content == null)
+        {
+            Debug.LogWarning("Layer info Scroll View Content was not found.");
+            return;
+        }
+
+        RectTransform contentRect = infoScrollView.content;
+        for (int childIndex = contentRect.childCount - 1;
+             childIndex >= 0;
+             childIndex--)
+        {
+            Transform child = contentRect.GetChild(childIndex);
+            if (child.GetComponent<LayerInfoPanelController>() != null)
+            {
+                child.gameObject.SetActive(false);
+                UnityEngine.Object.Destroy(child.gameObject);
+            }
+        }
+
+        VerticalLayoutGroup layout = contentRect.GetComponent<VerticalLayoutGroup>();
+        if (layout == null)
+        {
+            layout = contentRect.gameObject.AddComponent<VerticalLayoutGroup>();
+        }
+
+        layout.spacing = 5f;
+        layout.childAlignment = TextAnchor.UpperLeft;
+        layout.childControlWidth = true;
+        layout.childControlHeight = false;
+        layout.childForceExpandWidth = true;
+        layout.childForceExpandHeight = false;
+
+        ContentSizeFitter contentSizeFitter =
+            contentRect.GetComponent<ContentSizeFitter>();
+        if (contentSizeFitter == null)
+        {
+            contentSizeFitter =
+                contentRect.gameObject.AddComponent<ContentSizeFitter>();
+        }
+
+        contentSizeFitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
+        contentSizeFitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
+
+        for (int layer = 0; layer < layerCount; layer++)
+        {
+            GameObject row = UnityEngine.Object.Instantiate(
+                infoPrefab,
+                contentRect,
+                false);
+            RectTransform rowRect = row.GetComponent<RectTransform>();
+            if (rowRect != null)
+            {
+                rowRect.sizeDelta = new Vector2(338f, 36f);
+            }
+
+            LayerInfoPanelController controller =
+                row.GetComponent<LayerInfoPanelController>();
+            if (controller == null)
+            {
+                controller = row.AddComponent<LayerInfoPanelController>();
+            }
+
+            controller.Initialize(stageSpawnManager, layer);
+        }
+
+        Button infoButton = FindButtonByObjectName("info");
+        if (infoButton != null)
+        {
+            infoButton.onClick.RemoveAllListeners();
+            infoButton.onClick.AddListener(() =>
+                infoScrollView.gameObject.SetActive(
+                    !infoScrollView.gameObject.activeSelf));
+        }
+    }
+
+    private static ScrollRect FindScrollRectByObjectName(string objectName)
+    {
+        foreach (ScrollRect scrollRect in
+                 UnityEngine.Object.FindObjectsByType<ScrollRect>(
+                     FindObjectsInactive.Include))
+        {
+            if (scrollRect.gameObject.name == objectName)
+            {
+                return scrollRect;
+            }
+        }
+
+        return null;
     }
 
     private static Button FindButton(string label)

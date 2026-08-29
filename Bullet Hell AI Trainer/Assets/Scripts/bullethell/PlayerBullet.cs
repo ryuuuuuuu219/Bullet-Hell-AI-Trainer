@@ -16,6 +16,7 @@ public sealed class PlayerBullet : MonoBehaviour
         damage = 1f;
         damageDecayPerSecond = 0.1f;
         logicalLayer = Mathf.Max(0, layer);
+        LogicalLayerVisibility.Apply(gameObject, logicalLayer);
 
         Rigidbody2D body = GetComponent<Rigidbody2D>();
         body.gravityScale = 0f;

@@ -49,6 +49,7 @@ public sealed class bullet : MonoBehaviour
         vector = movementVector;
         threatLevel = Mathf.Max(0, threat);
         logicalLayer = Mathf.Max(0, layer);
+        LogicalLayerVisibility.Apply(gameObject, logicalLayer);
     }
 
     private void OnTriggerEnter2D(Collider2D other)
