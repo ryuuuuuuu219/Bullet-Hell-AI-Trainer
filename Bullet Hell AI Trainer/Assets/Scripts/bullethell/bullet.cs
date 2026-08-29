@@ -54,7 +54,7 @@ public sealed class bullet : MonoBehaviour
 
     private void OnTriggerEnter2D(Collider2D other)
     {
-        PlayerAgent player = other.GetComponentInParent<PlayerAgent>();
+        PlayerAgent player = other.GetComponent<PlayerAgent>();
         if (player == null || player.LogicalLayer != logicalLayer)
         {
             return;
