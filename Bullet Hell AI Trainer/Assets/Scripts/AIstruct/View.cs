@@ -194,6 +194,8 @@ public class View : MonoBehaviour
     [Min(12f)] public float nodeDiameter = 30f;
     [Min(0f)] public float horizontalPadding = 55f;
     [Min(0f)] public float verticalPadding = 45f;
+    [Min(1f)] public float verticalNodeSpacing = 48f;
+    [Min(1f)] public float scrollSensitivity = 60f;
 
     private const string GeneratedRootName = "Neural Network View";
     private const int SensorRenderLayer = 31;
@@ -241,31 +243,103 @@ public class View : MonoBehaviour
             return;
         }
 
-        Rect bounds = area.rect;
-        if (bounds.width <= 0f || bounds.height <= 0f)
+        Rect viewportBounds = area.rect;
+        if (viewportBounds.width <= 0f || viewportBounds.height <= 0f)
         {
             Debug.LogWarning("Network view area has no size.", this);
             return;
         }
 
-        RectTransform root = CreateStretchRect(GeneratedRootName, area);
+        float contentHeight = sensorMode
+            ? viewportBounds.height
+            : CalculateNetworkContentHeight(data, viewportBounds.height);
+        RectTransform viewport = CreateScrollViewport(area);
+        RectTransform content = CreateScrollContent(viewport, contentHeight);
+        ConfigureScrollRect(area, viewport, content);
+
+        Rect contentBounds = new Rect(
+            0f,
+            0f,
+            viewportBounds.width,
+            contentHeight);
         if (sensorMode)
         {
-            CreateSensorVisualization(root, bounds, data.circularSensors);
+            CreateSensorVisualization(content, contentBounds, data.circularSensors);
             return;
         }
 
-        RectTransform connectionsRoot = CreateStretchRect("Connections", root);
-        RectTransform nodesRoot = CreateStretchRect("Nodes", root);
+        RectTransform connectionsRoot = CreateStretchRect("Connections", content);
+        RectTransform nodesRoot = CreateStretchRect("Nodes", content);
 
-        List<NetworkNodeView> inputs = CreateLayer(nodesRoot, inputNodeObjects, data.inputNodeCount, 0, bounds, "I", new Color(0.25f, 0.75f, 1f));
-        List<NetworkNodeView> layer1 = CreateLayer(nodesRoot, layer1NodeObjects, data.layer1NodeCount, 1, bounds, "H1-", new Color(0.35f, 1f, 0.45f));
-        List<NetworkNodeView> layer2 = CreateLayer(nodesRoot, layer2NodeObjects, data.layer2NodeCount, 2, bounds, "H2-", new Color(1f, 0.75f, 0.25f));
-        List<NetworkNodeView> outputs = CreateLayer(nodesRoot, outputNodeObjects, data.outputNodeCount, 3, bounds, "O", new Color(1f, 0.35f, 0.75f));
+        List<NetworkNodeView> inputs = CreateLayer(nodesRoot, inputNodeObjects, data.inputNodeCount, 0, contentBounds, "I", new Color(0.25f, 0.75f, 1f));
+        List<NetworkNodeView> layer1 = CreateLayer(nodesRoot, layer1NodeObjects, data.layer1NodeCount, 1, contentBounds, "H1-", new Color(0.35f, 1f, 0.45f));
+        List<NetworkNodeView> layer2 = CreateLayer(nodesRoot, layer2NodeObjects, data.layer2NodeCount, 2, contentBounds, "H2-", new Color(1f, 0.75f, 0.25f));
+        List<NetworkNodeView> outputs = CreateLayer(nodesRoot, outputNodeObjects, data.outputNodeCount, 3, contentBounds, "O", new Color(1f, 0.35f, 0.75f));
 
         ConnectLayers(connectionsRoot, inputs, layer1, data.inputToLayer1Weights);
         ConnectLayers(connectionsRoot, layer1, layer2, data.layer1ToLayer2Weights);
         ConnectLayers(connectionsRoot, layer2, outputs, data.layer2ToOutputWeights);
+    }
+
+    private float CalculateNetworkContentHeight(
+        AiSaveData data,
+        float viewportHeight)
+    {
+        int maximumNodeCount = Mathf.Max(
+            data.inputNodeCount,
+            data.layer1NodeCount,
+            data.layer2NodeCount,
+            data.outputNodeCount);
+        float requiredHeight = verticalPadding * 2f + nodeDiameter;
+        if (maximumNodeCount > 1)
+        {
+            requiredHeight += (maximumNodeCount - 1) * verticalNodeSpacing;
+        }
+
+        return Mathf.Max(viewportHeight, requiredHeight);
+    }
+
+    private static RectTransform CreateScrollViewport(RectTransform area)
+    {
+        RectTransform viewport = CreateStretchRect(GeneratedRootName, area);
+        viewport.gameObject.AddComponent<RectMask2D>();
+        return viewport;
+    }
+
+    private static RectTransform CreateScrollContent(
+        RectTransform viewport,
+        float contentHeight)
+    {
+        GameObject contentObject = new GameObject("Content", typeof(RectTransform));
+        RectTransform content = contentObject.GetComponent<RectTransform>();
+        content.SetParent(viewport, false);
+        content.anchorMin = new Vector2(0f, 1f);
+        content.anchorMax = new Vector2(1f, 1f);
+        content.pivot = new Vector2(0.5f, 1f);
+        content.anchoredPosition = Vector2.zero;
+        content.sizeDelta = new Vector2(0f, contentHeight);
+        return content;
+    }
+
+    private void ConfigureScrollRect(
+        RectTransform area,
+        RectTransform viewport,
+        RectTransform content)
+    {
+        ScrollRect scrollRect = area.GetComponent<ScrollRect>();
+        if (scrollRect == null)
+        {
+            scrollRect = area.gameObject.AddComponent<ScrollRect>();
+        }
+
+        scrollRect.content = content;
+        scrollRect.viewport = viewport;
+        scrollRect.horizontal = false;
+        scrollRect.vertical = true;
+        scrollRect.movementType = ScrollRect.MovementType.Clamped;
+        scrollRect.inertia = true;
+        scrollRect.scrollSensitivity = scrollSensitivity;
+        scrollRect.verticalNormalizedPosition = 1f;
     }
 
     private AiSaveData GetNetworkData()
@@ -556,6 +630,13 @@ public class View : MonoBehaviour
 
     private void RemoveGeneratedView()
     {
+        ScrollRect scrollRect = GetComponent<ScrollRect>();
+        if (scrollRect != null)
+        {
+            scrollRect.content = null;
+            scrollRect.viewport = null;
+        }
+
         if (sensorRenderCamera != null)
         {
             sensorRenderCamera.enabled = false;

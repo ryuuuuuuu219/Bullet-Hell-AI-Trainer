@@ -197,10 +197,11 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::Aidata
   useProximityInput: 1
+  useAttentionInput: 1
   useCircularSensorInput: 1
   useWarningLineInput: 1
   sensors: []
-  inputNodeCount: 3
+  inputNodeCount: 72
   layer1NodeCount: 10
   layer2NodeCount: 10
   outputNodeCount: 2

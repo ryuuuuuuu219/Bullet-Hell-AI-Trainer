@@ -7,11 +7,12 @@ using UnityEngine.Serialization;
 public sealed class AiSaveData
 {
     public bool useProximityInput = true;
+    public bool useAttentionInput = true;
     public bool useCircularSensorInput = true;
     public bool useWarningLineInput = true;
     public List<CircularSensorData> circularSensors = new List<CircularSensorData>();
 
-    public int inputNodeCount = 3;
+    public int inputNodeCount = Aidata.NeuralInputNodeCount;
     public int layer1NodeCount = 10;
     public int layer2NodeCount = 10;
     public int outputNodeCount = 2;
@@ -27,21 +28,38 @@ public sealed class AiSaveData
 public class Aidata : MonoBehaviour
 {
     public const int MovementOutputNodeCount = 2;
+    public const int ProximityFeatureCount = 6;
+    public const int AttentionFeatureCount = 7;
+    public const int CircularSensorSlotCount = 10;
+    public const int CircularFeatureCount = CircularSensorSlotCount + 1;
+    public const int LaserFeatureCount = 10;
+    public const int NeuralInputNodeCount =
+        ProximityFeatureCount +
+        AttentionSensor.AttentionCapacity * AttentionFeatureCount +
+        CircularFeatureCount +
+        WarningLineSensor.DetectionCapacity * LaserFeatureCount;
 
     private const string PlayerPrefsKey = "BulletHellAITrainer.AiData.v1";
 
     private float[] runtimeInputs = Array.Empty<float>();
     private float[] runtimeLayer1 = Array.Empty<float>();
     private float[] runtimeLayer2 = Array.Empty<float>();
+    private readonly AttentionObservation[] runtimeAttention =
+        new AttentionObservation[AttentionSensor.AttentionCapacity];
+    private readonly LaserSensorObservation[] runtimeLaserThreats =
+        new LaserSensorObservation[WarningLineSensor.DetectionCapacity];
+    private readonly int[] runtimeCircularCounts =
+        new int[CircularSensorSlotCount];
 
     [Header("入力")]
     public bool useProximityInput = true;
+    public bool useAttentionInput = true;
     public bool useCircularSensorInput = true;
     public bool useWarningLineInput = true;
     public List<CircularSensor> sensors = new List<CircularSensor>();
 
     [Header("ニューラルネットワーク構造")]
-    [Min(1)] public int inputNodeCount = 3;
+    [Min(1)] public int inputNodeCount = NeuralInputNodeCount;
     [FormerlySerializedAs("layer1nodes")]
     [Min(1)] public int layer1NodeCount = 10;
     [FormerlySerializedAs("layer2nodes")]
@@ -117,10 +135,22 @@ public class Aidata : MonoBehaviour
 
     public void EnsureNeuralNetworkShape()
     {
-        inputNodeCount = Mathf.Max(1, inputNodeCount);
+        bool inputSchemaChanged = inputNodeCount != NeuralInputNodeCount;
+        inputNodeCount = NeuralInputNodeCount;
         layer1NodeCount = Mathf.Max(1, layer1NodeCount);
         layer2NodeCount = Mathf.Max(1, layer2NodeCount);
         outputNodeCount = MovementOutputNodeCount;
+
+        if (inputSchemaChanged)
+        {
+            ClearNetworkCoefficients(
+                ref inputToLayer1Weights,
+                ref layer1Biases,
+                ref layer1ToLayer2Weights,
+                ref layer2Biases,
+                ref layer2ToOutputWeights,
+                ref outputBiases);
+        }
 
         ResizePreserving(ref inputToLayer1Weights, inputNodeCount * layer1NodeCount);
         ResizePreserving(ref layer1Biases, layer1NodeCount);
@@ -182,6 +212,7 @@ public class Aidata : MonoBehaviour
         AiSaveData clone = new AiSaveData
         {
             useProximityInput = source.useProximityInput,
+            useAttentionInput = source.useAttentionInput,
             useCircularSensorInput = source.useCircularSensorInput,
             useWarningLineInput = source.useWarningLineInput,
             inputNodeCount = source.inputNodeCount,
@@ -234,6 +265,7 @@ public class Aidata : MonoBehaviour
         AiSaveData data = new AiSaveData
         {
             useProximityInput = useProximityInput,
+            useAttentionInput = useAttentionInput,
             useCircularSensorInput = useCircularSensorInput,
             useWarningLineInput = useWarningLineInput,
             inputNodeCount = inputNodeCount,
@@ -272,6 +304,7 @@ public class Aidata : MonoBehaviour
     private void ApplyData(AiSaveData data)
     {
         useProximityInput = data.useProximityInput;
+        useAttentionInput = data.useAttentionInput;
         useCircularSensorInput = data.useCircularSensorInput;
         useWarningLineInput = data.useWarningLineInput;
         inputNodeCount = data.inputNodeCount;
@@ -292,6 +325,16 @@ public class Aidata : MonoBehaviour
     private void ApplySensorData(List<CircularSensorData> savedSensors)
     {
         sensors.RemoveAll(sensor => sensor == null);
+
+        for (int index = sensors.Count - 1; index >= savedSensors.Count; index--)
+        {
+            CircularSensor sensor = sensors[index];
+            sensors.RemoveAt(index);
+            if (sensor != null)
+            {
+                Destroy(sensor.gameObject);
+            }
+        }
 
         for (int index = sensors.Count; index < savedSensors.Count; index++)
         {
@@ -317,6 +360,13 @@ public class Aidata : MonoBehaviour
     private static void NormalizeData(AiSaveData data)
     {
         data.circularSensors ??= new List<CircularSensorData>();
+        bool inputSchemaChanged = data.inputNodeCount != NeuralInputNodeCount;
+        if (inputSchemaChanged ||
+            data.circularSensors.Count != CircularSensorSlotCount)
+        {
+            data.circularSensors = CircularSensor.CreateDefaultData();
+        }
+
         foreach (CircularSensorData sensor in data.circularSensors)
         {
             sensor.radius = Mathf.Max(0.01f, sensor.radius);
@@ -326,10 +376,22 @@ public class Aidata : MonoBehaviour
                 ? 16
                 : Mathf.Clamp(sensor.arcSegments, 3, 64);
         }
-        data.inputNodeCount = Mathf.Max(1, data.inputNodeCount);
+        data.inputNodeCount = NeuralInputNodeCount;
         data.layer1NodeCount = Mathf.Max(1, data.layer1NodeCount);
         data.layer2NodeCount = Mathf.Max(1, data.layer2NodeCount);
         data.outputNodeCount = MovementOutputNodeCount;
+
+        if (inputSchemaChanged)
+        {
+            data.useAttentionInput = true;
+            ClearNetworkCoefficients(
+                ref data.inputToLayer1Weights,
+                ref data.layer1Biases,
+                ref data.layer1ToLayer2Weights,
+                ref data.layer2Biases,
+                ref data.layer2ToOutputWeights,
+                ref data.outputBiases);
+        }
 
         ResizePreserving(
             ref data.inputToLayer1Weights,
@@ -343,6 +405,22 @@ public class Aidata : MonoBehaviour
             ref data.layer2ToOutputWeights,
             data.layer2NodeCount * data.outputNodeCount);
         ResizePreserving(ref data.outputBiases, data.outputNodeCount);
+    }
+
+    private static void ClearNetworkCoefficients(
+        ref float[] inputWeights,
+        ref float[] firstBiases,
+        ref float[] hiddenWeights,
+        ref float[] secondBiases,
+        ref float[] outputWeights,
+        ref float[] finalBiases)
+    {
+        inputWeights = Array.Empty<float>();
+        firstBiases = Array.Empty<float>();
+        hiddenWeights = Array.Empty<float>();
+        secondBiases = Array.Empty<float>();
+        outputWeights = Array.Empty<float>();
+        finalBiases = Array.Empty<float>();
     }
 
     private static void ResizePreserving(ref float[] values, int length)
@@ -432,39 +510,147 @@ public class Aidata : MonoBehaviour
         Array.Clear(runtimeInputs, 0, runtimeInputs.Length);
 
         int inputIndex = 0;
-        if (useProximityInput && inputIndex < runtimeInputs.Length)
+        int logicalLayer = TryGetComponent(out PlayerAgent player)
+            ? player.LogicalLayer
+            : -1;
+        Vector2 playerVelocity = TryGetComponent(out Rigidbody2D body)
+            ? body.linearVelocity
+            : Vector2.zero;
+
+        WriteProximityInputs(ref inputIndex, logicalLayer);
+        WriteAttentionInputs(ref inputIndex, logicalLayer, playerVelocity);
+        WriteCircularInputs(ref inputIndex);
+        WriteLaserInputs(ref inputIndex, logicalLayer);
+
+        Debug.Assert(
+            inputIndex == NeuralInputNodeCount,
+            $"AI input schema wrote {inputIndex} values; expected " +
+            $"{NeuralInputNodeCount}.");
+    }
+
+    private void WriteProximityInputs(ref int inputIndex, int logicalLayer)
+    {
+        ProximityObservation observation = useProximityInput
+            ? ProximitySensor.Observe(transform.position, logicalLayer)
+            : default;
+
+        WriteInput(ref inputIndex, observation.isValid ? 1f : 0f);
+        WriteInput(ref inputIndex, observation.relativePosition.x);
+        WriteInput(ref inputIndex, observation.relativePosition.y);
+        WriteInput(ref inputIndex, observation.normalizedDistance);
+        WriteInput(ref inputIndex, observation.approachDot);
+        WriteInput(ref inputIndex, observation.normalizedThreat);
+    }
+
+    private void WriteAttentionInputs(
+        ref int inputIndex,
+        int logicalLayer,
+        Vector2 playerVelocity)
+    {
+        Array.Clear(runtimeAttention, 0, runtimeAttention.Length);
+        if (useAttentionInput)
         {
-            int logicalLayer = TryGetComponent(out PlayerAgent player)
-                ? player.LogicalLayer
-                : -1;
-
-            runtimeInputs[inputIndex] = ProximitySensor.Sense(
+            AttentionSensor.Select(
                 transform.position,
-                logicalLayer);
-
-            inputIndex++;
+                playerVelocity,
+                logicalLayer,
+                runtimeAttention);
         }
 
-        if (useCircularSensorInput && inputIndex < runtimeInputs.Length)
+        foreach (AttentionObservation observation in runtimeAttention)
         {
-            int detectedBulletCount = 0;
-            foreach (CircularSensor sensor in sensors)
+            WriteInput(ref inputIndex, observation.isValid ? 1f : 0f);
+            WriteInput(ref inputIndex, observation.relativePosition.x);
+            WriteInput(ref inputIndex, observation.relativePosition.y);
+            WriteInput(ref inputIndex, observation.normalizedDistance);
+            WriteInput(ref inputIndex, observation.normalizedClosestDistance);
+            WriteInput(ref inputIndex, observation.normalizedClosestTime);
+            WriteInput(ref inputIndex, observation.normalizedThreat);
+        }
+    }
+
+    private void WriteCircularInputs(ref int inputIndex)
+    {
+        Array.Clear(runtimeCircularCounts, 0, runtimeCircularCounts.Length);
+        int detectedBulletCount = 0;
+        float weightedDetectedBulletCount = 0f;
+
+        for (int index = 0; index < sensors.Count; index++)
+        {
+            CircularSensor sensor = sensors[index];
+            if (sensor == null)
             {
-                if (sensor != null)
-                {
-                    detectedBulletCount += sensor.Sense();
-                }
+                continue;
             }
 
-            runtimeInputs[inputIndex] = detectedBulletCount /
-                                        (detectedBulletCount + 1f);
-            inputIndex++;
+            int count = sensor.Sense();
+            if (index >= runtimeCircularCounts.Length)
+            {
+                continue;
+            }
+
+            runtimeCircularCounts[index] = count;
+            detectedBulletCount += count;
+            weightedDetectedBulletCount +=
+                count * Mathf.Max(0f, sensor.priority);
         }
 
-        if (useWarningLineInput && inputIndex < runtimeInputs.Length)
+        for (int index = 0; index < runtimeCircularCounts.Length; index++)
         {
-            runtimeInputs[inputIndex] = WarningLineSensor.Sense();
+            float value = 0f;
+            if (useCircularSensorInput && weightedDetectedBulletCount > 0f)
+            {
+                float priority = index < sensors.Count && sensors[index] != null
+                    ? Mathf.Max(0f, sensors[index].priority)
+                    : 0f;
+                value = runtimeCircularCounts[index] * priority /
+                        weightedDetectedBulletCount;
+            }
+
+            WriteInput(ref inputIndex, value);
         }
+
+        WriteInput(
+            ref inputIndex,
+            useCircularSensorInput
+                ? detectedBulletCount / (detectedBulletCount + 1f)
+                : 0f);
+    }
+
+    private void WriteLaserInputs(ref int inputIndex, int logicalLayer)
+    {
+        Array.Clear(runtimeLaserThreats, 0, runtimeLaserThreats.Length);
+        if (useWarningLineInput)
+        {
+            WarningLineSensor.SelectActiveThreats(
+                transform.position,
+                logicalLayer,
+                runtimeLaserThreats);
+        }
+
+        foreach (LaserSensorObservation observation in runtimeLaserThreats)
+        {
+            WriteInput(ref inputIndex, observation.isValid ? 1f : 0f);
+            WriteInput(ref inputIndex, observation.isActive ? 1f : 0f);
+            WriteInput(ref inputIndex, observation.relativeOrigin.x);
+            WriteInput(ref inputIndex, observation.relativeOrigin.y);
+            WriteInput(ref inputIndex, observation.direction.x);
+            WriteInput(ref inputIndex, observation.direction.y);
+            WriteInput(ref inputIndex, observation.signedLineDistance);
+            WriteInput(ref inputIndex, observation.surfaceDistance);
+            WriteInput(ref inputIndex, observation.normalizedWarningTime);
+            WriteInput(ref inputIndex, observation.normalizedThreat);
+        }
+    }
+
+    private void WriteInput(ref int inputIndex, float value)
+    {
+        if (inputIndex < runtimeInputs.Length)
+        {
+            runtimeInputs[inputIndex] = value;
+        }
+
+        inputIndex++;
     }
 
     private float CalculateOutputNode(int outputIndex)

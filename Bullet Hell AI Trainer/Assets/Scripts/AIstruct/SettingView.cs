@@ -9,6 +9,7 @@ public static class SettingView
     private static readonly string[] InputLabels =
     {
         "近接認識",
+        "注目センサー",
         "扇形センサー",
         "予告線センサー",
     };
@@ -29,7 +30,7 @@ public static class SettingView
         "画面中央からの距離総和",
     };
 
-    private static readonly bool[] InputEnabled = { true, true, true };
+    private static readonly bool[] InputEnabled = { true, true, true, true };
     private static readonly float[] RewardWeights = { 0.3f, 1f, -5f, -0.5f };
     private static readonly float[] RewardMinimums = { 0f, 0f, -10f, -10f };
     private static readonly float[] RewardMaximums = { 10f, 10f, 0f, 0f };
@@ -588,8 +589,9 @@ public static class SettingView
     {
         AiSaveData aiData = Aidata.LoadData();
         InputEnabled[0] = aiData.useProximityInput;
-        InputEnabled[1] = aiData.useCircularSensorInput;
-        InputEnabled[2] = aiData.useWarningLineInput;
+        InputEnabled[1] = aiData.useAttentionInput;
+        InputEnabled[2] = aiData.useCircularSensorInput;
+        InputEnabled[3] = aiData.useWarningLineInput;
         SensorSettings.Clear();
         List<CircularSensorData> savedSensors = aiData.circularSensors.Count > 0
             ? aiData.circularSensors
@@ -623,8 +625,9 @@ public static class SettingView
     {
         AiSaveData data = Aidata.LoadData();
         data.useProximityInput = InputEnabled[0];
-        data.useCircularSensorInput = InputEnabled[1];
-        data.useWarningLineInput = InputEnabled[2];
+        data.useAttentionInput = InputEnabled[1];
+        data.useCircularSensorInput = InputEnabled[2];
+        data.useWarningLineInput = InputEnabled[3];
         data.circularSensors = new List<CircularSensorData>(SensorSettings.Count);
         foreach (CircularSensorData sensor in SensorSettings)
         {

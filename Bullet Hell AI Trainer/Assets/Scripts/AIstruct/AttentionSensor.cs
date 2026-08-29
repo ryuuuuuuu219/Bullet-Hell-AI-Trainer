@@ -38,7 +38,8 @@ public static class AttentionSensor
 
         foreach (bullet candidate in BulletManager.ActiveBullets)
         {
-            if (candidate == null || candidate.LogicalLayer != logicalLayer)
+            if (candidate == null ||
+                (logicalLayer >= 0 && candidate.LogicalLayer != logicalLayer))
             {
                 continue;
             }

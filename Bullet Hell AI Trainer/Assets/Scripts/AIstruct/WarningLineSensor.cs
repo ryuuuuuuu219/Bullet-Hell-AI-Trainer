@@ -43,11 +43,43 @@ public static class WarningLineSensor
     public const float WarningTimeReference = 10f;
 
     private const float ThreatReference = 5f;
+    private static readonly List<LaserThreatData> ActiveThreats =
+        new List<LaserThreatData>();
 
-    public static float Sense()
+    public static IReadOnlyList<LaserThreatData> Threats => ActiveThreats;
+
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
     {
-        // No laser producer is implemented yet, so Aidata keeps receiving zero.
-        return 0f;
+        ActiveThreats.Clear();
+    }
+
+    public static void Register(LaserThreatData threat)
+    {
+        if (threat != null && !ActiveThreats.Contains(threat))
+        {
+            ActiveThreats.Add(threat);
+        }
+    }
+
+    public static void Unregister(LaserThreatData threat)
+    {
+        if (threat != null)
+        {
+            ActiveThreats.Remove(threat);
+        }
+    }
+
+    public static void SelectActiveThreats(
+        Vector2 playerPosition,
+        int logicalLayer,
+        LaserSensorObservation[] destination)
+    {
+        SelectTopThreats(
+            ActiveThreats,
+            playerPosition,
+            logicalLayer,
+            destination);
     }
 
     public static void SelectTopThreats(
@@ -73,7 +105,8 @@ public static class WarningLineSensor
 
         foreach (LaserThreatData threat in threats)
         {
-            if (threat == null || threat.logicalLayer != logicalLayer)
+            if (threat == null ||
+                (logicalLayer >= 0 && threat.logicalLayer != logicalLayer))
             {
                 continue;
             }
