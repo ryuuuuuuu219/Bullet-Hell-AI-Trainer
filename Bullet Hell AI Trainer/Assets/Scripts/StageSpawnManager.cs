@@ -61,8 +61,8 @@ public sealed class StageSpawnManager : MonoBehaviour
         }
 
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
-        GameObject bullet = Instantiate(enemyBulletPrefab, position, Quaternion.identity);
-        Rigidbody2D body = bullet.GetComponent<Rigidbody2D>();
+        GameObject bulletObject = Instantiate(enemyBulletPrefab, position, Quaternion.identity);
+        Rigidbody2D body = bulletObject.GetComponent<Rigidbody2D>();
 
         if (body == null)
         {
@@ -72,7 +72,16 @@ public sealed class StageSpawnManager : MonoBehaviour
         Vector2 direction = target != null
             ? ((Vector2)target.position - body.position).normalized
             : Vector2.down;
-        body.linearVelocity = direction * request.Speed;
+        Vector2 movementVector = direction * request.Speed;
+        body.linearVelocity = movementVector;
+
+        bullet bulletData = bulletObject.GetComponent<bullet>();
+        if (bulletData == null)
+        {
+            bulletData = bulletObject.AddComponent<bullet>();
+        }
+
+        bulletData.SetData(movementVector, request.Threat);
     }
 
     public enum SpawnPattern

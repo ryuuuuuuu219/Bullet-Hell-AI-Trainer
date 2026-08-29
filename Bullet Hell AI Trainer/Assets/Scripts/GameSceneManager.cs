@@ -86,6 +86,7 @@ public static class GameSceneManager
                 break;
             case SettingSceneName:
                 BindButton("Back", LoadMainMenu);
+                SettingView.Build();
                 break;
             case StageSelectSceneName:
                 BindButton("back", LoadMainMenu);
