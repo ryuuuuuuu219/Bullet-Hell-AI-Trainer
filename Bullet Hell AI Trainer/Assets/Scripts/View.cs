@@ -66,6 +66,7 @@ public sealed class NetworkConnectionView : MonoBehaviour
 
 public sealed class NetworkNodeView : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
 {
+    private static Sprite circleSprite;
     private readonly List<NetworkConnectionView> connections = new List<NetworkConnectionView>();
     private Image image;
     private Color normalColor;
@@ -80,12 +81,8 @@ public sealed class NetworkNodeView : MonoBehaviour, IPointerEnterHandler, IPoin
         image.color = normalColor;
         image.raycastTarget = true;
 
-        Sprite knob = Resources.GetBuiltinResource<Sprite>("UI/Skin/Knob.psd");
-        if (knob != null)
-        {
-            image.sprite = knob;
-            image.type = Image.Type.Simple;
-        }
+        image.sprite = GetCircleSprite();
+        image.type = Image.Type.Simple;
 
         GameObject labelObject = new GameObject("Label", typeof(RectTransform));
         RectTransform labelRect = labelObject.GetComponent<RectTransform>();
@@ -141,6 +138,47 @@ public sealed class NetworkNodeView : MonoBehaviour, IPointerEnterHandler, IPoin
                 connection.SetHighlighted(highlighted);
             }
         }
+    }
+
+    private static Sprite GetCircleSprite()
+    {
+        if (circleSprite != null)
+        {
+            return circleSprite;
+        }
+
+        const int size = 64;
+        Texture2D texture = new Texture2D(size, size, TextureFormat.RGBA32, false)
+        {
+            name = "Generated Network Node Circle",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+            hideFlags = HideFlags.HideAndDontSave
+        };
+
+        Color32[] pixels = new Color32[size * size];
+        float center = (size - 1) * 0.5f;
+        float radius = center - 1f;
+        for (int y = 0; y < size; y++)
+        {
+            for (int x = 0; x < size; x++)
+            {
+                float distance = Vector2.Distance(new Vector2(x, y), new Vector2(center, center));
+                byte alpha = (byte)Mathf.RoundToInt(Mathf.Clamp01(radius + 1f - distance) * 255f);
+                pixels[y * size + x] = new Color32(255, 255, 255, alpha);
+            }
+        }
+
+        texture.SetPixels32(pixels);
+        texture.Apply(false, true);
+        circleSprite = Sprite.Create(
+            texture,
+            new Rect(0f, 0f, size, size),
+            new Vector2(0.5f, 0.5f),
+            100f);
+        circleSprite.name = "Generated Network Node Circle";
+        circleSprite.hideFlags = HideFlags.HideAndDontSave;
+        return circleSprite;
     }
 }
 
