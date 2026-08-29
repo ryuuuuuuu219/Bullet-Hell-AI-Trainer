@@ -95,6 +95,7 @@ public static class SettingView
         BuildRewardButtons(rewardScroll.content.gameObject, font);
         BuildGenerationButtons(generationScroll.content.gameObject, font);
         BuildNetworkView();
+        ConfigureSaveButton();
     }
 
     private static void BuildNetworkView()
@@ -115,6 +116,47 @@ public static class SettingView
         view.Rebuild();
     }
 
+    private static void ConfigureSaveButton()
+    {
+        foreach (Button button in
+                 UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include))
+        {
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+            if (label == null || label.text.Trim() != "保存")
+            {
+                continue;
+            }
+
+            button.gameObject.name = "Save Button";
+            button.onClick.RemoveListener(SaveSettingsAndRedrawNetwork);
+            button.onClick.AddListener(SaveSettingsAndRedrawNetwork);
+            return;
+        }
+
+        Debug.LogWarning("Setting scene save button was not found.");
+    }
+
+    private static void SaveSettingsAndRedrawNetwork()
+    {
+        SaveInputSettings();
+        SavePopulationSettings();
+
+        View[] views = UnityEngine.Object.FindObjectsByType<View>(FindObjectsInactive.Include);
+        if (views.Length == 0)
+        {
+            BuildNetworkView();
+        }
+        else
+        {
+            foreach (View view in views)
+            {
+                view.Rebuild();
+            }
+        }
+
+        Debug.Log("Setting data was saved to PlayerPrefs and the network view was rebuilt.");
+    }
+
     private static void BuildInputButtons(GameObject contentObject, TMP_FontAsset font)
     {
         ConfigureContentLayout(contentObject);
@@ -133,7 +175,6 @@ public static class SettingView
                 value =>
                 {
                     InputEnabled[capturedIndex] = value >= 0.5f;
-                    SaveInputSettings();
                 },
                 value => value >= 0.5f ? "ON" : "OFF",
                 font);
@@ -184,7 +225,6 @@ public static class SettingView
                 value =>
                 {
                     RewardEnabled[capturedIndex] = value >= 0.5f;
-                    SavePopulationSettings();
                 },
                 value => value >= 0.5f ? "ON" : "OFF",
                 font);
@@ -206,7 +246,6 @@ public static class SettingView
             value =>
             {
                 PopulationSize = Mathf.RoundToInt(value);
-                SavePopulationSettings();
             },
             value => Mathf.RoundToInt(value).ToString(),
             font);
@@ -222,7 +261,6 @@ public static class SettingView
             value =>
             {
                 MutationRate = value;
-                SavePopulationSettings();
             },
             value => value.ToString("0.000"),
             font);
@@ -238,7 +276,6 @@ public static class SettingView
             value =>
             {
                 AdvanceWhenAllIndividualsAreHit = value >= 0.5f;
-                SavePopulationSettings();
             },
             value => value >= 0.5f ? "自動" : "任意",
             font,
