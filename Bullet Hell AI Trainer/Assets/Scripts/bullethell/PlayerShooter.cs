@@ -4,8 +4,8 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PlayerShooter : MonoBehaviour
 {
-    private const int BulletsPerShot = 5;
-    private const float InitialSpeed = 40f;
+    private const int BulletsPerShot = 3;
+    private const float InitialSpeed = 90f;
     private const float FireInterval = 1f;
     private const float TotalSpreadDegrees = 30f;
 

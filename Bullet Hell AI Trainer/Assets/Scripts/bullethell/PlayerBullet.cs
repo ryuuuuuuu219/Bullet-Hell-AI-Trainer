@@ -5,7 +5,7 @@ using UnityEngine;
 public sealed class PlayerBullet : MonoBehaviour
 {
     [SerializeField, Min(0f)] private float damage = 1f;
-    [SerializeField, Min(0f)] private float damageDecayPerSecond = 0.1f;
+    [SerializeField, Min(0f)] private float damageDecayPerSecond = 0.5f;
     [SerializeField, Min(0)] private int logicalLayer;
 
     public float Damage => damage;
