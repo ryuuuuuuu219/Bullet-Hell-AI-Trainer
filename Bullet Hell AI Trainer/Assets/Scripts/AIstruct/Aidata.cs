@@ -3,148 +3,13 @@ using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.Serialization;
 
-public class sensor_circlr : MonoBehaviour
-{
-    public float radius = 5f;
-    [Range(1f, 359f)] public float angle = 90f;
-    public float centerAngle = 90f;
-    public float priority = 1f;
-    [Range(3, 64)] public int arcSegments = 16;
-
-    private PolygonCollider2D col;
-
-    private void Start()
-    {
-        ConfigurePhysics();
-        RebuildFanCollider();
-    }
-
-    public void RebuildFanCollider()
-    {
-        col ??= GetComponent<PolygonCollider2D>();
-        if (col == null)
-        {
-            col = gameObject.AddComponent<PolygonCollider2D>();
-        }
-
-        col.isTrigger = true;
-        radius = Mathf.Max(0.01f, radius);
-        angle = Mathf.Clamp(angle, 1f, 359f);
-        arcSegments = Mathf.Clamp(arcSegments, 3, 64);
-
-        Vector2[] points = new Vector2[arcSegments + 2];
-        points[0] = Vector2.zero;
-
-        float startAngle = centerAngle - angle * 0.5f;
-        for (int index = 0; index <= arcSegments; index++)
-        {
-            float interpolation = index / (float)arcSegments;
-            float theta = Mathf.Deg2Rad * (startAngle + angle * interpolation);
-            points[index + 1] = new Vector2(
-                radius * Mathf.Cos(theta),
-                radius * Mathf.Sin(theta));
-        }
-
-        col.pathCount = 1;
-        col.SetPath(0, points);
-    }
-
-    private void ConfigurePhysics()
-    {
-        Rigidbody2D body = GetComponent<Rigidbody2D>();
-        if (body == null)
-        {
-            body = gameObject.AddComponent<Rigidbody2D>();
-        }
-
-        body.bodyType = RigidbodyType2D.Kinematic;
-        body.gravityScale = 0f;
-    }
-
-    public int sencing()
-    {
-        int count = bulletCount;
-        bulletCount = 0;
-        return count;
-    }
-
-    public int bulletCount;
-
-    private void OnTriggerEnter2D(Collider2D collision)
-    {
-        if (collision.TryGetComponent(out bullet detectedBullet))
-        {
-            PlayerAgent player = GetComponentInParent<PlayerAgent>();
-            if (player != null && detectedBullet.LogicalLayer != player.LogicalLayer)
-            {
-                return;
-            }
-
-            bulletCount++;
-            Debug.Log(
-                $"Bullet detected: vector={detectedBullet.Vector}, " +
-                $"threat={detectedBullet.ThreatLevel}");
-        }
-    }
-
-#if UNITY_EDITOR
-    private void OnValidate()
-    {
-        radius = Mathf.Max(0.01f, radius);
-        angle = Mathf.Clamp(angle, 1f, 359f);
-        arcSegments = Mathf.Clamp(arcSegments, 3, 64);
-
-        if (gameObject.scene.IsValid() && TryGetComponent(out PolygonCollider2D existingCollider))
-        {
-            col = existingCollider;
-            RebuildFanCollider();
-        }
-    }
-
-    private void OnDrawGizmosSelected()
-    {
-        Gizmos.color = new Color(0.2f, 0.85f, 1f, 0.9f);
-        Vector3 origin = transform.position;
-        Vector3 previous = transform.TransformPoint(GetArcPoint(0));
-        Gizmos.DrawLine(origin, previous);
-
-        int segmentCount = Mathf.Clamp(arcSegments, 3, 64);
-        for (int index = 1; index <= segmentCount; index++)
-        {
-            Vector3 current = transform.TransformPoint(GetArcPoint(index / (float)segmentCount));
-            Gizmos.DrawLine(previous, current);
-            previous = current;
-        }
-
-        Gizmos.DrawLine(previous, origin);
-    }
-
-    private Vector2 GetArcPoint(float interpolation)
-    {
-        float theta = Mathf.Deg2Rad *
-                      (centerAngle - angle * 0.5f + angle * interpolation);
-        return new Vector2(radius * Mathf.Cos(theta), radius * Mathf.Sin(theta));
-    }
-#endif
-}
-
-[Serializable]
-public sealed class SensorCircleData
-{
-    public float radius = 5f;
-    public float angle = 90f;
-    public float centerAngle = 90f;
-    public float priority = 1f;
-    public int arcSegments = 16;
-}
-
 [Serializable]
 public sealed class AiSaveData
 {
     public bool useProximityInput = true;
     public bool useCircularSensorInput = true;
     public bool useWarningLineInput = true;
-    public List<SensorCircleData> circularSensors = new List<SensorCircleData>();
+    public List<CircularSensorData> circularSensors = new List<CircularSensorData>();
 
     public int inputNodeCount = 3;
     public int layer1NodeCount = 10;
@@ -173,7 +38,7 @@ public class Aidata : MonoBehaviour
     public bool useProximityInput = true;
     public bool useCircularSensorInput = true;
     public bool useWarningLineInput = true;
-    public List<sensor_circlr> sensors = new List<sensor_circlr>();
+    public List<CircularSensor> sensors = new List<CircularSensor>();
 
     [Header("ニューラルネットワーク構造")]
     [Min(1)] public int inputNodeCount = 3;
@@ -333,15 +198,16 @@ public class Aidata : MonoBehaviour
 
         if (source.circularSensors != null)
         {
-            foreach (SensorCircleData sensor in source.circularSensors)
+            foreach (CircularSensorData sensor in source.circularSensors)
             {
                 if (sensor == null)
                 {
                     continue;
                 }
 
-                clone.circularSensors.Add(new SensorCircleData
+                clone.circularSensors.Add(new CircularSensorData
                 {
+                    innerRadius = sensor.innerRadius,
                     radius = sensor.radius,
                     angle = sensor.angle,
                     centerAngle = sensor.centerAngle,
@@ -382,15 +248,16 @@ public class Aidata : MonoBehaviour
             outputBiases = outputBiases,
         };
 
-        foreach (sensor_circlr sensor in sensors)
+        foreach (CircularSensor sensor in sensors)
         {
             if (sensor == null)
             {
                 continue;
             }
 
-            data.circularSensors.Add(new SensorCircleData
+            data.circularSensors.Add(new CircularSensorData
             {
+                innerRadius = sensor.innerRadius,
                 radius = sensor.radius,
                 angle = sensor.angle,
                 centerAngle = sensor.centerAngle,
@@ -422,7 +289,7 @@ public class Aidata : MonoBehaviour
         EnsureNeuralNetworkShape();
     }
 
-    private void ApplySensorData(List<SensorCircleData> savedSensors)
+    private void ApplySensorData(List<CircularSensorData> savedSensors)
     {
         sensors.RemoveAll(sensor => sensor == null);
 
@@ -430,13 +297,14 @@ public class Aidata : MonoBehaviour
         {
             GameObject sensorObject = new GameObject($"Circular Sensor {index + 1}");
             sensorObject.transform.SetParent(transform, false);
-            sensors.Add(sensorObject.AddComponent<sensor_circlr>());
+            sensors.Add(sensorObject.AddComponent<CircularSensor>());
         }
 
         for (int index = 0; index < savedSensors.Count; index++)
         {
-            SensorCircleData source = savedSensors[index];
-            sensor_circlr target = sensors[index];
+            CircularSensorData source = savedSensors[index];
+            CircularSensor target = sensors[index];
+            target.innerRadius = source.innerRadius;
             target.radius = source.radius;
             target.angle = source.angle;
             target.centerAngle = source.centerAngle;
@@ -448,10 +316,11 @@ public class Aidata : MonoBehaviour
 
     private static void NormalizeData(AiSaveData data)
     {
-        data.circularSensors ??= new List<SensorCircleData>();
-        foreach (SensorCircleData sensor in data.circularSensors)
+        data.circularSensors ??= new List<CircularSensorData>();
+        foreach (CircularSensorData sensor in data.circularSensors)
         {
             sensor.radius = Mathf.Max(0.01f, sensor.radius);
+            sensor.innerRadius = Mathf.Clamp(sensor.innerRadius, 0f, sensor.radius);
             sensor.angle = Mathf.Clamp(sensor.angle, 1f, 359f);
             sensor.arcSegments = sensor.arcSegments <= 0
                 ? 16
@@ -569,16 +438,9 @@ public class Aidata : MonoBehaviour
                 ? player.LogicalLayer
                 : -1;
 
-            if (BulletManager.TryGetNearest(
-                    transform.position,
-                    logicalLayer,
-                    out bullet nearestBullet))
-            {
-                float distance = Vector2.Distance(
-                    transform.position,
-                    nearestBullet.transform.position);
-                runtimeInputs[inputIndex] = 1f / (1f + distance);
-            }
+            runtimeInputs[inputIndex] = ProximitySensor.Sense(
+                transform.position,
+                logicalLayer);
 
             inputIndex++;
         }
@@ -586,11 +448,11 @@ public class Aidata : MonoBehaviour
         if (useCircularSensorInput && inputIndex < runtimeInputs.Length)
         {
             int detectedBulletCount = 0;
-            foreach (sensor_circlr sensor in sensors)
+            foreach (CircularSensor sensor in sensors)
             {
                 if (sensor != null)
                 {
-                    detectedBulletCount += sensor.sencing();
+                    detectedBulletCount += sensor.Sense();
                 }
             }
 
@@ -601,8 +463,7 @@ public class Aidata : MonoBehaviour
 
         if (useWarningLineInput && inputIndex < runtimeInputs.Length)
         {
-            // Warning-line sensing is not implemented yet. Reserve its input node.
-            runtimeInputs[inputIndex] = 0f;
+            runtimeInputs[inputIndex] = WarningLineSensor.Sense();
         }
     }
 
