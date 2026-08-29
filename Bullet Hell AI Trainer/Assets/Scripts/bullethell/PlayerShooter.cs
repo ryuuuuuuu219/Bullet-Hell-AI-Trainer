@@ -110,7 +110,8 @@ public sealed class PlayerShooter : MonoBehaviour
             bulletData = bulletObject.AddComponent<PlayerBullet>();
         }
 
-        bulletData.Initialize(velocity, logicalLayer);
         bulletObject.SetActive(true);
+        body.position = transform.position;
+        bulletData.Initialize(velocity, logicalLayer);
     }
 }

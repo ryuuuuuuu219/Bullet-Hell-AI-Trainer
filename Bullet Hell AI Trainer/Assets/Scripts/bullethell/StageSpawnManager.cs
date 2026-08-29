@@ -469,11 +469,10 @@ public sealed class StageSpawnManager : MonoBehaviour
             }
 
             Vector2 direction = aimTarget != null
-                ? ((Vector2)aimTarget.position - body.position).normalized
+                ? ((Vector2)aimTarget.position - (Vector2)position).normalized
                 : Vector2.down;
             Vector2 movementVector = direction * request.Speed;
             body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
-            body.linearVelocity = movementVector;
 
             bullet bulletData = bulletObject.GetComponent<bullet>();
             if (bulletData == null)
@@ -483,6 +482,8 @@ public sealed class StageSpawnManager : MonoBehaviour
 
             bulletData.SetData(movementVector, request.Threat, logicalLayer);
             bulletObject.SetActive(true);
+            body.position = position;
+            body.linearVelocity = movementVector;
         }
     }
 
