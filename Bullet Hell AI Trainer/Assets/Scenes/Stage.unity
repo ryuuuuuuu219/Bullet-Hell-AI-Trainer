@@ -470,7 +470,7 @@ Transform:
   m_GameObject: {fileID: 1142156956}
   serializedVersion: 2
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
-  m_LocalPosition: {x: 0, y: 1, z: -10}
+  m_LocalPosition: {x: 0, y: 1, z: -500}
   m_LocalScale: {x: 1, y: 1, z: 1}
   m_ConstrainProportionsScale: 0
   m_Children:
@@ -866,13 +866,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9fd1172e876e4b7caf5342deccbd315c, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   playerPrefab: {fileID: 1000000000000000000, guid: e3123e954bb34ce08489926ca72f1ea6, type: 3}
-  bossPrefab: {fileID: 0}
-  enemyBulletPrefab: {fileID: 0}
-  spawnPoint: {fileID: 0}
-  target: {fileID: 0}
+  playerBulletPrefab: {fileID: 1000000000000000000, guid: 67e46157153a410e809cbf2bfa67f4d1, type: 3}
+  bossPrefab: {fileID: 1000000000000000000, guid: 26c01ff125fb4c8d8ef59ad803647aec, type: 3}
+  enemyBulletPrefab: {fileID: 1000000000000000000, guid: 75f4e7c8e3064f54ac2b505640907fb6, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -10,14 +10,13 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     [Header("Player population")]
     [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private GameObject playerBulletPrefab;
 
     [Header("Boss")]
     [SerializeField] private GameObject bossPrefab;
 
     [Header("Enemy bullets")]
     [SerializeField] private GameObject enemyBulletPrefab;
-    [SerializeField] private Transform spawnPoint;
-    [SerializeField] private Transform target;
 
     private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
     private GameObject spawnedBoss;
@@ -42,13 +41,6 @@ public sealed class StageSpawnManager : MonoBehaviour
                 Debug.LogWarning($"Spawn control is not implemented for stage ID {stageId}.");
                 break;
         }
-    }
-
-    public void SetSpawnResources(GameObject bulletPrefab, Transform origin, Transform aimTarget)
-    {
-        enemyBulletPrefab = bulletPrefab;
-        spawnPoint = origin;
-        target = aimTarget;
     }
 
     private void SpawnPlayerPopulation()
@@ -84,7 +76,7 @@ public sealed class StageSpawnManager : MonoBehaviour
                 playerShooter = player.AddComponent<PlayerShooter>();
             }
 
-            playerShooter.SetLogicalLayer(index);
+            playerShooter.Configure(playerBulletPrefab, index);
 
             Aidata aiData = player.GetComponent<Aidata>();
             if (aiData != null)
@@ -95,18 +87,10 @@ public sealed class StageSpawnManager : MonoBehaviour
 
             spawnedPlayers.Add(player);
         }
-
-        if (target == null && spawnedPlayers.Count > 0)
-        {
-            target = spawnedPlayers[0].transform;
-        }
     }
 
     private void SpawnBoss()
     {
-        bool useBossAsEnemyBulletOrigin = spawnPoint == null ||
-            (spawnedBoss != null && spawnPoint == spawnedBoss.transform);
-
         if (spawnedBoss != null)
         {
             Destroy(spawnedBoss);
@@ -125,11 +109,6 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         PopulationSettingsData populationData = populationSetting.LoadData();
         boss.SetLayerCount(populationData.populationSize);
-
-        if (useBossAsEnemyBulletOrigin)
-        {
-            spawnPoint = spawnedBoss.transform;
-        }
     }
 
     private static int CreateNetworkSeed(int generation, int logicalLayer)
@@ -142,12 +121,6 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void ClearSpawnedPlayers()
     {
-        if (target != null && spawnedPlayers.Exists(
-                player => player != null && target == player.transform))
-        {
-            target = null;
-        }
-
         foreach (GameObject player in spawnedPlayers)
         {
             if (player != null)
@@ -170,7 +143,7 @@ public sealed class StageSpawnManager : MonoBehaviour
                 stageId: 0,
                 pattern: SpawnPattern.PlayerAimedOneWay,
                 bulletCount: 1,
-                speed: 5f,
+                speed: 40f,
                 threat: 1));
         }
     }
@@ -198,7 +171,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         if (!spawnedForPlayer)
         {
-            SpawnBulletForTarget(request, target, 0);
+            SpawnBulletForTarget(request, null, 0);
         }
     }
 
@@ -207,7 +180,9 @@ public sealed class StageSpawnManager : MonoBehaviour
         Transform aimTarget,
         int logicalLayer)
     {
-        Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
+        Vector3 position = spawnedBoss != null
+            ? spawnedBoss.transform.position
+            : BossSpawnPosition;
 
         for (int index = 0; index < request.BulletCount; index++)
         {

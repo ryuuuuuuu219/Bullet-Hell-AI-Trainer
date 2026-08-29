@@ -39,19 +39,14 @@ public sealed class PlayerAgent : MonoBehaviour
 
     private void EnsureCollisionShape()
     {
-        PolygonCollider2D collisionShape = GetComponent<PolygonCollider2D>();
+        CircleCollider2D collisionShape = GetComponent<CircleCollider2D>();
         if (collisionShape == null)
         {
-            collisionShape = gameObject.AddComponent<PolygonCollider2D>();
+            collisionShape = gameObject.AddComponent<CircleCollider2D>();
         }
 
         collisionShape.isTrigger = true;
-        collisionShape.SetPath(0, new[]
-        {
-            new Vector2(0f, 0.6f),
-            new Vector2(-0.5f, -0.6f),
-            new Vector2(0.5f, -0.6f),
-        });
+        collisionShape.radius = 5f;
     }
 
 #if UNITY_EDITOR

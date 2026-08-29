@@ -4,11 +4,12 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class PlayerShooter : MonoBehaviour
 {
-    private const int BulletsPerShot = 10;
-    private const float InitialSpeed = 7f;
-    private const float FireInterval = 0.2f;
+    private const int BulletsPerShot = 5;
+    private const float InitialSpeed = 40f;
+    private const float FireInterval = 1f;
     private const float TotalSpreadDegrees = 30f;
 
+    [SerializeField] private GameObject bulletPrefab;
     [SerializeField, Min(0)] private int logicalLayer;
 
     private Coroutine firingRoutine;
@@ -27,9 +28,10 @@ public sealed class PlayerShooter : MonoBehaviour
         }
     }
 
-    public void SetLogicalLayer(int value)
+    public void Configure(GameObject prefab, int layer)
     {
-        logicalLayer = Mathf.Max(0, value);
+        bulletPrefab = prefab;
+        logicalLayer = Mathf.Max(0, layer);
     }
 
     private IEnumerator FireContinuously()
@@ -58,18 +60,42 @@ public sealed class PlayerShooter : MonoBehaviour
 
     private void SpawnBullet(Vector2 velocity)
     {
-        GameObject bulletObject = new GameObject($"Player Bullet L{logicalLayer}");
-        bulletObject.transform.position = transform.position;
+        GameObject bulletObject = bulletPrefab != null
+            ? Instantiate(bulletPrefab, transform.position, Quaternion.identity)
+            : new GameObject($"Player Bullet L{logicalLayer}");
+        bulletObject.name = $"Player Bullet L{logicalLayer}";
 
-        Rigidbody2D body = bulletObject.AddComponent<Rigidbody2D>();
+        if (bulletPrefab == null)
+        {
+            RegularPolygonLineRenderer polygon =
+                bulletObject.AddComponent<RegularPolygonLineRenderer>();
+            polygon.SetStyle(6, 5f, Color.blue);
+        }
+
+        Rigidbody2D body = bulletObject.GetComponent<Rigidbody2D>();
+        if (body == null)
+        {
+            body = bulletObject.AddComponent<Rigidbody2D>();
+        }
+
         body.gravityScale = 0f;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
-        CircleCollider2D collisionShape = bulletObject.AddComponent<CircleCollider2D>();
-        collisionShape.isTrigger = true;
-        collisionShape.radius = 0.15f;
+        CircleCollider2D collisionShape = bulletObject.GetComponent<CircleCollider2D>();
+        if (collisionShape == null)
+        {
+            collisionShape = bulletObject.AddComponent<CircleCollider2D>();
+        }
 
-        PlayerBullet bulletData = bulletObject.AddComponent<PlayerBullet>();
+        collisionShape.isTrigger = true;
+        collisionShape.radius = 5f;
+
+        PlayerBullet bulletData = bulletObject.GetComponent<PlayerBullet>();
+        if (bulletData == null)
+        {
+            bulletData = bulletObject.AddComponent<PlayerBullet>();
+        }
+
         bulletData.Initialize(velocity, logicalLayer);
     }
 }

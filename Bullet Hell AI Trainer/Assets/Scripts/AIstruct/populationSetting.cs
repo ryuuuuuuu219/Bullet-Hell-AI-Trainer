@@ -12,7 +12,7 @@ public enum GeneticSaveEvaluationAxis
 [Serializable]
 public sealed class PopulationSettingsData
 {
-    public int populationSize = 50;
+    public int populationSize = 5;
     public int currentGeneration = 1;
     public float mutationRate = 0.01f;
     public bool advanceWhenAllIndividualsAreHit = true;
@@ -43,7 +43,7 @@ public sealed class PopulationSettingsData
 [Serializable]
 internal sealed class LegacyPopulationSettingsData
 {
-    public int populationSize = 50;
+    public int populationSize = 5;
     public int currentGeneration = 1;
     public float mutationRate = 0.01f;
     public bool advanceWhenAllIndividualsAreHit = true;
@@ -57,7 +57,7 @@ internal sealed class LegacyPopulationSettingsData
 public class populationSetting : MonoBehaviour
 {
     public const int MinimumPopulationSize = 1;
-    public const int MaximumPopulationSize = 50;
+    public const int MaximumPopulationSize = 5;
 
     private const string PlayerPrefsKey = "BulletHellAITrainer.PopulationSettings.v1";
     private const string LegacyPopulationSizeKey = "PopulationSize";
