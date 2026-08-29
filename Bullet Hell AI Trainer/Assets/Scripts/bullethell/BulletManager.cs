@@ -46,6 +46,14 @@ public sealed class BulletManager : MonoBehaviour
 
     public static bool TryGetNearest(Vector2 position, out bullet nearestBullet)
     {
+        return TryGetNearest(position, -1, out nearestBullet);
+    }
+
+    public static bool TryGetNearest(
+        Vector2 position,
+        int logicalLayer,
+        out bullet nearestBullet)
+    {
         nearestBullet = null;
         float nearestSqrDistance = float.PositiveInfinity;
 
@@ -55,6 +63,11 @@ public sealed class BulletManager : MonoBehaviour
             if (candidate == null || !candidate.isActiveAndEnabled)
             {
                 ActiveBulletList.RemoveAt(index);
+                continue;
+            }
+
+            if (logicalLayer >= 0 && candidate.LogicalLayer != logicalLayer)
+            {
                 continue;
             }
 

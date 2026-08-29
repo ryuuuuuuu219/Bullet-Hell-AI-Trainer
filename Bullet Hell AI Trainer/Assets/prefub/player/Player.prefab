@@ -12,6 +12,8 @@ GameObject:
   - component: {fileID: 1200000000000000000}
   - component: {fileID: 1140000000000000000}
   - component: {fileID: 1140000000000000001}
+  - component: {fileID: 1140000000000000002}
+  - component: {fileID: 1140000000000000003}
   m_Layer: 0
   m_Name: Player
   m_TagString: Player
@@ -178,3 +180,42 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerAgent
   logicalLayer: 0
+--- !u!114 &1140000000000000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2e9ce3496c989b6449a71d8acf6b230f, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::Aidata
+  useProximityInput: 1
+  useCircularSensorInput: 1
+  useWarningLineInput: 1
+  sensors: []
+  inputNodeCount: 3
+  layer1NodeCount: 10
+  layer2NodeCount: 10
+  outputNodeCount: 2
+  inputToLayer1Weights: []
+  layer1Biases: []
+  layer1ToLayer2Weights: []
+  layer2Biases: []
+  layer2ToOutputWeights: []
+  outputBiases: []
+--- !u!114 &1140000000000000003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000000000000000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2f944ea1e24c49fa87c50647963217e5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::PlayerMovementController
+  moveSpeed: 5

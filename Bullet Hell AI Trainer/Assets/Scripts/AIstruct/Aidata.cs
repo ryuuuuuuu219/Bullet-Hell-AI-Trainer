@@ -74,6 +74,12 @@ public class sensor_circlr : MonoBehaviour
     {
         if (collision.TryGetComponent(out bullet detectedBullet))
         {
+            PlayerAgent player = GetComponentInParent<PlayerAgent>();
+            if (player != null && detectedBullet.LogicalLayer != player.LogicalLayer)
+            {
+                return;
+            }
+
             bulletCount++;
             Debug.Log(
                 $"Bullet detected: vector={detectedBullet.Vector}, " +
@@ -155,7 +161,13 @@ public sealed class AiSaveData
 
 public class Aidata : MonoBehaviour
 {
+    public const int MovementOutputNodeCount = 2;
+
     private const string PlayerPrefsKey = "BulletHellAITrainer.AiData.v1";
+
+    private float[] runtimeInputs = Array.Empty<float>();
+    private float[] runtimeLayer1 = Array.Empty<float>();
+    private float[] runtimeLayer2 = Array.Empty<float>();
 
     [Header("入力")]
     public bool useProximityInput = true;
@@ -243,7 +255,7 @@ public class Aidata : MonoBehaviour
         inputNodeCount = Mathf.Max(1, inputNodeCount);
         layer1NodeCount = Mathf.Max(1, layer1NodeCount);
         layer2NodeCount = Mathf.Max(1, layer2NodeCount);
-        outputNodeCount = Mathf.Max(1, outputNodeCount);
+        outputNodeCount = MovementOutputNodeCount;
 
         ResizePreserving(ref inputToLayer1Weights, inputNodeCount * layer1NodeCount);
         ResizePreserving(ref layer1Biases, layer1NodeCount);
@@ -350,7 +362,7 @@ public class Aidata : MonoBehaviour
         data.inputNodeCount = Mathf.Max(1, data.inputNodeCount);
         data.layer1NodeCount = Mathf.Max(1, data.layer1NodeCount);
         data.layer2NodeCount = Mathf.Max(1, data.layer2NodeCount);
-        data.outputNodeCount = Mathf.Max(1, data.outputNodeCount);
+        data.outputNodeCount = MovementOutputNodeCount;
 
         ResizePreserving(
             ref data.inputToLayer1Weights,
@@ -377,7 +389,103 @@ public class Aidata : MonoBehaviour
 
     public Vector2 output()
     {
-        return Vector2.zero;
+        EnsureNeuralNetworkShape();
+        BuildRuntimeInputs();
+
+        ResizePreserving(ref runtimeLayer1, layer1NodeCount);
+        ResizePreserving(ref runtimeLayer2, layer2NodeCount);
+
+        for (int destination = 0; destination < layer1NodeCount; destination++)
+        {
+            float sum = layer1Biases[destination];
+            for (int source = 0; source < inputNodeCount; source++)
+            {
+                int weightIndex = source * layer1NodeCount + destination;
+                sum += runtimeInputs[source] * inputToLayer1Weights[weightIndex];
+            }
+
+            runtimeLayer1[destination] = Activate(sum);
+        }
+
+        for (int destination = 0; destination < layer2NodeCount; destination++)
+        {
+            float sum = layer2Biases[destination];
+            for (int source = 0; source < layer1NodeCount; source++)
+            {
+                int weightIndex = source * layer2NodeCount + destination;
+                sum += runtimeLayer1[source] * layer1ToLayer2Weights[weightIndex];
+            }
+
+            runtimeLayer2[destination] = Activate(sum);
+        }
+
+        return new Vector2(CalculateOutputNode(0), CalculateOutputNode(1));
+    }
+
+    private void BuildRuntimeInputs()
+    {
+        ResizePreserving(ref runtimeInputs, inputNodeCount);
+        Array.Clear(runtimeInputs, 0, runtimeInputs.Length);
+
+        int inputIndex = 0;
+        if (useProximityInput && inputIndex < runtimeInputs.Length)
+        {
+            int logicalLayer = TryGetComponent(out PlayerAgent player)
+                ? player.LogicalLayer
+                : -1;
+
+            if (BulletManager.TryGetNearest(
+                    transform.position,
+                    logicalLayer,
+                    out bullet nearestBullet))
+            {
+                float distance = Vector2.Distance(
+                    transform.position,
+                    nearestBullet.transform.position);
+                runtimeInputs[inputIndex] = 1f / (1f + distance);
+            }
+
+            inputIndex++;
+        }
+
+        if (useCircularSensorInput && inputIndex < runtimeInputs.Length)
+        {
+            int detectedBulletCount = 0;
+            foreach (sensor_circlr sensor in sensors)
+            {
+                if (sensor != null)
+                {
+                    detectedBulletCount += sensor.sencing();
+                }
+            }
+
+            runtimeInputs[inputIndex] = detectedBulletCount /
+                                        (detectedBulletCount + 1f);
+            inputIndex++;
+        }
+
+        if (useWarningLineInput && inputIndex < runtimeInputs.Length)
+        {
+            // Warning-line sensing is not implemented yet. Reserve its input node.
+            runtimeInputs[inputIndex] = 0f;
+        }
+    }
+
+    private float CalculateOutputNode(int outputIndex)
+    {
+        float sum = outputBiases[outputIndex];
+        for (int source = 0; source < layer2NodeCount; source++)
+        {
+            int weightIndex = source * MovementOutputNodeCount + outputIndex;
+            sum += runtimeLayer2[source] * layer2ToOutputWeights[weightIndex];
+        }
+
+        return Activate(sum);
+    }
+
+    private static float Activate(float value)
+    {
+        return (float)Math.Tanh(value);
     }
 
 #if UNITY_EDITOR
