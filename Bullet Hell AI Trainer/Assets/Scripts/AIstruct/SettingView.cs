@@ -15,14 +15,26 @@ public static class SettingView
 
     private static readonly string[] RewardLabels =
     {
-        "DPS",
-        "生存期間",
-        "画面端への衝突時間",
-        "画面端との距離",
+        "与ダメージ係数",
+        "生存時間係数",
+        "画面端衝突累計時間係数",
+        "画面中央からの距離係数",
+    };
+
+    private static readonly string[] GeneticSaveAxisLabels =
+    {
+        "与ダメージ",
+        "生存時間",
+        "画面端衝突累計時間",
+        "画面中央からの距離総和",
     };
 
     private static readonly bool[] InputEnabled = { true, true, true };
-    private static readonly bool[] RewardEnabled = { true, true, true, true };
+    private static readonly float[] RewardWeights = { 0.3f, 1f, -5f, -0.5f };
+    private static readonly float[] RewardMinimums = { 0f, 0f, -10f, -10f };
+    private static readonly float[] RewardMaximums = { 10f, 10f, 0f, 0f };
+    private static GeneticSaveEvaluationAxis geneticSaveEvaluationAxis =
+        GeneticSaveEvaluationAxis.SurvivalTime;
 
     private static GameObject settingItemTemplate;
 
@@ -36,9 +48,11 @@ public static class SettingView
         return index >= 0 && index < InputEnabled.Length && InputEnabled[index];
     }
 
-    public static bool IsRewardEnabled(int index)
+    public static float GetRewardWeight(int index)
     {
-        return index >= 0 && index < RewardEnabled.Length && RewardEnabled[index];
+        return index >= 0 && index < RewardWeights.Length
+            ? RewardWeights[index]
+            : 0f;
     }
 
     public static bool ConsumeManualGenerationRequest()
@@ -211,6 +225,26 @@ public static class SettingView
     {
         ConfigureContentLayout(contentObject);
 
+        CreateSettingItem(
+            contentObject.transform,
+            "Genetic Save Evaluation Axis Item",
+            "遺伝子保存評価軸",
+            0f,
+            GeneticSaveAxisLabels.Length - 1,
+            (int)geneticSaveEvaluationAxis,
+            true,
+            value =>
+            {
+                geneticSaveEvaluationAxis =
+                    (GeneticSaveEvaluationAxis)Mathf.RoundToInt(value);
+            },
+            value => GeneticSaveAxisLabels[Mathf.Clamp(
+                Mathf.RoundToInt(value),
+                0,
+                GeneticSaveAxisLabels.Length - 1)],
+            font,
+            preferredHeight: 72f);
+
         for (int index = 0; index < RewardLabels.Length; index++)
         {
             int capturedIndex = index;
@@ -218,15 +252,15 @@ public static class SettingView
                 contentObject.transform,
                 $"Reward Item {index}",
                 RewardLabels[index],
-                0f,
-                1f,
-                RewardEnabled[capturedIndex] ? 1f : 0f,
-                true,
+                RewardMinimums[capturedIndex],
+                RewardMaximums[capturedIndex],
+                RewardWeights[capturedIndex],
+                false,
                 value =>
                 {
-                    RewardEnabled[capturedIndex] = value >= 0.5f;
+                    RewardWeights[capturedIndex] = value;
                 },
-                value => value >= 0.5f ? "ON" : "OFF",
+                value => value.ToString("0.###"),
                 font);
         }
     }
@@ -416,10 +450,11 @@ public static class SettingView
         MutationRate = populationData.mutationRate;
         AdvanceWhenAllIndividualsAreHit = populationData.advanceWhenAllIndividualsAreHit;
         PendingManualGenerationRequests = populationData.pendingManualGenerationRequests;
-        RewardEnabled[0] = populationData.evaluateDps;
-        RewardEnabled[1] = populationData.evaluateSurvivalTime;
-        RewardEnabled[2] = populationData.evaluateTimeToScreenEdgeCollision;
-        RewardEnabled[3] = populationData.evaluateDistanceFromScreenEdge;
+        geneticSaveEvaluationAxis = populationData.geneticSaveEvaluationAxis;
+        RewardWeights[0] = populationData.damageWeight;
+        RewardWeights[1] = populationData.survivalTimeWeight;
+        RewardWeights[2] = populationData.edgeCollisionCumulativeTimeWeight;
+        RewardWeights[3] = populationData.centerDistanceSampledSumWeight;
     }
 
     private static void SaveInputSettings()
@@ -438,10 +473,11 @@ public static class SettingView
         data.mutationRate = MutationRate;
         data.advanceWhenAllIndividualsAreHit = AdvanceWhenAllIndividualsAreHit;
         data.pendingManualGenerationRequests = PendingManualGenerationRequests;
-        data.evaluateDps = RewardEnabled[0];
-        data.evaluateSurvivalTime = RewardEnabled[1];
-        data.evaluateTimeToScreenEdgeCollision = RewardEnabled[2];
-        data.evaluateDistanceFromScreenEdge = RewardEnabled[3];
+        data.geneticSaveEvaluationAxis = geneticSaveEvaluationAxis;
+        data.damageWeight = RewardWeights[0];
+        data.survivalTimeWeight = RewardWeights[1];
+        data.edgeCollisionCumulativeTimeWeight = RewardWeights[2];
+        data.centerDistanceSampledSumWeight = RewardWeights[3];
         populationSetting.SaveData(data);
     }
 

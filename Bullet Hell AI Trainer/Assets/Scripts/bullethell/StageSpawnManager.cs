@@ -54,7 +54,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
-        int populationSize = populationSetting.LoadData().populationSize;
+        PopulationSettingsData populationData = populationSetting.LoadData();
+        int populationSize = populationData.populationSize;
         Vector3 position = playerSpawnPoint != null
             ? playerSpawnPoint.position
             : transform.position;
@@ -73,12 +74,28 @@ public sealed class StageSpawnManager : MonoBehaviour
             }
 
             playerAgent.SetLogicalLayer(index);
+
+            Aidata aiData = player.GetComponent<Aidata>();
+            if (aiData != null)
+            {
+                int seed = CreateNetworkSeed(populationData.currentGeneration, index);
+                aiData.RandomizeNetwork(seed);
+            }
+
             spawnedPlayers.Add(player);
         }
 
         if (target == null && spawnedPlayers.Count > 0)
         {
             target = spawnedPlayers[0].transform;
+        }
+    }
+
+    private static int CreateNetworkSeed(int generation, int logicalLayer)
+    {
+        unchecked
+        {
+            return generation * 397 ^ logicalLayer;
         }
     }
 

@@ -265,6 +265,32 @@ public class Aidata : MonoBehaviour
         ResizePreserving(ref outputBiases, outputNodeCount);
     }
 
+    public void RandomizeNetwork(int seed)
+    {
+        EnsureNeuralNetworkShape();
+
+        System.Random random = new System.Random(seed);
+        RandomizeWeights(
+            inputToLayer1Weights,
+            inputNodeCount,
+            layer1NodeCount,
+            random);
+        RandomizeWeights(
+            layer1ToLayer2Weights,
+            layer1NodeCount,
+            layer2NodeCount,
+            random);
+        RandomizeWeights(
+            layer2ToOutputWeights,
+            layer2NodeCount,
+            MovementOutputNodeCount,
+            random);
+
+        Array.Clear(layer1Biases, 0, layer1Biases.Length);
+        Array.Clear(layer2Biases, 0, layer2Biases.Length);
+        Array.Clear(outputBiases, 0, outputBiases.Length);
+    }
+
     private AiSaveData CaptureData()
     {
         AiSaveData data = new AiSaveData
@@ -384,6 +410,20 @@ public class Aidata : MonoBehaviour
         if (values.Length != length)
         {
             Array.Resize(ref values, length);
+        }
+    }
+
+    private static void RandomizeWeights(
+        float[] weights,
+        int inputCount,
+        int outputCount,
+        System.Random random)
+    {
+        float limit = Mathf.Sqrt(6f / (inputCount + outputCount));
+        for (int index = 0; index < weights.Length; index++)
+        {
+            float normalized = (float)random.NextDouble() * 2f - 1f;
+            weights[index] = normalized * limit;
         }
     }
 
