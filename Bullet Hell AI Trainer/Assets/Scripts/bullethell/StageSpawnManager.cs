@@ -1,12 +1,20 @@
 using System;
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class StageSpawnManager : MonoBehaviour
 {
+    [Header("Player population")]
+    [SerializeField] private GameObject playerPrefab;
+    [SerializeField] private Transform playerSpawnPoint;
+
+    [Header("Enemy bullets")]
     [SerializeField] private GameObject enemyBulletPrefab;
     [SerializeField] private Transform spawnPoint;
     [SerializeField] private Transform target;
+
+    private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
 
     public int StageId { get; private set; } = -1;
 
@@ -15,6 +23,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     public void Initialize(int stageId)
     {
         StopAllCoroutines();
+        SpawnPlayerPopulation();
         StageId = stageId;
 
         switch (stageId)
@@ -33,6 +42,63 @@ public sealed class StageSpawnManager : MonoBehaviour
         enemyBulletPrefab = bulletPrefab;
         spawnPoint = origin;
         target = aimTarget;
+    }
+
+    private void SpawnPlayerPopulation()
+    {
+        ClearSpawnedPlayers();
+
+        if (playerPrefab == null)
+        {
+            Debug.LogWarning("Player prefab is not assigned to StageSpawnManager.");
+            return;
+        }
+
+        int populationSize = populationSetting.LoadData().populationSize;
+        Vector3 position = playerSpawnPoint != null
+            ? playerSpawnPoint.position
+            : transform.position;
+        Quaternion rotation = playerSpawnPoint != null
+            ? playerSpawnPoint.rotation
+            : Quaternion.identity;
+
+        for (int index = 0; index < populationSize; index++)
+        {
+            GameObject player = Instantiate(playerPrefab, position, rotation);
+            player.name = $"Player {index + 1}";
+            PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
+            if (playerAgent == null)
+            {
+                playerAgent = player.AddComponent<PlayerAgent>();
+            }
+
+            playerAgent.SetLogicalLayer(index);
+            spawnedPlayers.Add(player);
+        }
+
+        if (target == null && spawnedPlayers.Count > 0)
+        {
+            target = spawnedPlayers[0].transform;
+        }
+    }
+
+    private void ClearSpawnedPlayers()
+    {
+        if (target != null && spawnedPlayers.Exists(
+                player => player != null && target == player.transform))
+        {
+            target = null;
+        }
+
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player != null)
+            {
+                Destroy(player);
+            }
+        }
+
+        spawnedPlayers.Clear();
     }
 
     private IEnumerator RunStage0()
@@ -60,28 +126,59 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
+        bool spawnedForPlayer = false;
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null || !player.TryGetComponent(out PlayerAgent playerAgent))
+            {
+                continue;
+            }
+
+            SpawnBulletForTarget(request, player.transform, playerAgent.LogicalLayer);
+            spawnedForPlayer = true;
+        }
+
+        if (!spawnedForPlayer)
+        {
+            SpawnBulletForTarget(request, target, 0);
+        }
+    }
+
+    private void SpawnBulletForTarget(
+        SpawnRequest request,
+        Transform aimTarget,
+        int logicalLayer)
+    {
         Vector3 position = spawnPoint != null ? spawnPoint.position : transform.position;
-        GameObject bulletObject = Instantiate(enemyBulletPrefab, position, Quaternion.identity);
-        Rigidbody2D body = bulletObject.GetComponent<Rigidbody2D>();
 
-        if (body == null)
+        for (int index = 0; index < request.BulletCount; index++)
         {
-            return;
+            GameObject bulletObject = Instantiate(
+                enemyBulletPrefab,
+                position,
+                Quaternion.identity);
+            Rigidbody2D body = bulletObject.GetComponent<Rigidbody2D>();
+            if (body == null)
+            {
+                Debug.LogWarning("Enemy bullet prefab requires a Rigidbody2D.");
+                Destroy(bulletObject);
+                continue;
+            }
+
+            Vector2 direction = aimTarget != null
+                ? ((Vector2)aimTarget.position - body.position).normalized
+                : Vector2.down;
+            Vector2 movementVector = direction * request.Speed;
+            body.linearVelocity = movementVector;
+
+            bullet bulletData = bulletObject.GetComponent<bullet>();
+            if (bulletData == null)
+            {
+                bulletData = bulletObject.AddComponent<bullet>();
+            }
+
+            bulletData.SetData(movementVector, request.Threat, logicalLayer);
         }
-
-        Vector2 direction = target != null
-            ? ((Vector2)target.position - body.position).normalized
-            : Vector2.down;
-        Vector2 movementVector = direction * request.Speed;
-        body.linearVelocity = movementVector;
-
-        bullet bulletData = bulletObject.GetComponent<bullet>();
-        if (bulletData == null)
-        {
-            bulletData = bulletObject.AddComponent<bullet>();
-        }
-
-        bulletData.SetData(movementVector, request.Threat);
     }
 
     public enum SpawnPattern
