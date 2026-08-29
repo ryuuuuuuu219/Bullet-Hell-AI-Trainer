@@ -13,6 +13,12 @@ public sealed class PlayerShooter : MonoBehaviour
     [SerializeField, Min(0)] private int logicalLayer;
 
     private Coroutine firingRoutine;
+    private PlayerAgent playerAgent;
+
+    private void Awake()
+    {
+        playerAgent = GetComponent<PlayerAgent>();
+    }
 
     private void OnEnable()
     {
@@ -47,6 +53,11 @@ public sealed class PlayerShooter : MonoBehaviour
 
     private void FireSpread()
     {
+        if (playerAgent != null && playerAgent.IsHit)
+        {
+            return;
+        }
+
         float step = TotalSpreadDegrees / (BulletsPerShot - 1);
         float firstAngle = -TotalSpreadDegrees * 0.5f;
 

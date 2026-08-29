@@ -64,7 +64,7 @@ public static class GameSceneManager
                     "構成要素：自機狙い1way\n" +
                     "説明：弾幕シューティングとして基礎的な弾\n" +
                     "2秒ごとに発射\n" +
-                    "弾速：5\n" +
+                    "弾速：40\n" +
                     "脅威度：1\n";
             default:
                 return string.Empty;

@@ -97,7 +97,7 @@ LineRenderer:
       m_Curve:
       - serializedVersion: 3
         time: 0
-        value: 0.08
+        value: 0.8
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -106,7 +106,7 @@ LineRenderer:
         outWeight: 0.33333334
       - serializedVersion: 3
         time: 1
-        value: 0.08
+        value: 0.8
         inSlope: 0
         outSlope: 0
         tangentMode: 0
@@ -168,7 +168,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: a4c83f3045924db68919258bdff63b5d, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerTriangleRenderer
-  width: 0.08
+  width: 0.8
   sideLength: 20
   color: {r: 0.2, g: 0.9, b: 1, a: 1}
 --- !u!114 &1140000000000000001

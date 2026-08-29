@@ -291,6 +291,78 @@ public class Aidata : MonoBehaviour
         Array.Clear(outputBiases, 0, outputBiases.Length);
     }
 
+    public AiSaveData CreateSnapshot()
+    {
+        EnsureNeuralNetworkShape();
+        return CloneData(CaptureData());
+    }
+
+    public void ApplySnapshot(AiSaveData data)
+    {
+        if (data == null)
+        {
+            throw new ArgumentNullException(nameof(data));
+        }
+
+        ApplyData(CloneData(data));
+    }
+
+    public static AiSaveData CloneData(AiSaveData source)
+    {
+        if (source == null)
+        {
+            throw new ArgumentNullException(nameof(source));
+        }
+
+        AiSaveData clone = new AiSaveData
+        {
+            useProximityInput = source.useProximityInput,
+            useCircularSensorInput = source.useCircularSensorInput,
+            useWarningLineInput = source.useWarningLineInput,
+            inputNodeCount = source.inputNodeCount,
+            layer1NodeCount = source.layer1NodeCount,
+            layer2NodeCount = source.layer2NodeCount,
+            outputNodeCount = source.outputNodeCount,
+            inputToLayer1Weights = CloneArray(source.inputToLayer1Weights),
+            layer1Biases = CloneArray(source.layer1Biases),
+            layer1ToLayer2Weights = CloneArray(source.layer1ToLayer2Weights),
+            layer2Biases = CloneArray(source.layer2Biases),
+            layer2ToOutputWeights = CloneArray(source.layer2ToOutputWeights),
+            outputBiases = CloneArray(source.outputBiases),
+        };
+
+        if (source.circularSensors != null)
+        {
+            foreach (SensorCircleData sensor in source.circularSensors)
+            {
+                if (sensor == null)
+                {
+                    continue;
+                }
+
+                clone.circularSensors.Add(new SensorCircleData
+                {
+                    radius = sensor.radius,
+                    angle = sensor.angle,
+                    centerAngle = sensor.centerAngle,
+                    priority = sensor.priority,
+                    arcSegments = sensor.arcSegments,
+                });
+            }
+        }
+
+        NormalizeData(clone);
+        return clone;
+    }
+
+    public static bool HasTrainableNetwork(AiSaveData data)
+    {
+        return data != null &&
+               (HasNonZeroValue(data.inputToLayer1Weights) ||
+                HasNonZeroValue(data.layer1ToLayer2Weights) ||
+                HasNonZeroValue(data.layer2ToOutputWeights));
+    }
+
     private AiSaveData CaptureData()
     {
         AiSaveData data = new AiSaveData
@@ -411,6 +483,29 @@ public class Aidata : MonoBehaviour
         {
             Array.Resize(ref values, length);
         }
+    }
+
+    private static float[] CloneArray(float[] values)
+    {
+        return values != null ? (float[])values.Clone() : Array.Empty<float>();
+    }
+
+    private static bool HasNonZeroValue(float[] values)
+    {
+        if (values == null)
+        {
+            return false;
+        }
+
+        foreach (float value in values)
+        {
+            if (!Mathf.Approximately(value, 0f))
+            {
+                return true;
+            }
+        }
+
+        return false;
     }
 
     private static void RandomizeWeights(

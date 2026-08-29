@@ -10,8 +10,15 @@ public static class StageView
     public static void Build()
     {
         Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-        if (canvas == null || canvas.transform.Find(ButtonObjectName) != null)
+        if (canvas == null)
         {
+            return;
+        }
+
+        Button existingButton = FindButtonByObjectName(ButtonObjectName);
+        if (existingButton != null)
+        {
+            RefreshGenerationLabel();
             return;
         }
 
@@ -38,11 +45,20 @@ public static class StageView
             PopulationSettingsData data = populationSetting.LoadData();
             data.pendingManualGenerationRequests++;
             populationSetting.SaveData(data);
-            RefreshLabel(nextGenerationButton, data.pendingManualGenerationRequests);
+            RefreshLabel(nextGenerationButton, data);
         });
 
         PopulationSettingsData savedData = populationSetting.LoadData();
-        RefreshLabel(nextGenerationButton, savedData.pendingManualGenerationRequests);
+        RefreshLabel(nextGenerationButton, savedData);
+    }
+
+    public static void RefreshGenerationLabel()
+    {
+        Button button = FindButtonByObjectName(ButtonObjectName);
+        if (button != null)
+        {
+            RefreshLabel(button, populationSetting.LoadData());
+        }
     }
 
     private static Button FindButton(string label)
@@ -62,7 +78,23 @@ public static class StageView
         return null;
     }
 
-    private static void RefreshLabel(Button button, int pendingRequests)
+    private static Button FindButtonByObjectName(string objectName)
+    {
+        foreach (Button button in
+                 UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include))
+        {
+            if (button.gameObject.name == objectName)
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private static void RefreshLabel(
+        Button button,
+        PopulationSettingsData populationData)
     {
         TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
         if (text == null)
@@ -70,9 +102,10 @@ public static class StageView
             return;
         }
 
-        text.text = pendingRequests > 0
-            ? $"次世代へ（要求 {pendingRequests}）"
-            : "次世代へ";
+        text.text = populationData.pendingManualGenerationRequests > 0
+            ? $"第{populationData.currentGeneration}世代 " +
+              $"→ 次世代（要求 {populationData.pendingManualGenerationRequests}）"
+            : $"第{populationData.currentGeneration}世代 → 次世代";
         text.enableAutoSizing = true;
         text.fontSizeMin = 12f;
         text.fontSizeMax = 24f;

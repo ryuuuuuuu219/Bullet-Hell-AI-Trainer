@@ -6,7 +6,7 @@ public sealed class RegularPolygonLineRenderer : MonoBehaviour
 {
     [SerializeField, Min(3)] private int sides = 6;
     [SerializeField, Min(0.01f)] private float radius = 0.5f;
-    [SerializeField, Min(0.01f)] private float lineWidth = 0.1f;
+    [SerializeField, Min(0.01f)] private float lineWidth = 1f;
     [SerializeField] private Color color = Color.white;
 
     private LineRenderer lineRenderer;

@@ -5,6 +5,8 @@ using UnityEngine;
 
 public sealed class StageSpawnManager : MonoBehaviour
 {
+    private const float GenerationConditionCheckInterval = 0.1f;
+
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, -150f, 0f);
     private static readonly Vector3 BossSpawnPosition = new Vector3(0f, 150f, 0f);
 
@@ -20,6 +22,9 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
     private GameObject spawnedBoss;
+    private Boss spawnedBossData;
+    private float nextGenerationConditionCheckTime;
+    private bool isInitialized;
 
     public int StageId { get; private set; } = -1;
 
@@ -28,22 +33,55 @@ public sealed class StageSpawnManager : MonoBehaviour
     public void Initialize(int stageId)
     {
         StopAllCoroutines();
-        SpawnBoss();
-        SpawnPlayerPopulation();
         StageId = stageId;
+        PopulationSettingsData populationData = populationSetting.LoadData();
+        List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
+        SpawnBoss(populationData.populationSize);
+        SpawnPlayerPopulation(populationData, initialGenomes);
+        StartStagePattern();
+        nextGenerationConditionCheckTime = Time.unscaledTime;
+        isInitialized = true;
+        StageView.RefreshGenerationLabel();
+    }
 
-        switch (stageId)
+    private void Update()
+    {
+        if (!isInitialized ||
+            Time.unscaledTime < nextGenerationConditionCheckTime)
+        {
+            return;
+        }
+
+        nextGenerationConditionCheckTime = Time.unscaledTime +
+            GenerationConditionCheckInterval;
+        PopulationSettingsData populationData = populationSetting.LoadData();
+        bool hasManualRequest = populationData.pendingManualGenerationRequests > 0;
+        bool shouldAdvanceAutomatically =
+            populationData.advanceWhenAllIndividualsAreHit &&
+            AreAllPlayersHit();
+
+        if (hasManualRequest || shouldAdvanceAutomatically)
+        {
+            AdvanceGeneration(populationData, hasManualRequest);
+        }
+    }
+
+    private void StartStagePattern()
+    {
+        switch (StageId)
         {
             case 0:
                 StartCoroutine(RunStage0());
                 break;
             default:
-                Debug.LogWarning($"Spawn control is not implemented for stage ID {stageId}.");
+                Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
                 break;
         }
     }
 
-    private void SpawnPlayerPopulation()
+    private void SpawnPlayerPopulation(
+        PopulationSettingsData populationData,
+        IReadOnlyList<AiSaveData> genomes)
     {
         ClearSpawnedPlayers();
 
@@ -53,7 +91,6 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
-        PopulationSettingsData populationData = populationSetting.LoadData();
         int populationSize = populationData.populationSize;
         for (int index = 0; index < populationSize; index++)
         {
@@ -81,18 +118,37 @@ public sealed class StageSpawnManager : MonoBehaviour
             Aidata aiData = player.GetComponent<Aidata>();
             if (aiData != null)
             {
-                int seed = CreateNetworkSeed(populationData.currentGeneration, index);
-                aiData.RandomizeNetwork(seed);
+                if (genomes != null && index < genomes.Count)
+                {
+                    aiData.ApplySnapshot(genomes[index]);
+                }
+                else
+                {
+                    int seed = CreateNetworkSeed(
+                        populationData.currentGeneration,
+                        index);
+                    aiData.RandomizeNetwork(seed);
+                }
             }
+
+            PlayerEvaluationTracker tracker =
+                player.GetComponent<PlayerEvaluationTracker>();
+            if (tracker == null)
+            {
+                tracker = player.AddComponent<PlayerEvaluationTracker>();
+            }
+
+            tracker.Initialize(populationData.centerDistanceSampleIntervalSeconds);
 
             spawnedPlayers.Add(player);
         }
     }
 
-    private void SpawnBoss()
+    private void SpawnBoss(int populationSize)
     {
         if (spawnedBoss != null)
         {
+            spawnedBoss.SetActive(false);
             Destroy(spawnedBoss);
         }
 
@@ -102,13 +158,182 @@ public sealed class StageSpawnManager : MonoBehaviour
         spawnedBoss.transform.position = BossSpawnPosition;
         spawnedBoss.name = "Boss";
 
-        if (!spawnedBoss.TryGetComponent(out Boss boss))
+        if (!spawnedBoss.TryGetComponent(out spawnedBossData))
         {
-            boss = spawnedBoss.AddComponent<Boss>();
+            spawnedBossData = spawnedBoss.AddComponent<Boss>();
         }
 
-        PopulationSettingsData populationData = populationSetting.LoadData();
-        boss.SetLayerCount(populationData.populationSize);
+        spawnedBossData.SetLayerCount(populationSize);
+    }
+
+    private List<AiSaveData> BuildInitialPopulation(
+        PopulationSettingsData populationData)
+    {
+        if (populationData.currentGeneration <= 1)
+        {
+            return null;
+        }
+
+        AiSaveData savedGenome = Aidata.LoadData();
+        if (!Aidata.HasTrainableNetwork(savedGenome))
+        {
+            return null;
+        }
+
+        return GenerationGeneticAlgorithm.CreatePopulationFromSavedGenome(
+            savedGenome,
+            populationData.populationSize,
+            populationData.mutationRate,
+            CreateNetworkSeed(populationData.currentGeneration, -1));
+    }
+
+    private bool AreAllPlayersHit()
+    {
+        bool foundPlayer = false;
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerAgent playerAgent))
+            {
+                continue;
+            }
+
+            foundPlayer = true;
+            if (!playerAgent.IsHit)
+            {
+                return false;
+            }
+        }
+
+        return foundPlayer;
+    }
+
+    private void AdvanceGeneration(
+        PopulationSettingsData populationData,
+        bool consumeManualRequest)
+    {
+        List<GenerationCandidate> candidates = EvaluateCurrentGeneration(
+            populationData);
+        if (candidates.Count == 0)
+        {
+            return;
+        }
+
+        GenerationCandidate savedCandidate =
+            GenerationGeneticAlgorithm.SelectGenomeToSave(
+                candidates,
+                populationData.geneticSaveEvaluationAxis);
+        if (savedCandidate != null)
+        {
+            Aidata.SaveData(Aidata.CloneData(savedCandidate.Genome));
+        }
+
+        int completedGeneration = populationData.currentGeneration;
+        populationData.currentGeneration++;
+        if (consumeManualRequest)
+        {
+            populationData.pendingManualGenerationRequests = Mathf.Max(
+                0,
+                populationData.pendingManualGenerationRequests - 1);
+        }
+
+        populationSetting.SaveData(populationData);
+
+        List<AiSaveData> nextGenomes =
+            GenerationGeneticAlgorithm.BreedNextGeneration(
+                candidates,
+                populationData.populationSize,
+                populationData.mutationRate,
+                CreateNetworkSeed(populationData.currentGeneration, -1));
+
+        Debug.Log(
+            $"Generation {completedGeneration} completed. " +
+            $"Advancing to generation {populationData.currentGeneration}. " +
+            $"Saved layer: {savedCandidate?.LogicalLayer ?? -1}.");
+
+        StopAllCoroutines();
+        ClearAllBullets();
+        SpawnBoss(populationData.populationSize);
+        SpawnPlayerPopulation(populationData, nextGenomes);
+        StartStagePattern();
+        StageView.RefreshGenerationLabel();
+    }
+
+    private List<GenerationCandidate> EvaluateCurrentGeneration(
+        PopulationSettingsData populationData)
+    {
+        List<GenerationCandidate> candidates =
+            new List<GenerationCandidate>();
+
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerAgent playerAgent) ||
+                !player.TryGetComponent(out Aidata aiData) ||
+                !player.TryGetComponent(out PlayerEvaluationTracker tracker))
+            {
+                continue;
+            }
+
+            float damage = spawnedBossData != null
+                ? spawnedBossData.GetDamage(playerAgent.LogicalLayer)
+                : 0f;
+            GenerationCandidate candidate = new GenerationCandidate
+            {
+                LogicalLayer = playerAgent.LogicalLayer,
+                Genome = aiData.CreateSnapshot(),
+                Damage = damage,
+                SurvivalTime = tracker.SurvivalTime,
+                EdgeCollisionCumulativeTime =
+                    tracker.EdgeCollisionCumulativeTime,
+                CenterDistanceSampledSum = tracker.CenterDistanceSampledSum,
+            };
+            candidate.Score = populationData.CalculateGenerationScore(
+                candidate.Damage,
+                candidate.SurvivalTime,
+                candidate.EdgeCollisionCumulativeTime,
+                candidate.CenterDistanceSampledSum);
+            candidates.Add(candidate);
+
+            Debug.Log(
+                $"Generation {populationData.currentGeneration}, " +
+                $"layer {candidate.LogicalLayer}: score={candidate.Score:F3}, " +
+                $"damage={candidate.Damage:F3}, " +
+                $"survival={candidate.SurvivalTime:F3}, " +
+                $"edge={candidate.EdgeCollisionCumulativeTime:F3}, " +
+                $"centerSum={candidate.CenterDistanceSampledSum:F3}");
+        }
+
+        return candidates;
+    }
+
+    private static void ClearAllBullets()
+    {
+        for (int index = BulletManager.ActiveBullets.Count - 1;
+             index >= 0;
+             index--)
+        {
+            bullet enemyBullet = BulletManager.ActiveBullets[index];
+            if (enemyBullet == null)
+            {
+                continue;
+            }
+
+            enemyBullet.gameObject.SetActive(false);
+            Destroy(enemyBullet.gameObject);
+        }
+
+        PlayerBullet[] playerBullets = FindObjectsByType<PlayerBullet>();
+        foreach (PlayerBullet playerBullet in playerBullets)
+        {
+            if (playerBullet == null)
+            {
+                continue;
+            }
+
+            playerBullet.gameObject.SetActive(false);
+            Destroy(playerBullet.gameObject);
+        }
     }
 
     private static int CreateNetworkSeed(int generation, int logicalLayer)
@@ -125,6 +350,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         {
             if (player != null)
             {
+                player.SetActive(false);
                 Destroy(player);
             }
         }

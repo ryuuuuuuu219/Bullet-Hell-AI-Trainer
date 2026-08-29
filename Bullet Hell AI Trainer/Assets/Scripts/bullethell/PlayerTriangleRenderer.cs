@@ -4,7 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public sealed class PlayerTriangleRenderer : MonoBehaviour
 {
-    [SerializeField, Min(0.01f)] private float width = 0.08f;
+    [SerializeField, Min(0.01f)] private float width = 0.8f;
     [SerializeField, Min(0.01f)] private float sideLength = 20f;
     [SerializeField] private Color color = new Color(0.2f, 0.9f, 1f, 1f);
 

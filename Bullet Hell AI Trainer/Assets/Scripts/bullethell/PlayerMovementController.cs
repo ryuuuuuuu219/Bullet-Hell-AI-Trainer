@@ -7,7 +7,7 @@ public sealed class PlayerMovementController : MonoBehaviour
     private static readonly Plane MovementPlane =
         new Plane(Vector3.forward, Vector3.zero);
 
-    [SerializeField, Min(0f)] private float moveSpeed = 30f;
+    [SerializeField, Min(0f)] private float moveSpeed = 300f;
 
     private Aidata aiData;
     private PlayerAgent playerAgent;
