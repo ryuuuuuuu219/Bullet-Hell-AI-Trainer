@@ -59,7 +59,7 @@ internal sealed class LegacyPopulationSettingsData
 public class populationSetting : MonoBehaviour
 {
     public const int MinimumPopulationSize = 1;
-    public const int MaximumPopulationSize = 10;
+    public const int MaximumPopulationSize = 40;
     public const int MinimumEliteCount = 1;
     public const int MaximumEliteCount = 2;
     public const float MaximumMutationStrength = 0.5f;

@@ -46,10 +46,23 @@ public sealed class bullet : MonoBehaviour
 
     public void SetData(Vector2 movementVector, int threat, int layer)
     {
+        bool refreshRegistration = isActiveAndEnabled &&
+                                   logicalLayer != Mathf.Max(0, layer);
+        if (refreshRegistration)
+        {
+            BulletManager.Unregister(this);
+        }
+
+        gameObject.layer = ProjectileCollisionLayers.EnemyBullet;
         vector = movementVector;
         threatLevel = Mathf.Max(0, threat);
         logicalLayer = Mathf.Max(0, layer);
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
+
+        if (refreshRegistration)
+        {
+            BulletManager.Register(this);
+        }
     }
 
     private void OnTriggerEnter2D(Collider2D other)
@@ -61,7 +74,7 @@ public sealed class bullet : MonoBehaviour
         }
 
         player.RegisterHit(this);
-        Destroy(gameObject);
+        ProjectilePool.Release(gameObject);
     }
 
 #if UNITY_EDITOR

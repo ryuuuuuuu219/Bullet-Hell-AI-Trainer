@@ -36,10 +36,12 @@ public static class AttentionSensor
         List<AttentionObservation> candidates =
             new List<AttentionObservation>();
 
-        foreach (bullet candidate in BulletManager.ActiveBullets)
+        IReadOnlyList<bullet> activeBullets = logicalLayer >= 0
+            ? BulletManager.GetActiveBullets(logicalLayer)
+            : BulletManager.ActiveBullets;
+        foreach (bullet candidate in activeBullets)
         {
-            if (candidate == null ||
-                (logicalLayer >= 0 && candidate.LogicalLayer != logicalLayer))
+            if (candidate == null)
             {
                 continue;
             }

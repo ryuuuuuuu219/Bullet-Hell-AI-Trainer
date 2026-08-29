@@ -56,6 +56,7 @@ public sealed class Boss : MonoBehaviour
 
     private void EnsureCollisionShape()
     {
+        gameObject.layer = ProjectileCollisionLayers.BossHitbox;
         CircleCollider2D collisionShape = GetComponent<CircleCollider2D>();
         if (collisionShape == null)
         {

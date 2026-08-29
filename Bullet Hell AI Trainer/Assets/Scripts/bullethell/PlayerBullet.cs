@@ -13,6 +13,7 @@ public sealed class PlayerBullet : MonoBehaviour
 
     public void Initialize(Vector2 velocity, int layer)
     {
+        gameObject.layer = ProjectileCollisionLayers.PlayerBullet;
         damage = 1f;
         damageDecayPerSecond = 0.1f;
         logicalLayer = Mathf.Max(0, layer);
@@ -28,7 +29,7 @@ public sealed class PlayerBullet : MonoBehaviour
         damage = Mathf.Max(0f, damage - damageDecayPerSecond * Time.deltaTime);
         if (damage <= 0f)
         {
-            Destroy(gameObject);
+            ProjectilePool.Release(gameObject);
         }
     }
 
@@ -41,6 +42,6 @@ public sealed class PlayerBullet : MonoBehaviour
         }
 
         boss.RegisterDamage(logicalLayer, damage);
-        Destroy(gameObject);
+        ProjectilePool.Release(gameObject);
     }
 }

@@ -4,6 +4,10 @@ using UnityEngine;
 public sealed class BulletManager : MonoBehaviour
 {
     private static readonly List<bullet> ActiveBulletList = new List<bullet>();
+    private static readonly Dictionary<int, List<bullet>> ActiveBulletsByLayer =
+        new Dictionary<int, List<bullet>>();
+    private static readonly IReadOnlyList<bullet> EmptyBulletList =
+        new List<bullet>();
     private static BulletManager instance;
 
     public static IReadOnlyList<bullet> ActiveBullets => ActiveBulletList;
@@ -13,6 +17,7 @@ public sealed class BulletManager : MonoBehaviour
     private static void ResetStaticState()
     {
         ActiveBulletList.Clear();
+        ActiveBulletsByLayer.Clear();
         instance = null;
     }
 
@@ -34,6 +39,20 @@ public sealed class BulletManager : MonoBehaviour
         {
             ActiveBulletList.Add(bulletData);
         }
+
+        int logicalLayer = bulletData.LogicalLayer;
+        if (!ActiveBulletsByLayer.TryGetValue(
+                logicalLayer,
+                out List<bullet> layerBullets))
+        {
+            layerBullets = new List<bullet>();
+            ActiveBulletsByLayer.Add(logicalLayer, layerBullets);
+        }
+
+        if (!layerBullets.Contains(bulletData))
+        {
+            layerBullets.Add(bulletData);
+        }
     }
 
     public static void Unregister(bullet bulletData)
@@ -41,7 +60,22 @@ public sealed class BulletManager : MonoBehaviour
         if (bulletData != null)
         {
             ActiveBulletList.Remove(bulletData);
+            if (ActiveBulletsByLayer.TryGetValue(
+                    bulletData.LogicalLayer,
+                    out List<bullet> layerBullets))
+            {
+                layerBullets.Remove(bulletData);
+            }
         }
+    }
+
+    public static IReadOnlyList<bullet> GetActiveBullets(int logicalLayer)
+    {
+        return ActiveBulletsByLayer.TryGetValue(
+            logicalLayer,
+            out List<bullet> layerBullets)
+            ? layerBullets
+            : EmptyBulletList;
     }
 
     public static bool TryGetNearest(Vector2 position, out bullet nearestBullet)
@@ -57,17 +91,20 @@ public sealed class BulletManager : MonoBehaviour
         nearestBullet = null;
         float nearestSqrDistance = float.PositiveInfinity;
 
-        for (int index = ActiveBulletList.Count - 1; index >= 0; index--)
+        List<bullet> candidates = logicalLayer >= 0 &&
+                                  ActiveBulletsByLayer.TryGetValue(
+                                      logicalLayer,
+                                      out List<bullet> layerBullets)
+            ? layerBullets
+            : ActiveBulletList;
+
+        for (int index = candidates.Count - 1; index >= 0; index--)
         {
-            bullet candidate = ActiveBulletList[index];
+            bullet candidate = candidates[index];
             if (candidate == null || !candidate.isActiveAndEnabled)
             {
-                ActiveBulletList.RemoveAt(index);
-                continue;
-            }
-
-            if (logicalLayer >= 0 && candidate.LogicalLayer != logicalLayer)
-            {
+                candidates.RemoveAt(index);
+                ActiveBulletList.Remove(candidate);
                 continue;
             }
 

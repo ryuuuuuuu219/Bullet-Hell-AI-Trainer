@@ -72,7 +72,10 @@ public sealed class PlayerShooter : MonoBehaviour
     private void SpawnBullet(Vector2 velocity)
     {
         GameObject bulletObject = bulletPrefab != null
-            ? Instantiate(bulletPrefab, transform.position, Quaternion.identity)
+            ? ProjectilePool.Acquire(
+                bulletPrefab,
+                transform.position,
+                Quaternion.identity)
             : new GameObject($"Player Bullet L{logicalLayer}");
         bulletObject.name = $"Player Bullet L{logicalLayer}";
 
@@ -90,7 +93,7 @@ public sealed class PlayerShooter : MonoBehaviour
         }
 
         body.gravityScale = 0f;
-        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
+        body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
 
         CircleCollider2D collisionShape = bulletObject.GetComponent<CircleCollider2D>();
         if (collisionShape == null)
@@ -108,5 +111,6 @@ public sealed class PlayerShooter : MonoBehaviour
         }
 
         bulletData.Initialize(velocity, logicalLayer);
+        bulletObject.SetActive(true);
     }
 }

@@ -30,8 +30,17 @@ public sealed class CircularSensor : MonoBehaviour
     public float priority = 1f;
     [Range(3, 64)] public int arcSegments = 16;
 
-    private PolygonCollider2D sensorCollider;
-    private int detectedBulletCount;
+    private PlayerAgent player;
+
+    private void Awake()
+    {
+        player = GetComponentInParent<PlayerAgent>();
+    }
+
+    private void OnEnable()
+    {
+        RemoveLegacyPhysicsComponents();
+    }
 
     public static List<CircularSensorData> CreateDefaultData()
     {
@@ -60,84 +69,72 @@ public sealed class CircularSensor : MonoBehaviour
         }
     }
 
-    private void Start()
-    {
-        ConfigurePhysics();
-        RebuildFanCollider();
-    }
-
     public void RebuildFanCollider()
     {
-        sensorCollider ??= GetComponent<PolygonCollider2D>();
-        if (sensorCollider == null)
-        {
-            sensorCollider = gameObject.AddComponent<PolygonCollider2D>();
-        }
-
-        sensorCollider.isTrigger = true;
         radius = Mathf.Max(0.01f, radius);
         innerRadius = Mathf.Clamp(innerRadius, 0f, radius);
         angle = Mathf.Clamp(angle, 1f, 359f);
         arcSegments = Mathf.Clamp(arcSegments, 3, 64);
-
-        Vector2[] points = new Vector2[arcSegments + 2];
-        points[0] = Vector2.zero;
-
-        float startAngle = centerAngle - angle * 0.5f;
-        for (int index = 0; index <= arcSegments; index++)
-        {
-            float interpolation = index / (float)arcSegments;
-            float theta = Mathf.Deg2Rad * (startAngle + angle * interpolation);
-            points[index + 1] = new Vector2(
-                radius * Mathf.Cos(theta),
-                radius * Mathf.Sin(theta));
-        }
-
-        sensorCollider.pathCount = 1;
-        sensorCollider.SetPath(0, points);
     }
 
     public int Sense()
     {
-        int count = detectedBulletCount;
-        detectedBulletCount = 0;
+        if (player == null)
+        {
+            player = GetComponentInParent<PlayerAgent>();
+        }
+
+        if (player == null)
+        {
+            return 0;
+        }
+
+        int count = 0;
+        float innerRadiusSquared = innerRadius * innerRadius;
+        float radiusSquared = radius * radius;
+        foreach (bullet detectedBullet in
+                 BulletManager.GetActiveBullets(player.LogicalLayer))
+        {
+            if (detectedBullet == null)
+            {
+                continue;
+            }
+
+            Vector2 localPosition = transform.InverseTransformPoint(
+                detectedBullet.transform.position);
+            float distanceSquared = localPosition.sqrMagnitude;
+            if (distanceSquared <= innerRadiusSquared ||
+                distanceSquared > radiusSquared)
+            {
+                continue;
+            }
+
+            float bulletAngle = Mathf.Atan2(localPosition.y, localPosition.x) *
+                                Mathf.Rad2Deg;
+            if (Mathf.Abs(Mathf.DeltaAngle(centerAngle, bulletAngle)) <=
+                angle * 0.5f)
+            {
+                count++;
+            }
+        }
+
         return count;
     }
 
-    private void ConfigurePhysics()
+    private void RemoveLegacyPhysicsComponents()
     {
-        Rigidbody2D body = GetComponent<Rigidbody2D>();
-        if (body == null)
+        foreach (Collider2D sensorCollider in GetComponents<Collider2D>())
         {
-            body = gameObject.AddComponent<Rigidbody2D>();
+            sensorCollider.enabled = false;
+            Destroy(sensorCollider);
         }
 
-        body.bodyType = RigidbodyType2D.Kinematic;
-        body.gravityScale = 0f;
-    }
-
-    private void OnTriggerStay2D(Collider2D collision)
-    {
-        if (!collision.TryGetComponent(out bullet detectedBullet))
+        Rigidbody2D sensorBody = GetComponent<Rigidbody2D>();
+        if (sensorBody != null)
         {
-            return;
+            sensorBody.simulated = false;
+            Destroy(sensorBody);
         }
-
-        PlayerAgent player = GetComponentInParent<PlayerAgent>();
-        if (player != null && detectedBullet.LogicalLayer != player.LogicalLayer)
-        {
-            return;
-        }
-
-        float distance = Vector2.Distance(
-            transform.position,
-            detectedBullet.transform.position);
-        if (distance <= innerRadius)
-        {
-            return;
-        }
-
-        detectedBulletCount++;
     }
 
 #if UNITY_EDITOR
@@ -148,12 +145,7 @@ public sealed class CircularSensor : MonoBehaviour
         angle = Mathf.Clamp(angle, 1f, 359f);
         arcSegments = Mathf.Clamp(arcSegments, 3, 64);
 
-        if (gameObject.scene.IsValid() &&
-            TryGetComponent(out PolygonCollider2D existingCollider))
-        {
-            sensorCollider = existingCollider;
-            RebuildFanCollider();
-        }
+        RebuildFanCollider();
     }
 
     private void OnDrawGizmosSelected()

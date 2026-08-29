@@ -365,8 +365,7 @@ public sealed class StageSpawnManager : MonoBehaviour
                 continue;
             }
 
-            enemyBullet.gameObject.SetActive(false);
-            Destroy(enemyBullet.gameObject);
+            ProjectilePool.Release(enemyBullet.gameObject);
         }
 
         PlayerBullet[] playerBullets = FindObjectsByType<PlayerBullet>();
@@ -377,8 +376,7 @@ public sealed class StageSpawnManager : MonoBehaviour
                 continue;
             }
 
-            playerBullet.gameObject.SetActive(false);
-            Destroy(playerBullet.gameObject);
+            ProjectilePool.Release(playerBullet.gameObject);
         }
     }
 
@@ -458,7 +456,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         for (int index = 0; index < request.BulletCount; index++)
         {
-            GameObject bulletObject = Instantiate(
+            GameObject bulletObject = ProjectilePool.Acquire(
                 enemyBulletPrefab,
                 position,
                 Quaternion.identity);
@@ -466,7 +464,7 @@ public sealed class StageSpawnManager : MonoBehaviour
             if (body == null)
             {
                 Debug.LogWarning("Enemy bullet prefab requires a Rigidbody2D.");
-                Destroy(bulletObject);
+                ProjectilePool.Release(bulletObject);
                 continue;
             }
 
@@ -474,6 +472,7 @@ public sealed class StageSpawnManager : MonoBehaviour
                 ? ((Vector2)aimTarget.position - body.position).normalized
                 : Vector2.down;
             Vector2 movementVector = direction * request.Speed;
+            body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
             body.linearVelocity = movementVector;
 
             bullet bulletData = bulletObject.GetComponent<bullet>();
@@ -483,6 +482,7 @@ public sealed class StageSpawnManager : MonoBehaviour
             }
 
             bulletData.SetData(movementVector, request.Threat, logicalLayer);
+            bulletObject.SetActive(true);
         }
     }
 

@@ -40,6 +40,7 @@ public sealed class PlayerAgent : MonoBehaviour
 
     private void EnsureCollisionShape()
     {
+        gameObject.layer = ProjectileCollisionLayers.PlayerHitbox;
         CircleCollider2D collisionShape = GetComponent<CircleCollider2D>();
         if (collisionShape == null)
         {
