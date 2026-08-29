@@ -96,6 +96,7 @@ public static class GameSceneManager
                 break;
             case StageSceneName:
                 BindButton("back", LoadStageSelect);
+                StageView.Build();
                 ConfigureStageSpawner();
                 break;
         }

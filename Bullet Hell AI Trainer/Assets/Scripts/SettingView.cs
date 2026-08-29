@@ -1,4 +1,5 @@
 using System;
+using System.Collections.Generic;
 using TMPro;
 using UnityEngine;
 using UnityEngine.UI;
@@ -23,12 +24,10 @@ public static class SettingView
     private static readonly bool[] InputEnabled = { true, true, true };
     private static readonly bool[] RewardEnabled = { true, true, true, true };
 
-    private static readonly Color EnabledColor = new Color(0.45f, 0.72f, 0.92f, 1f);
-    private static readonly Color DisabledColor = new Color(0.38f, 0.38f, 0.38f, 1f);
-    private static readonly Color ActionColor = new Color(0.86f, 0.86f, 0.86f, 1f);
-    private static readonly Color TextColor = new Color(0.12f, 0.12f, 0.12f, 1f);
+    private static GameObject settingItemTemplate;
 
     public static int PopulationSize { get; private set; } = populationSetting.MaximumPopulationSize;
+    public static float MutationRate { get; private set; } = 0.01f;
     public static bool AdvanceWhenAllIndividualsAreHit { get; private set; } = true;
     public static int PendingManualGenerationRequests { get; private set; }
 
@@ -61,10 +60,9 @@ public static class SettingView
         LoadSavedSettings();
 
         Canvas canvas = UnityEngine.Object.FindAnyObjectByType<Canvas>();
-        GameObject inputContent = GameObject.Find("Content");
-        if (canvas == null || inputContent == null)
+        if (canvas == null)
         {
-            Debug.LogWarning("Setting scene Canvas or Input Content was not found.");
+            Debug.LogWarning("Setting scene Canvas was not found.");
             return;
         }
 
@@ -73,20 +71,57 @@ public static class SettingView
             return;
         }
 
+        settingItemTemplate = FindAndHideSettingItemTemplate(canvas);
+        if (settingItemTemplate == null)
+        {
+            Debug.LogWarning("Setting item Image.prefab instance was not found in Setting scene.");
+            return;
+        }
+
+        ScrollRect inputScroll = FindScrollRect("Scroll View");
+        ScrollRect rewardScroll = FindScrollRect("Scroll View (1)");
+        ScrollRect generationScroll = FindScrollRect("Scroll View (2)");
+        if (inputScroll?.content == null ||
+            rewardScroll?.content == null ||
+            generationScroll?.content == null)
+        {
+            Debug.LogWarning("Setting scene Input, Reward, or Generation Scroll View Content was not found.");
+            return;
+        }
+
         TMP_FontAsset font = FindSettingFont();
-        BuildInputButtons(inputContent, font);
-
-        RectTransform controls = CreateRectObject("Setting Controls", canvas.transform);
-        controls.anchorMin = new Vector2(0.5f, 0.5f);
-        controls.anchorMax = new Vector2(0.5f, 0.5f);
-        controls.anchoredPosition = Vector2.zero;
-        controls.sizeDelta = Vector2.zero;
-
-        BuildRewardButtons(controls, font);
-        BuildGenerationButtons(controls, font);
+        CreateRectObject("Setting Controls", canvas.transform);
+        BuildInputButtons(inputScroll.content.gameObject, font);
+        BuildRewardButtons(rewardScroll.content.gameObject, font);
+        BuildGenerationButtons(generationScroll.content.gameObject, font);
     }
 
     private static void BuildInputButtons(GameObject contentObject, TMP_FontAsset font)
+    {
+        ConfigureContentLayout(contentObject);
+
+        for (int index = 0; index < InputLabels.Length; index++)
+        {
+            int capturedIndex = index;
+            CreateSettingItem(
+                contentObject.transform,
+                $"Input Item {index}",
+                InputLabels[index],
+                0f,
+                1f,
+                InputEnabled[capturedIndex] ? 1f : 0f,
+                true,
+                value =>
+                {
+                    InputEnabled[capturedIndex] = value >= 0.5f;
+                    SaveInputSettings();
+                },
+                value => value >= 0.5f ? "ON" : "OFF",
+                font);
+        }
+    }
+
+    private static void ConfigureContentLayout(GameObject contentObject)
     {
         VerticalLayoutGroup layout = contentObject.GetComponent<VerticalLayoutGroup>();
         if (layout == null)
@@ -110,280 +145,207 @@ public static class SettingView
 
         fitter.horizontalFit = ContentSizeFitter.FitMode.Unconstrained;
         fitter.verticalFit = ContentSizeFitter.FitMode.PreferredSize;
-
-        for (int index = 0; index < InputLabels.Length; index++)
-        {
-            int capturedIndex = index;
-            CreateToggleButton(
-                contentObject.transform,
-                $"Input Button {index}",
-                InputLabels[index],
-                () => InputEnabled[capturedIndex],
-                () =>
-                {
-                    InputEnabled[capturedIndex] = !InputEnabled[capturedIndex];
-                    SaveInputSettings();
-                },
-                font);
-        }
     }
 
-    private static void BuildRewardButtons(Transform parent, TMP_FontAsset font)
+    private static void BuildRewardButtons(GameObject contentObject, TMP_FontAsset font)
     {
-        RectTransform panel = CreateVerticalPanel(
-            "Reward Buttons",
-            parent,
-            new Vector2(-224.58f, 245f),
-            new Vector2(330f, 330f));
+        ConfigureContentLayout(contentObject);
 
         for (int index = 0; index < RewardLabels.Length; index++)
         {
             int capturedIndex = index;
-            CreateToggleButton(
-                panel,
-                $"Reward Button {index}",
+            CreateSettingItem(
+                contentObject.transform,
+                $"Reward Item {index}",
                 RewardLabels[index],
-                () => RewardEnabled[capturedIndex],
-                () =>
+                0f,
+                1f,
+                RewardEnabled[capturedIndex] ? 1f : 0f,
+                true,
+                value =>
                 {
-                    RewardEnabled[capturedIndex] = !RewardEnabled[capturedIndex];
+                    RewardEnabled[capturedIndex] = value >= 0.5f;
                     SavePopulationSettings();
                 },
+                value => value >= 0.5f ? "ON" : "OFF",
                 font);
         }
     }
 
-    private static void BuildGenerationButtons(Transform parent, TMP_FontAsset font)
+    private static void BuildGenerationButtons(GameObject contentObject, TMP_FontAsset font)
     {
-        RectTransform panel = CreateVerticalPanel(
-            "Generation Buttons",
-            parent,
-            new Vector2(-224.58f, -245f),
-            new Vector2(330f, 330f));
+        ConfigureContentLayout(contentObject);
 
-        RectTransform populationRow = CreateRectObject("Population Row", panel);
-        LayoutElement rowLayout = populationRow.gameObject.AddComponent<LayoutElement>();
-        rowLayout.preferredHeight = 62f;
-
-        HorizontalLayoutGroup horizontal = populationRow.gameObject.AddComponent<HorizontalLayoutGroup>();
-        horizontal.spacing = 8f;
-        horizontal.childAlignment = TextAnchor.MiddleCenter;
-        horizontal.childControlWidth = true;
-        horizontal.childControlHeight = true;
-        horizontal.childForceExpandWidth = false;
-        horizontal.childForceExpandHeight = true;
-
-        CreateActionButton(populationRow, "Population Minus", "－", () =>
-        {
-            PopulationSize = Mathf.Max(
-                populationSetting.MinimumPopulationSize,
-                PopulationSize - 1);
-            SavePopulationSettings();
-            RefreshPopulationLabel(populationRow);
-        }, font, 62f);
-
-        CreateLabel(populationRow, "Population Value", GetPopulationLabel(), font, 180f);
-
-        CreateActionButton(populationRow, "Population Plus", "＋", () =>
-        {
-            PopulationSize = Mathf.Min(
-                populationSetting.MaximumPopulationSize,
-                PopulationSize + 1);
-            SavePopulationSettings();
-            RefreshPopulationLabel(populationRow);
-        }, font, 62f);
-
-        CreateToggleButton(
-            panel,
-            "Generation Mode",
-            "全滅時の世代更新",
-            () => AdvanceWhenAllIndividualsAreHit,
-            () =>
+        CreateSettingItem(
+            contentObject.transform,
+            "Population Item",
+            "個体数",
+            populationSetting.MinimumPopulationSize,
+            populationSetting.MaximumPopulationSize,
+            PopulationSize,
+            true,
+            value =>
             {
-                AdvanceWhenAllIndividualsAreHit = !AdvanceWhenAllIndividualsAreHit;
+                PopulationSize = Mathf.RoundToInt(value);
                 SavePopulationSettings();
             },
-            font,
-            enabledSuffix: "自動",
-            disabledSuffix: "任意");
-
-        Button manualButton = CreateActionButton(
-            panel,
-            "Next Generation",
-            "次世代へ",
-            null,
+            value => Mathf.RoundToInt(value).ToString(),
             font);
 
-        manualButton.onClick.AddListener(() =>
-        {
-            PendingManualGenerationRequests++;
-            SavePopulationSettings();
-            TMP_Text text = manualButton.GetComponentInChildren<TMP_Text>(true);
-            if (text != null)
+        CreateSettingItem(
+            contentObject.transform,
+            "Mutation Rate Item",
+            "突然変異率",
+            0f,
+            1f,
+            MutationRate,
+            false,
+            value =>
             {
-                text.text = $"次世代へ（要求 {PendingManualGenerationRequests}）";
-            }
-        });
+                MutationRate = value;
+                SavePopulationSettings();
+            },
+            value => value.ToString("0.000"),
+            font);
+
+        CreateSettingItem(
+            contentObject.transform,
+            "Generation Mode Item",
+            "全滅時の世代更新",
+            0f,
+            1f,
+            AdvanceWhenAllIndividualsAreHit ? 1f : 0f,
+            true,
+            value =>
+            {
+                AdvanceWhenAllIndividualsAreHit = value >= 0.5f;
+                SavePopulationSettings();
+            },
+            value => value >= 0.5f ? "自動" : "任意",
+            font,
+            preferredHeight: 62f);
+
     }
 
-    private static RectTransform CreateVerticalPanel(
-        string name,
-        Transform parent,
-        Vector2 anchoredPosition,
-        Vector2 size)
+    private static ScrollRect FindScrollRect(string objectName)
     {
-        RectTransform panel = CreateRectObject(name, parent);
-        panel.anchorMin = new Vector2(0.5f, 0.5f);
-        panel.anchorMax = new Vector2(0.5f, 0.5f);
-        panel.anchoredPosition = anchoredPosition;
-        panel.sizeDelta = size;
-
-        VerticalLayoutGroup layout = panel.gameObject.AddComponent<VerticalLayoutGroup>();
-        layout.spacing = 12f;
-        layout.childAlignment = TextAnchor.UpperCenter;
-        layout.childControlWidth = true;
-        layout.childControlHeight = true;
-        layout.childForceExpandWidth = true;
-        layout.childForceExpandHeight = false;
-        return panel;
-    }
-
-    private static Button CreateToggleButton(
-        Transform parent,
-        string objectName,
-        string label,
-        Func<bool> getValue,
-        Action toggleValue,
-        TMP_FontAsset font,
-        string enabledSuffix = "ON",
-        string disabledSuffix = "OFF")
-    {
-        Button button = CreateActionButton(parent, objectName, string.Empty, null, font);
-
-        void Refresh()
+        foreach (ScrollRect scrollRect in
+                 UnityEngine.Object.FindObjectsByType<ScrollRect>(FindObjectsInactive.Include))
         {
-            bool enabled = getValue();
-            button.image.color = enabled ? EnabledColor : DisabledColor;
-            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
-            if (text != null)
+            if (scrollRect.gameObject.name == objectName)
             {
-                text.text = $"{label}：{(enabled ? enabledSuffix : disabledSuffix)}";
-                text.color = enabled ? TextColor : Color.white;
+                return scrollRect;
             }
         }
 
-        button.onClick.AddListener(() =>
+        return null;
+    }
+
+    private static GameObject FindAndHideSettingItemTemplate(Canvas canvas)
+    {
+        HashSet<GameObject> prefabRoots = new HashSet<GameObject>();
+        foreach (Slider slider in UnityEngine.Object.FindObjectsByType<Slider>(FindObjectsInactive.Include))
         {
-            toggleValue();
-            Refresh();
+            Transform root = slider.transform;
+            while (root.parent != null && root.name != "Image")
+            {
+                root = root.parent;
+            }
+
+            if (root.name == "Image" && root.IsChildOf(canvas.transform))
+            {
+                prefabRoots.Add(root.gameObject);
+            }
+        }
+
+        GameObject template = null;
+        foreach (GameObject prefabRoot in prefabRoots)
+        {
+            template ??= prefabRoot;
+            prefabRoot.SetActive(false);
+        }
+
+        return template;
+    }
+
+    private static GameObject CreateSettingItem(
+        Transform parent,
+        string objectName,
+        string label,
+        float minimum,
+        float maximum,
+        float initialValue,
+        bool wholeNumbers,
+        Action<float> valueChanged,
+        Func<float, string> formatValue,
+        TMP_FontAsset font,
+        float preferredHeight = 62f)
+    {
+        GameObject item = UnityEngine.Object.Instantiate(settingItemTemplate, parent, false);
+        item.name = objectName;
+        item.SetActive(true);
+
+        LayoutElement layout = item.GetComponent<LayoutElement>();
+        if (layout == null)
+        {
+            layout = item.AddComponent<LayoutElement>();
+        }
+
+        layout.preferredHeight = preferredHeight;
+        layout.minHeight = preferredHeight;
+
+        TMP_Text labelText = null;
+        TMP_Text valueText = null;
+        foreach (TMP_Text text in item.GetComponentsInChildren<TMP_Text>(true))
+        {
+            if (text.gameObject.name == "Text (TMP)")
+            {
+                labelText = text;
+            }
+            else if (text.gameObject.name == "Text (TMP) (1)")
+            {
+                valueText = text;
+            }
+
+            if (font != null)
+            {
+                text.font = font;
+            }
+        }
+
+        if (labelText != null)
+        {
+            labelText.text = label;
+        }
+
+        Slider slider = item.GetComponentInChildren<Slider>(true);
+        if (slider == null)
+        {
+            Debug.LogWarning($"Setting item Slider was not found: {objectName}");
+            return item;
+        }
+
+        slider.onValueChanged.RemoveAllListeners();
+        slider.minValue = minimum;
+        slider.maxValue = maximum;
+        slider.wholeNumbers = wholeNumbers;
+        slider.SetValueWithoutNotify(initialValue);
+
+        void RefreshValue(float value)
+        {
+            if (valueText != null)
+            {
+                valueText.text = formatValue(value);
+            }
+        }
+
+        slider.onValueChanged.AddListener(value =>
+        {
+            RefreshValue(value);
+            valueChanged(value);
         });
-        Refresh();
-        return button;
-    }
-
-    private static Button CreateActionButton(
-        Transform parent,
-        string objectName,
-        string label,
-        Action action,
-        TMP_FontAsset font,
-        float preferredWidth = -1f)
-    {
-        GameObject buttonObject = new GameObject(
-            objectName,
-            typeof(RectTransform),
-            typeof(CanvasRenderer),
-            typeof(Image),
-            typeof(Button),
-            typeof(LayoutElement));
-
-        buttonObject.layer = parent.gameObject.layer;
-        buttonObject.transform.SetParent(parent, false);
-
-        Image image = buttonObject.GetComponent<Image>();
-        image.color = ActionColor;
-
-        Button button = buttonObject.GetComponent<Button>();
-        button.targetGraphic = image;
-        if (action != null)
-        {
-            button.onClick.AddListener(() => action());
-        }
-
-        LayoutElement layout = buttonObject.GetComponent<LayoutElement>();
-        layout.preferredHeight = 62f;
-        layout.minHeight = 52f;
-        if (preferredWidth > 0f)
-        {
-            layout.preferredWidth = preferredWidth;
-            layout.minWidth = preferredWidth;
-        }
-
-        CreateButtonLabel(buttonObject.transform, label, font);
-        return button;
-    }
-
-    private static void CreateButtonLabel(Transform parent, string label, TMP_FontAsset font)
-    {
-        RectTransform textRect = CreateRectObject("Label", parent);
-        textRect.anchorMin = Vector2.zero;
-        textRect.anchorMax = Vector2.one;
-        textRect.offsetMin = new Vector2(8f, 5f);
-        textRect.offsetMax = new Vector2(-8f, -5f);
-
-        TextMeshProUGUI text = textRect.gameObject.AddComponent<TextMeshProUGUI>();
-        text.text = label;
-        text.alignment = TextAlignmentOptions.Center;
-        text.color = TextColor;
-        text.fontSize = 22f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 13f;
-        text.fontSizeMax = 22f;
-        text.raycastTarget = false;
-        if (font != null)
-        {
-            text.font = font;
-        }
-    }
-
-    private static void CreateLabel(
-        Transform parent,
-        string objectName,
-        string label,
-        TMP_FontAsset font,
-        float preferredWidth)
-    {
-        RectTransform labelRect = CreateRectObject(objectName, parent);
-        LayoutElement layout = labelRect.gameObject.AddComponent<LayoutElement>();
-        layout.preferredWidth = preferredWidth;
-
-        TextMeshProUGUI text = labelRect.gameObject.AddComponent<TextMeshProUGUI>();
-        text.text = label;
-        text.alignment = TextAlignmentOptions.Center;
-        text.color = Color.white;
-        text.fontSize = 22f;
-        text.enableAutoSizing = true;
-        text.fontSizeMin = 13f;
-        text.fontSizeMax = 22f;
-        text.raycastTarget = false;
-        if (font != null)
-        {
-            text.font = font;
-        }
-    }
-
-    private static void RefreshPopulationLabel(Transform populationRow)
-    {
-        TMP_Text label = populationRow.Find("Population Value")?.GetComponent<TMP_Text>();
-        if (label != null)
-        {
-            label.text = GetPopulationLabel();
-        }
-    }
-
-    private static string GetPopulationLabel()
-    {
-        return $"個体数 {PopulationSize}";
+        RefreshValue(slider.value);
+        return item;
     }
 
     private static void LoadSavedSettings()
@@ -395,6 +357,7 @@ public static class SettingView
 
         PopulationSettingsData populationData = populationSetting.LoadData();
         PopulationSize = populationData.populationSize;
+        MutationRate = populationData.mutationRate;
         AdvanceWhenAllIndividualsAreHit = populationData.advanceWhenAllIndividualsAreHit;
         PendingManualGenerationRequests = populationData.pendingManualGenerationRequests;
         RewardEnabled[0] = populationData.evaluateDps;
@@ -416,6 +379,7 @@ public static class SettingView
     {
         PopulationSettingsData data = populationSetting.LoadData();
         data.populationSize = PopulationSize;
+        data.mutationRate = MutationRate;
         data.advanceWhenAllIndividualsAreHit = AdvanceWhenAllIndividualsAreHit;
         data.pendingManualGenerationRequests = PendingManualGenerationRequests;
         data.evaluateDps = RewardEnabled[0];
