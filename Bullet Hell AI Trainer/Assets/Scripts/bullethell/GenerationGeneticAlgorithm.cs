@@ -32,13 +32,15 @@ public sealed class GenerationCandidate
 
 public static class GenerationGeneticAlgorithm
 {
-    private const float MutationStrength = 0.1f;
+    private const int RandomIndividualCount = 2;
     private const float MaximumCoefficientMagnitude = 5f;
 
     public static List<AiSaveData> BreedNextGeneration(
         IReadOnlyList<GenerationCandidate> candidates,
         int populationSize,
         float mutationRate,
+        float mutationStrength,
+        int eliteCount,
         int seed)
     {
         List<AiSaveData> nextGeneration = new List<AiSaveData>();
@@ -51,14 +53,29 @@ public static class GenerationGeneticAlgorithm
         ranked.Sort((left, right) => right.Score.CompareTo(left.Score));
 
         System.Random random = new System.Random(seed);
-        nextGeneration.Add(Aidata.CloneData(ranked[0].Genome));
+        int protectedEliteCount = Mathf.Min(
+            Mathf.Clamp(eliteCount, 1, 2),
+            ranked.Count,
+            populationSize);
+        for (int index = 0; index < protectedEliteCount; index++)
+        {
+            nextGeneration.Add(Aidata.CloneData(ranked[index].Genome));
+        }
+
+        int randomCount = Mathf.Min(
+            RandomIndividualCount,
+            populationSize - nextGeneration.Count);
+        for (int index = 0; index < randomCount; index++)
+        {
+            nextGeneration.Add(CreateRandomGenome(ranked[0].Genome, random));
+        }
 
         while (nextGeneration.Count < populationSize)
         {
             GenerationCandidate parentA = SelectByTournament(ranked, random);
             GenerationCandidate parentB = SelectByTournament(ranked, random);
             AiSaveData child = Crossover(parentA.Genome, parentB.Genome, random);
-            Mutate(child, mutationRate, random);
+            Mutate(child, mutationRate, mutationStrength, random);
             nextGeneration.Add(child);
         }
 
@@ -96,6 +113,8 @@ public static class GenerationGeneticAlgorithm
         AiSaveData savedGenome,
         int populationSize,
         float mutationRate,
+        float mutationStrength,
+        int eliteCount,
         int seed)
     {
         GenerationCandidate source = new GenerationCandidate
@@ -107,6 +126,8 @@ public static class GenerationGeneticAlgorithm
             new[] { source },
             populationSize,
             mutationRate,
+            mutationStrength,
+            eliteCount,
             seed);
     }
 
@@ -180,20 +201,26 @@ public static class GenerationGeneticAlgorithm
     private static void Mutate(
         AiSaveData genome,
         float mutationRate,
+        float mutationStrength,
         System.Random random)
     {
         mutationRate = Mathf.Clamp01(mutationRate);
-        MutateArray(genome.inputToLayer1Weights, mutationRate, random);
-        MutateArray(genome.layer1Biases, mutationRate, random);
-        MutateArray(genome.layer1ToLayer2Weights, mutationRate, random);
-        MutateArray(genome.layer2Biases, mutationRate, random);
-        MutateArray(genome.layer2ToOutputWeights, mutationRate, random);
-        MutateArray(genome.outputBiases, mutationRate, random);
+        mutationStrength = Mathf.Clamp(
+            mutationStrength,
+            0f,
+            populationSetting.MaximumMutationStrength);
+        MutateArray(genome.inputToLayer1Weights, mutationRate, mutationStrength, random);
+        MutateArray(genome.layer1Biases, mutationRate, mutationStrength, random);
+        MutateArray(genome.layer1ToLayer2Weights, mutationRate, mutationStrength, random);
+        MutateArray(genome.layer2Biases, mutationRate, mutationStrength, random);
+        MutateArray(genome.layer2ToOutputWeights, mutationRate, mutationStrength, random);
+        MutateArray(genome.outputBiases, mutationRate, mutationStrength, random);
     }
 
     private static void MutateArray(
         float[] values,
         float mutationRate,
+        float mutationStrength,
         System.Random random)
     {
         if (values == null)
@@ -209,9 +236,54 @@ public static class GenerationGeneticAlgorithm
             }
 
             values[index] = Mathf.Clamp(
-                values[index] + NextGaussian(random) * MutationStrength,
+                values[index] + NextGaussian(random) * mutationStrength,
                 -MaximumCoefficientMagnitude,
                 MaximumCoefficientMagnitude);
+        }
+    }
+
+    private static AiSaveData CreateRandomGenome(
+        AiSaveData template,
+        System.Random random)
+    {
+        AiSaveData genome = Aidata.CloneData(template);
+        RandomizeArray(
+            genome.inputToLayer1Weights,
+            genome.inputNodeCount,
+            genome.layer1NodeCount,
+            random);
+        Array.Clear(genome.layer1Biases, 0, genome.layer1Biases.Length);
+        RandomizeArray(
+            genome.layer1ToLayer2Weights,
+            genome.layer1NodeCount,
+            genome.layer2NodeCount,
+            random);
+        Array.Clear(genome.layer2Biases, 0, genome.layer2Biases.Length);
+        RandomizeArray(
+            genome.layer2ToOutputWeights,
+            genome.layer2NodeCount,
+            genome.outputNodeCount,
+            random);
+        Array.Clear(genome.outputBiases, 0, genome.outputBiases.Length);
+        return genome;
+    }
+
+    private static void RandomizeArray(
+        float[] values,
+        int inputCount,
+        int outputCount,
+        System.Random random)
+    {
+        if (values == null)
+        {
+            return;
+        }
+
+        float limit = Mathf.Sqrt(
+            6f / (Mathf.Max(1, inputCount) + Mathf.Max(1, outputCount)));
+        for (int index = 0; index < values.Length; index++)
+        {
+            values[index] = ((float)random.NextDouble() * 2f - 1f) * limit;
         }
     }
 

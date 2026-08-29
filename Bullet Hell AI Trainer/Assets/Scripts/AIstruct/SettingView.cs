@@ -42,8 +42,10 @@ public static class SettingView
 
     private static GameObject settingItemTemplate;
 
-    public static int PopulationSize { get; private set; } = populationSetting.MaximumPopulationSize;
+    public static int PopulationSize { get; private set; } = 5;
     public static float MutationRate { get; private set; } = 0.01f;
+    public static int EliteCount { get; private set; } = 2;
+    public static float MutationStrength { get; private set; } = 0.1f;
     public static bool AdvanceWhenAllIndividualsAreHit { get; private set; } = true;
     public static int PendingManualGenerationRequests { get; private set; }
 
@@ -448,6 +450,36 @@ public static class SettingView
 
         CreateSettingItem(
             contentObject.transform,
+            "Elite Count Item",
+            "エリートの個数",
+            populationSetting.MinimumEliteCount,
+            populationSetting.MaximumEliteCount,
+            EliteCount,
+            true,
+            value =>
+            {
+                EliteCount = Mathf.RoundToInt(value);
+            },
+            value => Mathf.RoundToInt(value).ToString(),
+            font);
+
+        CreateSettingItem(
+            contentObject.transform,
+            "Mutation Strength Item",
+            "突然変異強度",
+            0f,
+            populationSetting.MaximumMutationStrength,
+            MutationStrength,
+            false,
+            value =>
+            {
+                MutationStrength = value;
+            },
+            value => value.ToString("0.000"),
+            font);
+
+        CreateSettingItem(
+            contentObject.transform,
             "Generation Mode Item",
             "全滅時の世代更新",
             0f,
@@ -612,6 +644,8 @@ public static class SettingView
         PopulationSettingsData populationData = populationSetting.LoadData();
         PopulationSize = populationData.populationSize;
         MutationRate = populationData.mutationRate;
+        EliteCount = populationData.eliteCount;
+        MutationStrength = populationData.mutationStrength;
         AdvanceWhenAllIndividualsAreHit = populationData.advanceWhenAllIndividualsAreHit;
         PendingManualGenerationRequests = populationData.pendingManualGenerationRequests;
         geneticSaveEvaluationAxis = populationData.geneticSaveEvaluationAxis;
@@ -649,6 +683,8 @@ public static class SettingView
         PopulationSettingsData data = populationSetting.LoadData();
         data.populationSize = PopulationSize;
         data.mutationRate = MutationRate;
+        data.eliteCount = EliteCount;
+        data.mutationStrength = MutationStrength;
         data.advanceWhenAllIndividualsAreHit = AdvanceWhenAllIndividualsAreHit;
         data.pendingManualGenerationRequests = PendingManualGenerationRequests;
         data.geneticSaveEvaluationAxis = geneticSaveEvaluationAxis;

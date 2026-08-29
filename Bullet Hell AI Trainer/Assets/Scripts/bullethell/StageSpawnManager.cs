@@ -191,6 +191,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             savedGenome,
             populationData.populationSize,
             populationData.mutationRate,
+            populationData.mutationStrength,
+            populationData.eliteCount,
             CreateNetworkSeed(populationData.currentGeneration, -1));
     }
 
@@ -252,6 +254,8 @@ public sealed class StageSpawnManager : MonoBehaviour
                 candidates,
                 populationData.populationSize,
                 populationData.mutationRate,
+                populationData.mutationStrength,
+                populationData.eliteCount,
                 CreateNetworkSeed(populationData.currentGeneration, -1));
 
         Debug.Log(
