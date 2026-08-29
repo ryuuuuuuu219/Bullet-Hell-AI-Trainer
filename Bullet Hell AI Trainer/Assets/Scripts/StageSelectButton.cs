@@ -6,6 +6,8 @@ public sealed class StageSelectButton : MonoBehaviour
 {
     [SerializeField] private int stageId;
 
+    public int StageId => stageId;
+
     private Button button;
 
     private void Awake()
@@ -25,5 +27,11 @@ public sealed class StageSelectButton : MonoBehaviour
     public void SelectStage()
     {
         GameSceneManager.SetStage(stageId);
+        StageSelectView.RefreshSelection();
+    }
+
+    public void SetStageId(int value)
+    {
+        stageId = value;
     }
 }

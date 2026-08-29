@@ -90,10 +90,12 @@ public static class GameSceneManager
             case StageSelectSceneName:
                 BindButton("back", LoadMainMenu);
                 BindButton("Start", LoadStage);
+                StageSelectView.Build();
                 RefreshStageDescription();
                 break;
             case StageSceneName:
                 BindButton("back", LoadStageSelect);
+                ConfigureStageSpawner();
                 break;
         }
     }
@@ -138,5 +140,17 @@ public static class GameSceneManager
         }
 
         description.text = GetStageDescription(StageId);
+    }
+
+    private static void ConfigureStageSpawner()
+    {
+        StageSpawnManager spawnManager = UnityEngine.Object.FindAnyObjectByType<StageSpawnManager>();
+        if (spawnManager == null)
+        {
+            GameObject managerObject = new GameObject(nameof(StageSpawnManager));
+            spawnManager = managerObject.AddComponent<StageSpawnManager>();
+        }
+
+        spawnManager.Initialize(StageId);
     }
 }
