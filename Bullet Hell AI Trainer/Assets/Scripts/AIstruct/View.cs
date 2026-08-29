@@ -196,9 +196,28 @@ public class View : MonoBehaviour
     [Min(0f)] public float verticalPadding = 45f;
 
     private const string GeneratedRootName = "Neural Network View";
+    private const int SensorRenderLayer = 31;
+    private const float SensorViewPadding = 1.1f;
+    private const float SensorLineWidth = 0.8f;
+
+    private static Material sensorLineMaterial;
+    private RenderTexture sensorRenderTexture;
+    private Camera sensorRenderCamera;
+    private bool sensorMode;
 
     public void Nodeset()
     {
+        Rebuild();
+    }
+
+    public void SetSensorMode(bool enabled)
+    {
+        if (sensorMode == enabled)
+        {
+            return;
+        }
+
+        sensorMode = enabled;
         Rebuild();
     }
 
@@ -230,6 +249,12 @@ public class View : MonoBehaviour
         }
 
         RectTransform root = CreateStretchRect(GeneratedRootName, area);
+        if (sensorMode)
+        {
+            CreateSensorVisualization(root, bounds, data.circularSensors);
+            return;
+        }
+
         RectTransform connectionsRoot = CreateStretchRect("Connections", root);
         RectTransform nodesRoot = CreateStretchRect("Nodes", root);
 
@@ -251,7 +276,7 @@ public class View : MonoBehaviour
         }
 
         aidata.EnsureNeuralNetworkShape();
-        return new AiSaveData
+        AiSaveData data = new AiSaveData
         {
             inputNodeCount = aidata.inputNodeCount,
             layer1NodeCount = aidata.layer1NodeCount,
@@ -261,6 +286,198 @@ public class View : MonoBehaviour
             layer1ToLayer2Weights = aidata.layer1ToLayer2Weights,
             layer2ToOutputWeights = aidata.layer2ToOutputWeights
         };
+
+        if (aidata.sensors == null)
+        {
+            return data;
+        }
+
+        foreach (CircularSensor sensor in aidata.sensors)
+        {
+            if (sensor == null)
+            {
+                continue;
+            }
+
+            data.circularSensors.Add(new CircularSensorData
+            {
+                innerRadius = sensor.innerRadius,
+                radius = sensor.radius,
+                angle = sensor.angle,
+                centerAngle = sensor.centerAngle,
+                priority = sensor.priority,
+                arcSegments = sensor.arcSegments,
+            });
+        }
+
+        return data;
+    }
+
+    private void CreateSensorVisualization(
+        RectTransform parent,
+        Rect bounds,
+        List<CircularSensorData> savedSensors)
+    {
+        List<CircularSensorData> sensors = savedSensors != null && savedSensors.Count > 0
+            ? savedSensors
+            : CircularSensor.CreateDefaultData();
+
+        int textureWidth = Mathf.Max(1, Mathf.RoundToInt(bounds.width));
+        int textureHeight = Mathf.Max(1, Mathf.RoundToInt(bounds.height));
+        sensorRenderTexture = new RenderTexture(
+            textureWidth,
+            textureHeight,
+            0,
+            RenderTextureFormat.ARGB32)
+        {
+            name = "Sensor Range Preview",
+            filterMode = FilterMode.Bilinear,
+            wrapMode = TextureWrapMode.Clamp,
+            hideFlags = HideFlags.HideAndDontSave,
+        };
+        sensorRenderTexture.Create();
+
+        RectTransform previewRect = CreateStretchRect("Sensor Range Preview", parent);
+        RawImage previewImage = previewRect.gameObject.AddComponent<RawImage>();
+        previewImage.texture = sensorRenderTexture;
+        previewImage.color = Color.white;
+        previewImage.raycastTarget = false;
+
+        GameObject worldRoot = new GameObject("Sensor Range World");
+        worldRoot.transform.SetParent(parent, false);
+        worldRoot.layer = SensorRenderLayer;
+
+        float maximumRadius = 1f;
+        foreach (CircularSensorData sensor in sensors)
+        {
+            if (sensor == null)
+            {
+                continue;
+            }
+
+            maximumRadius = Mathf.Max(maximumRadius, sensor.radius);
+            CreateSensorRangeLine(worldRoot.transform, sensor);
+        }
+
+        CreatePlayerPreview(worldRoot.transform);
+        CreateSensorCamera(
+            worldRoot.transform,
+            textureWidth,
+            textureHeight,
+            maximumRadius);
+    }
+
+    private static void CreateSensorRangeLine(
+        Transform parent,
+        CircularSensorData sensor)
+    {
+        GameObject lineObject = new GameObject("Sensor Range", typeof(LineRenderer));
+        lineObject.layer = SensorRenderLayer;
+        lineObject.transform.SetParent(parent, false);
+
+        LineRenderer line = lineObject.GetComponent<LineRenderer>();
+        line.sharedMaterial = GetSensorLineMaterial();
+        line.useWorldSpace = false;
+        line.loop = true;
+        line.startWidth = SensorLineWidth;
+        line.endWidth = SensorLineWidth;
+        line.startColor = Color.white;
+        line.endColor = Color.white;
+        line.numCornerVertices = 2;
+        line.numCapVertices = 2;
+        line.alignment = LineAlignment.TransformZ;
+
+        int segmentCount = Mathf.Clamp(sensor.arcSegments, 3, 64);
+        float outerRadius = Mathf.Max(0.01f, sensor.radius);
+        float innerRadius = Mathf.Clamp(sensor.innerRadius, 0f, outerRadius);
+        float sensorAngle = Mathf.Clamp(sensor.angle, 1f, 359f);
+        float startAngle = sensor.centerAngle - sensorAngle * 0.5f;
+
+        int outerPointCount = segmentCount + 1;
+        int innerPointCount = innerRadius > 0f ? segmentCount + 1 : 1;
+        line.positionCount = outerPointCount + innerPointCount;
+
+        for (int index = 0; index < outerPointCount; index++)
+        {
+            float interpolation = index / (float)segmentCount;
+            line.SetPosition(
+                index,
+                GetSensorPoint(outerRadius, startAngle + sensorAngle * interpolation));
+        }
+
+        if (innerRadius <= 0f)
+        {
+            line.SetPosition(outerPointCount, Vector3.zero);
+            return;
+        }
+
+        for (int index = 0; index < innerPointCount; index++)
+        {
+            float interpolation = index / (float)segmentCount;
+            line.SetPosition(
+                outerPointCount + index,
+                GetSensorPoint(innerRadius, startAngle + sensorAngle * (1f - interpolation)));
+        }
+    }
+
+    private static Vector3 GetSensorPoint(float radius, float angleDegrees)
+    {
+        float angle = angleDegrees * Mathf.Deg2Rad;
+        return new Vector3(radius * Mathf.Cos(angle), radius * Mathf.Sin(angle), 0f);
+    }
+
+    private static void CreatePlayerPreview(Transform parent)
+    {
+        GameObject playerObject = new GameObject("Player Preview", typeof(LineRenderer));
+        playerObject.layer = SensorRenderLayer;
+        playerObject.transform.SetParent(parent, false);
+        playerObject.GetComponent<LineRenderer>().sharedMaterial = GetSensorLineMaterial();
+        playerObject.AddComponent<PlayerTriangleRenderer>();
+    }
+
+    private void CreateSensorCamera(
+        Transform parent,
+        int textureWidth,
+        int textureHeight,
+        float maximumRadius)
+    {
+        GameObject cameraObject = new GameObject("Sensor Range Camera", typeof(Camera));
+        cameraObject.layer = SensorRenderLayer;
+        cameraObject.transform.SetParent(parent, false);
+        cameraObject.transform.localPosition = new Vector3(0f, 0f, -10f);
+        cameraObject.transform.localRotation = Quaternion.identity;
+
+        sensorRenderCamera = cameraObject.GetComponent<Camera>();
+        sensorRenderCamera.orthographic = true;
+        sensorRenderCamera.aspect = textureWidth / (float)textureHeight;
+        sensorRenderCamera.orthographicSize = maximumRadius * SensorViewPadding /
+                                              Mathf.Min(1f, sensorRenderCamera.aspect);
+        sensorRenderCamera.clearFlags = CameraClearFlags.SolidColor;
+        sensorRenderCamera.backgroundColor = Color.clear;
+        sensorRenderCamera.cullingMask = 1 << SensorRenderLayer;
+        sensorRenderCamera.nearClipPlane = 0.1f;
+        sensorRenderCamera.farClipPlane = 20f;
+        sensorRenderCamera.allowHDR = false;
+        sensorRenderCamera.allowMSAA = false;
+        sensorRenderCamera.targetTexture = sensorRenderTexture;
+    }
+
+    private static Material GetSensorLineMaterial()
+    {
+        if (sensorLineMaterial != null)
+        {
+            return sensorLineMaterial;
+        }
+
+        Shader shader = Shader.Find("Sprites/Default") ??
+                        Shader.Find("Universal Render Pipeline/Unlit") ??
+                        Shader.Find("UI/Default");
+        sensorLineMaterial = new Material(shader)
+        {
+            name = "Generated Sensor Line Material",
+            hideFlags = HideFlags.HideAndDontSave,
+        };
+        return sensorLineMaterial;
     }
 
     private List<NetworkNodeView> CreateLayer(
@@ -339,6 +556,28 @@ public class View : MonoBehaviour
 
     private void RemoveGeneratedView()
     {
+        if (sensorRenderCamera != null)
+        {
+            sensorRenderCamera.enabled = false;
+            sensorRenderCamera.targetTexture = null;
+            sensorRenderCamera = null;
+        }
+
+        if (sensorRenderTexture != null)
+        {
+            sensorRenderTexture.Release();
+            if (Application.isPlaying)
+            {
+                Destroy(sensorRenderTexture);
+            }
+            else
+            {
+                DestroyImmediate(sensorRenderTexture);
+            }
+
+            sensorRenderTexture = null;
+        }
+
         Transform generated = transform.Find(GeneratedRootName);
         if (generated == null)
         {

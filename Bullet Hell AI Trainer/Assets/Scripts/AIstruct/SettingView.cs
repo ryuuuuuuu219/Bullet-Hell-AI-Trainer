@@ -33,6 +33,9 @@ public static class SettingView
     private static readonly float[] RewardWeights = { 0.3f, 1f, -5f, -0.5f };
     private static readonly float[] RewardMinimums = { 0f, 0f, -10f, -10f };
     private static readonly float[] RewardMaximums = { 10f, 10f, 0f, 0f };
+    private static readonly List<CircularSensorData> SensorSettings = new List<CircularSensorData>();
+    private static readonly List<GameObject> RewardSettingItems = new List<GameObject>();
+    private static readonly List<GameObject> SensorSettingItems = new List<GameObject>();
     private static GeneticSaveEvaluationAxis geneticSaveEvaluationAxis =
         GeneticSaveEvaluationAxis.SurvivalTime;
 
@@ -105,10 +108,14 @@ public static class SettingView
 
         TMP_FontAsset font = FindSettingFont();
         CreateRectObject("Setting Controls", canvas.transform);
+        RewardSettingItems.Clear();
+        SensorSettingItems.Clear();
         BuildInputButtons(inputScroll.content.gameObject, font);
         BuildRewardButtons(rewardScroll.content.gameObject, font);
+        BuildSensorButtons(rewardScroll.content.gameObject, font);
         BuildGenerationButtons(generationScroll.content.gameObject, font);
         BuildNetworkView();
+        ConfigureGenerationButtonLabelToggle(rewardScroll, generationScroll);
         ConfigureSaveButton();
     }
 
@@ -148,6 +155,95 @@ public static class SettingView
         }
 
         Debug.LogWarning("Setting scene save button was not found.");
+    }
+
+    private static void ConfigureGenerationButtonLabelToggle(
+        ScrollRect rewardScroll,
+        ScrollRect generationScroll)
+    {
+        RectTransform rewardRect = rewardScroll.GetComponent<RectTransform>();
+        RectTransform generationRect = generationScroll.GetComponent<RectTransform>();
+        Vector2 rewardPosition = rewardRect.anchoredPosition;
+        Vector2 rewardSize = rewardRect.sizeDelta;
+
+        foreach (Button button in
+                 UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include))
+        {
+            TMP_Text label = button.GetComponentInChildren<TMP_Text>(true);
+            if (label == null || label.text.Trim() != "世代更新")
+            {
+                continue;
+            }
+
+            button.onClick.AddListener(() =>
+            {
+                bool showSensors = label.text.Trim() == "世代更新";
+                label.text = showSensors ? "センサー" : "世代更新";
+                SetSensorSettingsVisible(
+                    showSensors,
+                    rewardScroll,
+                    generationScroll,
+                    rewardRect,
+                    generationRect,
+                    rewardPosition,
+                    rewardSize);
+                SetNetworkViewSensorMode(showSensors);
+            });
+            return;
+        }
+
+        Debug.LogWarning("Setting scene generation update button was not found.");
+    }
+
+    private static void SetNetworkViewSensorMode(bool enabled)
+    {
+        foreach (View view in
+                 UnityEngine.Object.FindObjectsByType<View>(FindObjectsInactive.Include))
+        {
+            view.SetSensorMode(enabled);
+        }
+    }
+
+    private static void SetSensorSettingsVisible(
+        bool visible,
+        ScrollRect rewardScroll,
+        ScrollRect generationScroll,
+        RectTransform rewardRect,
+        RectTransform generationRect,
+        Vector2 rewardPosition,
+        Vector2 rewardSize)
+    {
+        foreach (GameObject item in RewardSettingItems)
+        {
+            item.SetActive(!visible);
+        }
+
+        foreach (GameObject item in SensorSettingItems)
+        {
+            item.SetActive(visible);
+        }
+
+        generationScroll.gameObject.SetActive(!visible);
+        if (visible)
+        {
+            float top = rewardPosition.y + rewardSize.y * (1f - rewardRect.pivot.y);
+            float bottom = generationRect.anchoredPosition.y -
+                           generationRect.sizeDelta.y * generationRect.pivot.y;
+            Vector2 expandedPosition = rewardPosition;
+            expandedPosition.y = (top + bottom) * 0.5f;
+            Vector2 expandedSize = rewardSize;
+            expandedSize.y = top - bottom;
+            rewardRect.anchoredPosition = expandedPosition;
+            rewardRect.sizeDelta = expandedSize;
+        }
+        else
+        {
+            rewardRect.anchoredPosition = rewardPosition;
+            rewardRect.sizeDelta = rewardSize;
+        }
+
+        Canvas.ForceUpdateCanvases();
+        rewardScroll.verticalNormalizedPosition = 1f;
     }
 
     private static void SaveSettingsAndRedrawNetwork()
@@ -225,7 +321,7 @@ public static class SettingView
     {
         ConfigureContentLayout(contentObject);
 
-        CreateSettingItem(
+        RewardSettingItems.Add(CreateSettingItem(
             contentObject.transform,
             "Genetic Save Evaluation Axis Item",
             "遺伝子保存評価軸",
@@ -243,12 +339,12 @@ public static class SettingView
                 0,
                 GeneticSaveAxisLabels.Length - 1)],
             font,
-            preferredHeight: 72f);
+            preferredHeight: 72f));
 
         for (int index = 0; index < RewardLabels.Length; index++)
         {
             int capturedIndex = index;
-            CreateSettingItem(
+            RewardSettingItems.Add(CreateSettingItem(
                 contentObject.transform,
                 $"Reward Item {index}",
                 RewardLabels[index],
@@ -261,7 +357,57 @@ public static class SettingView
                     RewardWeights[capturedIndex] = value;
                 },
                 value => value.ToString("0.###"),
-                font);
+                font));
+        }
+    }
+
+    private static void BuildSensorButtons(GameObject contentObject, TMP_FontAsset font)
+    {
+        for (int index = 0; index < SensorSettings.Count; index++)
+        {
+            int capturedIndex = index;
+            CircularSensorData sensor = SensorSettings[capturedIndex];
+
+            SensorSettingItems.Add(CreateSettingItem(
+                contentObject.transform,
+                $"Sensor {index} Radius Item",
+                $"センサー{index}半径",
+                0.01f,
+                500f,
+                sensor.radius,
+                false,
+                value => SensorSettings[capturedIndex].radius = value,
+                value => value.ToString("0.##"),
+                font));
+
+            SensorSettingItems.Add(CreateSettingItem(
+                contentObject.transform,
+                $"Sensor {index} Center Angle Item",
+                $"センサー{index}中心角度",
+                -360f,
+                360f,
+                sensor.centerAngle,
+                false,
+                value => SensorSettings[capturedIndex].centerAngle = value,
+                value => value.ToString("0.##"),
+                font));
+
+            SensorSettingItems.Add(CreateSettingItem(
+                contentObject.transform,
+                $"Sensor {index} Angle Item",
+                $"センサー{index}角度",
+                1f,
+                359f,
+                sensor.angle,
+                false,
+                value => SensorSettings[capturedIndex].angle = value,
+                value => value.ToString("0.##"),
+                font));
+        }
+
+        foreach (GameObject item in SensorSettingItems)
+        {
+            item.SetActive(false);
         }
     }
 
@@ -444,6 +590,22 @@ public static class SettingView
         InputEnabled[0] = aiData.useProximityInput;
         InputEnabled[1] = aiData.useCircularSensorInput;
         InputEnabled[2] = aiData.useWarningLineInput;
+        SensorSettings.Clear();
+        List<CircularSensorData> savedSensors = aiData.circularSensors.Count > 0
+            ? aiData.circularSensors
+            : CircularSensor.CreateDefaultData();
+        foreach (CircularSensorData sensor in savedSensors)
+        {
+            SensorSettings.Add(new CircularSensorData
+            {
+                innerRadius = sensor.innerRadius,
+                radius = sensor.radius,
+                angle = sensor.angle,
+                centerAngle = sensor.centerAngle,
+                priority = sensor.priority,
+                arcSegments = sensor.arcSegments,
+            });
+        }
 
         PopulationSettingsData populationData = populationSetting.LoadData();
         PopulationSize = populationData.populationSize;
@@ -463,6 +625,19 @@ public static class SettingView
         data.useProximityInput = InputEnabled[0];
         data.useCircularSensorInput = InputEnabled[1];
         data.useWarningLineInput = InputEnabled[2];
+        data.circularSensors = new List<CircularSensorData>(SensorSettings.Count);
+        foreach (CircularSensorData sensor in SensorSettings)
+        {
+            data.circularSensors.Add(new CircularSensorData
+            {
+                innerRadius = sensor.innerRadius,
+                radius = sensor.radius,
+                angle = sensor.angle,
+                centerAngle = sensor.centerAngle,
+                priority = sensor.priority,
+                arcSegments = sensor.arcSegments,
+            });
+        }
         Aidata.SaveData(data);
     }
 

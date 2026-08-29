@@ -17,11 +17,11 @@ public sealed class CircularSensor : MonoBehaviour
 {
     public const float NearRadius = 60f;
     public const float FarRadius = 150f;
-    public const float SensorAngle = 36f;
+    public const float SensorAngle = 72f;
     public const float SensorPriority = 1f;
     public const int SensorArcSegments = 12;
 
-    private static readonly float[] CenterAngles = { 0f, 36f, 72f, 108f, 144f };
+    private static readonly float[] CenterAngles = { 0f, 72f, 144f, 216f, 288f };
 
     [Min(0f)] public float innerRadius;
     public float radius = 5f;
