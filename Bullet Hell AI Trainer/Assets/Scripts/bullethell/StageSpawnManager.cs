@@ -5,9 +5,14 @@ using UnityEngine;
 
 public sealed class StageSpawnManager : MonoBehaviour
 {
+    private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, -150f, 0f);
+    private static readonly Vector3 BossSpawnPosition = new Vector3(0f, 150f, 0f);
+
     [Header("Player population")]
     [SerializeField] private GameObject playerPrefab;
-    [SerializeField] private Transform playerSpawnPoint;
+
+    [Header("Boss")]
+    [SerializeField] private GameObject bossPrefab;
 
     [Header("Enemy bullets")]
     [SerializeField] private GameObject enemyBulletPrefab;
@@ -15,6 +20,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     [SerializeField] private Transform target;
 
     private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
+    private GameObject spawnedBoss;
 
     public int StageId { get; private set; } = -1;
 
@@ -23,6 +29,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     public void Initialize(int stageId)
     {
         StopAllCoroutines();
+        SpawnBoss();
         SpawnPlayerPopulation();
         StageId = stageId;
 
@@ -56,16 +63,12 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         PopulationSettingsData populationData = populationSetting.LoadData();
         int populationSize = populationData.populationSize;
-        Vector3 position = playerSpawnPoint != null
-            ? playerSpawnPoint.position
-            : transform.position;
-        Quaternion rotation = playerSpawnPoint != null
-            ? playerSpawnPoint.rotation
-            : Quaternion.identity;
-
         for (int index = 0; index < populationSize; index++)
         {
-            GameObject player = Instantiate(playerPrefab, position, rotation);
+            GameObject player = Instantiate(
+                playerPrefab,
+                PlayerSpawnPosition,
+                Quaternion.identity);
             player.name = $"Player {index + 1}";
             PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
             if (playerAgent == null)
@@ -74,6 +77,14 @@ public sealed class StageSpawnManager : MonoBehaviour
             }
 
             playerAgent.SetLogicalLayer(index);
+
+            PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
+            if (playerShooter == null)
+            {
+                playerShooter = player.AddComponent<PlayerShooter>();
+            }
+
+            playerShooter.SetLogicalLayer(index);
 
             Aidata aiData = player.GetComponent<Aidata>();
             if (aiData != null)
@@ -88,6 +99,36 @@ public sealed class StageSpawnManager : MonoBehaviour
         if (target == null && spawnedPlayers.Count > 0)
         {
             target = spawnedPlayers[0].transform;
+        }
+    }
+
+    private void SpawnBoss()
+    {
+        bool useBossAsEnemyBulletOrigin = spawnPoint == null ||
+            (spawnedBoss != null && spawnPoint == spawnedBoss.transform);
+
+        if (spawnedBoss != null)
+        {
+            Destroy(spawnedBoss);
+        }
+
+        spawnedBoss = bossPrefab != null
+            ? Instantiate(bossPrefab, BossSpawnPosition, Quaternion.identity)
+            : new GameObject("Boss");
+        spawnedBoss.transform.position = BossSpawnPosition;
+        spawnedBoss.name = "Boss";
+
+        if (!spawnedBoss.TryGetComponent(out Boss boss))
+        {
+            boss = spawnedBoss.AddComponent<Boss>();
+        }
+
+        PopulationSettingsData populationData = populationSetting.LoadData();
+        boss.SetLayerCount(populationData.populationSize);
+
+        if (useBossAsEnemyBulletOrigin)
+        {
+            spawnPoint = spawnedBoss.transform;
         }
     }
 

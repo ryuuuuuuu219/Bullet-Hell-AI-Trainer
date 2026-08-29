@@ -869,7 +869,7 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   playerPrefab: {fileID: 1000000000000000000, guid: e3123e954bb34ce08489926ca72f1ea6, type: 3}
-  playerSpawnPoint: {fileID: 0}
+  bossPrefab: {fileID: 0}
   enemyBulletPrefab: {fileID: 0}
   spawnPoint: {fileID: 0}
   target: {fileID: 0}
