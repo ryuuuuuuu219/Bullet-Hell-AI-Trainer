@@ -94,6 +94,25 @@ public static class SettingView
         BuildInputButtons(inputScroll.content.gameObject, font);
         BuildRewardButtons(rewardScroll.content.gameObject, font);
         BuildGenerationButtons(generationScroll.content.gameObject, font);
+        BuildNetworkView();
+    }
+
+    private static void BuildNetworkView()
+    {
+        GameObject area = GameObject.Find("Netwark vision area");
+        if (area == null)
+        {
+            Debug.LogWarning("Setting scene Netwark vision area was not found.");
+            return;
+        }
+
+        View view = area.GetComponent<View>();
+        if (view == null)
+        {
+            view = area.AddComponent<View>();
+        }
+
+        view.Rebuild();
     }
 
     private static void BuildInputButtons(GameObject contentObject, TMP_FontAsset font)
