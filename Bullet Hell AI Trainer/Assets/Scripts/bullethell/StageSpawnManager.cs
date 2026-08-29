@@ -1,12 +1,10 @@
 using System;
-using System.Collections;
 using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class StageSpawnManager : MonoBehaviour
 {
     private const float GenerationConditionCheckInterval = 0.1f;
-
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, -150f, 0f);
     private static readonly Vector3 BossSpawnPosition = new Vector3(0f, 150f, 0f);
 
@@ -22,6 +20,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     [SerializeField] private GameObject enemyBulletPrefab;
 
     private readonly List<GameObject> spawnedPlayers = new List<GameObject>();
+    private BulletHellShooter bulletHellShooter;
     private GameObject spawnedBoss;
     private Boss spawnedBossData;
     private PopulationSettingsData activePopulationData;
@@ -30,11 +29,12 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     public int StageId { get; private set; } = -1;
 
-    public event Action<SpawnRequest> SpawnRequested;
+    public event Action<BulletHellShotDefinition> SpawnRequested;
 
     public void Initialize(int stageId)
     {
-        StopAllCoroutines();
+        EnsureBulletHellShooter();
+        bulletHellShooter.ClearEnemyAttacks();
         StageId = stageId;
         PopulationSettingsData populationData = populationSetting.LoadData();
         activePopulationData = populationData;
@@ -78,7 +78,16 @@ public sealed class StageSpawnManager : MonoBehaviour
         switch (StageId)
         {
             case 0:
-                StartCoroutine(RunStage0());
+                bulletHellShooter.StartFiring(
+                    BulletHellStageAttackDefinitions.Stage1,
+                    spawnedBoss?.transform,
+                    spawnedPlayers);
+                break;
+            case 12:
+                bulletHellShooter.StartFiring(
+                    BulletHellStageAttackDefinitions.Stage13,
+                    spawnedBoss?.transform,
+                    spawnedPlayers);
                 break;
             default:
                 Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
@@ -263,8 +272,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             $"Advancing to generation {populationData.currentGeneration}. " +
             $"Saved layer: {savedCandidate?.LogicalLayer ?? -1}.");
 
-        StopAllCoroutines();
-        ClearAllBullets();
+        bulletHellShooter.ClearEnemyAttacks();
+        ClearPlayerBullets();
         SpawnBoss(populationData.populationSize);
         SpawnPlayerPopulation(populationData, nextGenomes);
         StartStagePattern();
@@ -353,21 +362,8 @@ public sealed class StageSpawnManager : MonoBehaviour
         return candidates;
     }
 
-    private static void ClearAllBullets()
+    private static void ClearPlayerBullets()
     {
-        for (int index = BulletManager.ActiveBullets.Count - 1;
-             index >= 0;
-             index--)
-        {
-            bullet enemyBullet = BulletManager.ActiveBullets[index];
-            if (enemyBullet == null)
-            {
-                continue;
-            }
-
-            ProjectilePool.Release(enemyBullet.gameObject);
-        }
-
         PlayerBullet[] playerBullets = FindObjectsByType<PlayerBullet>();
         foreach (PlayerBullet playerBullet in playerBullets)
         {
@@ -402,111 +398,25 @@ public sealed class StageSpawnManager : MonoBehaviour
         spawnedPlayers.Clear();
     }
 
-    private IEnumerator RunStage0()
+    private void EnsureBulletHellShooter()
     {
-        WaitForSeconds interval = new WaitForSeconds(2f);
-
-        while (true)
+        if (bulletHellShooter == null)
         {
-            yield return interval;
-            DispatchSpawn(new SpawnRequest(
-                stageId: 0,
-                pattern: SpawnPattern.PlayerAimedOneWay,
-                bulletCount: 1,
-                speed: 40f,
-                threat: 1));
+            bulletHellShooter = GetComponent<BulletHellShooter>();
         }
+
+        if (bulletHellShooter == null)
+        {
+            bulletHellShooter = gameObject.AddComponent<BulletHellShooter>();
+        }
+
+        bulletHellShooter.Configure(enemyBulletPrefab);
+        bulletHellShooter.ShotFired -= OnShotFired;
+        bulletHellShooter.ShotFired += OnShotFired;
     }
 
-    private void DispatchSpawn(SpawnRequest request)
+    private void OnShotFired(BulletHellShotDefinition definition)
     {
-        SpawnRequested?.Invoke(request);
-
-        if (enemyBulletPrefab == null)
-        {
-            return;
-        }
-
-        bool spawnedForPlayer = false;
-        foreach (GameObject player in spawnedPlayers)
-        {
-            if (player == null || !player.TryGetComponent(out PlayerAgent playerAgent))
-            {
-                continue;
-            }
-
-            SpawnBulletForTarget(request, player.transform, playerAgent.LogicalLayer);
-            spawnedForPlayer = true;
-        }
-
-        if (!spawnedForPlayer)
-        {
-            SpawnBulletForTarget(request, null, 0);
-        }
-    }
-
-    private void SpawnBulletForTarget(
-        SpawnRequest request,
-        Transform aimTarget,
-        int logicalLayer)
-    {
-        Vector3 position = spawnedBoss != null
-            ? spawnedBoss.transform.position
-            : BossSpawnPosition;
-
-        for (int index = 0; index < request.BulletCount; index++)
-        {
-            GameObject bulletObject = ProjectilePool.Acquire(
-                enemyBulletPrefab,
-                position,
-                Quaternion.identity);
-            Rigidbody2D body = bulletObject.GetComponent<Rigidbody2D>();
-            if (body == null)
-            {
-                Debug.LogWarning("Enemy bullet prefab requires a Rigidbody2D.");
-                ProjectilePool.Release(bulletObject);
-                continue;
-            }
-
-            Vector2 direction = aimTarget != null
-                ? ((Vector2)aimTarget.position - (Vector2)position).normalized
-                : Vector2.down;
-            Vector2 movementVector = direction * request.Speed;
-            body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
-
-            bullet bulletData = bulletObject.GetComponent<bullet>();
-            if (bulletData == null)
-            {
-                bulletData = bulletObject.AddComponent<bullet>();
-            }
-
-            bulletData.SetData(movementVector, request.Threat, logicalLayer);
-            bulletObject.SetActive(true);
-            body.position = position;
-            body.linearVelocity = movementVector;
-        }
-    }
-
-    public enum SpawnPattern
-    {
-        PlayerAimedOneWay
-    }
-
-    public readonly struct SpawnRequest
-    {
-        public SpawnRequest(int stageId, SpawnPattern pattern, int bulletCount, float speed, int threat)
-        {
-            StageId = stageId;
-            Pattern = pattern;
-            BulletCount = bulletCount;
-            Speed = speed;
-            Threat = threat;
-        }
-
-        public int StageId { get; }
-        public SpawnPattern Pattern { get; }
-        public int BulletCount { get; }
-        public float Speed { get; }
-        public int Threat { get; }
+        SpawnRequested?.Invoke(definition);
     }
 }

@@ -11,6 +11,7 @@ public sealed class bullet : MonoBehaviour
     public Vector2 Vector => vector;
     public int ThreatLevel => threatLevel;
     public int LogicalLayer => logicalLayer;
+    public BulletStructure Structure { get; private set; }
 
     private void Awake()
     {
@@ -46,6 +47,17 @@ public sealed class bullet : MonoBehaviour
 
     public void SetData(Vector2 movementVector, int threat, int layer)
     {
+        SetData(
+            movementVector,
+            BulletStructure.Straight(movementVector.magnitude, threat),
+            layer);
+    }
+
+    public void SetData(
+        Vector2 movementVector,
+        BulletStructure structure,
+        int layer)
+    {
         bool refreshRegistration = isActiveAndEnabled &&
                                    logicalLayer != Mathf.Max(0, layer);
         if (refreshRegistration)
@@ -55,7 +67,10 @@ public sealed class bullet : MonoBehaviour
 
         gameObject.layer = ProjectileCollisionLayers.EnemyBullet;
         vector = movementVector;
-        threatLevel = Mathf.Max(0, threat);
+        Structure = structure ?? BulletStructure.Straight(
+            movementVector.magnitude,
+            threatLevel);
+        threatLevel = Structure.ThreatLevel;
         logicalLayer = Mathf.Max(0, layer);
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
 

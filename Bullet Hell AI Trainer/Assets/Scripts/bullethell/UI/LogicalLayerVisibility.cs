@@ -47,6 +47,15 @@ public static class LogicalLayerVisibility
                 Apply(playerBullet.gameObject, logicalLayer);
             }
         }
+
+        foreach (LaserAttack laserAttack in
+                 Object.FindObjectsByType<LaserAttack>(FindObjectsInactive.Include))
+        {
+            if (laserAttack.LogicalLayer == logicalLayer)
+            {
+                Apply(laserAttack.gameObject, logicalLayer);
+            }
+        }
     }
 
     public static void Apply(GameObject target, int logicalLayer)

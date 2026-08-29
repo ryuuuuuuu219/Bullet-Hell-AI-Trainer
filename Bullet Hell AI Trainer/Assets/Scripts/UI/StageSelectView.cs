@@ -4,7 +4,7 @@ using UnityEngine.UI;
 
 public static class StageSelectView
 {
-    private static readonly int[] ImplementedStageIds = { 0 };
+    private static readonly int[] ImplementedStageIds = { 0, 12 };
     private static readonly Color SelectedColor = new Color(0.55f, 0.78f, 1f, 1f);
     private static readonly Color NormalColor = Color.white;
 
@@ -143,6 +143,8 @@ public static class StageSelectView
         {
             case 0:
                 return "課題1　自機狙い1way";
+            case 12:
+                return "課題13　レーザー";
             default:
                 return $"Stage {stageId}";
         }

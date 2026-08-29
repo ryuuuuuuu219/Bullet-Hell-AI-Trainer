@@ -66,6 +66,15 @@ public static class GameSceneManager
                     "2秒ごとに発射\n" +
                     "弾速：40\n" +
                     "脅威度：1\n";
+            case 12:
+                return
+                    "課題13\n" +
+                    "レーザー\n" +
+                    "構成要素：予告線付きレーザー\n" +
+                    "説明：広範囲に攻撃判定をもたらす\n" +
+                    "4秒ごとに発射\n" +
+                    "予告線との時間差：2秒\n" +
+                    "脅威度：4\n";
             default:
                 return string.Empty;
         }

@@ -24,7 +24,22 @@ public sealed class PlayerAgent : MonoBehaviour
 
     public void RegisterHit(bullet source)
     {
-        if (source == null || source.LogicalLayer != logicalLayer)
+        if (source == null)
+        {
+            return;
+        }
+
+        RegisterHit(source.LogicalLayer, source);
+    }
+
+    public void RegisterHit(int sourceLogicalLayer)
+    {
+        RegisterHit(sourceLogicalLayer, null);
+    }
+
+    private void RegisterHit(int sourceLogicalLayer, bullet source)
+    {
+        if (sourceLogicalLayer != logicalLayer)
         {
             return;
         }
