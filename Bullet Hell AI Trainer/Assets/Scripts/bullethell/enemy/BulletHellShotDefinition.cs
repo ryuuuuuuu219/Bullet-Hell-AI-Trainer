@@ -256,7 +256,8 @@ public static class BulletHellStageAttackDefinitions
             160f, 3, 1.6f, 4, 45f, BulletSplitAimType.PlayerAimed,
             Split(
                 192f, 3, 1.6f, 3, 10f, BulletSplitAimType.PlayerAimed,
-                Straight(224f, 1)));
+                Straight(224f, 1),
+                splitWarningDuration: 0.5f));
 
         return new[]
         {
@@ -329,7 +330,7 @@ public static class BulletHellStageAttackDefinitions
                 Pattern(Projectile(32f, 1, 0.4f, 3, 7f))),
             Stage(28, "幾何的弾幕A", "組み合わせ\n曲がる5wayを3段階展開後、1wayへ展開\n8秒ごとに発射\n各段階1.6秒後に展開\n間隔72°\n角速度40deg/s\n弾速：160→192→224→224\n脅威度：3→3→3→1",
                 Pattern(Projectile(geometricA, 8f, 5, 72f))),
-            Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\nBPM：30\n第1段階の間隔40°\n各段階1.6秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
+            Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\nBPM：30\n第1段階の間隔40°\n各段階1.6秒後に展開\n第3段階は予告線の0.5秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
                 Pattern(Projectile(geometricB, 2f, 2, 40f))),
         };
     }
@@ -438,7 +439,8 @@ public static class BulletHellStageAttackDefinitions
         BulletSplitAimType splitAimType,
         BulletStructure child,
         BulletMotionType motionType = BulletMotionType.Straight,
-        float turnRate = 0f)
+        float turnRate = 0f,
+        float splitWarningDuration = 0f)
     {
         return new BulletStructure(
             speed,
@@ -450,7 +452,8 @@ public static class BulletHellStageAttackDefinitions
             childCount,
             childInterval,
             splitAimType,
-            child);
+            child,
+            splitWarningDuration);
     }
 
     private static float[] Sweep(int count, float start, float end)

@@ -1,3 +1,4 @@
+using System.Collections.Generic;
 using UnityEngine;
 
 public sealed class bullet : MonoBehaviour
@@ -10,6 +11,10 @@ public sealed class bullet : MonoBehaviour
     private Transform target;
     private GameObject sourcePrefab;
     private float splitTime;
+    private bool splitWarningStarted;
+    private Vector2 warnedSplitDirection;
+    private readonly List<LaserAttack> splitWarningLines =
+        new List<LaserAttack>();
     private Vector2 previousLineOfSight;
     private bool hasPreviousLineOfSight;
 
@@ -49,13 +54,22 @@ public sealed class bullet : MonoBehaviour
 
         if (Structure.HasSplit && Time.time >= splitTime)
         {
-            SplitProjectile();
+            if (!splitWarningStarted &&
+                Structure.SplitWarningDurationSeconds > 0f)
+            {
+                BeginSplitWarning();
+            }
+            else
+            {
+                SplitProjectile();
+            }
         }
     }
 
     private void OnDisable()
     {
         BulletManager.Unregister(this);
+        ClearSplitWarningLines();
     }
 
     public void SetData(Vector2 movementVector, int threat)
@@ -105,6 +119,9 @@ public sealed class bullet : MonoBehaviour
         splitTime = Structure.HasSplit
             ? Time.time + Structure.SplitDelaySeconds
             : float.PositiveInfinity;
+        splitWarningStarted = false;
+        warnedSplitDirection = Vector2.zero;
+        ClearSplitWarningLines();
         previousLineOfSight = GetLineOfSight();
         hasPreviousLineOfSight = previousLineOfSight.sqrMagnitude > Mathf.Epsilon;
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
@@ -197,16 +214,12 @@ public sealed class bullet : MonoBehaviour
             return;
         }
 
-        Vector2 baseDirection = body.linearVelocity.sqrMagnitude > Mathf.Epsilon
-            ? body.linearVelocity.normalized
-            : Vector2.down;
-        if (Structure.SplitAimType == BulletSplitAimType.PlayerAimed)
+        Vector2 baseDirection = splitWarningStarted
+            ? warnedSplitDirection
+            : ResolveSplitDirection();
+        if (baseDirection.sqrMagnitude <= Mathf.Epsilon)
         {
-            Vector2 lineOfSight = GetLineOfSight();
-            if (lineOfSight.sqrMagnitude > Mathf.Epsilon)
-            {
-                baseDirection = lineOfSight;
-            }
+            baseDirection = Vector2.down;
         }
 
         float centerIndex = (Structure.SplitProjectileCount - 1) * 0.5f;
@@ -251,6 +264,83 @@ public sealed class bullet : MonoBehaviour
         }
 
         ProjectilePool.Release(gameObject);
+    }
+
+    private void BeginSplitWarning()
+    {
+        splitWarningStarted = true;
+        warnedSplitDirection = ResolveSplitDirection();
+        if (warnedSplitDirection.sqrMagnitude <= Mathf.Epsilon)
+        {
+            warnedSplitDirection = Vector2.down;
+        }
+
+        body.linearVelocity = Vector2.zero;
+        vector = Vector2.zero;
+        splitTime = Time.time + Structure.SplitWarningDurationSeconds;
+
+        PlayerAgent targetPlayer = target != null
+            ? target.GetComponent<PlayerAgent>()
+            : null;
+        if (targetPlayer == null)
+        {
+            return;
+        }
+
+        float centerIndex = (Structure.SplitProjectileCount - 1) * 0.5f;
+        Vector2 warningOrigin = body.position;
+        for (int index = 0; index < Structure.SplitProjectileCount; index++)
+        {
+            float angleOffset =
+                (index - centerIndex) * Structure.SplitAngleIntervalDegrees;
+            Vector2 direction = Rotate(warnedSplitDirection, angleOffset).normalized;
+            GameObject warningObject = new GameObject(
+                $"Split Projectile Warning Layer {logicalLayer}",
+                typeof(LineRenderer),
+                typeof(LaserAttack));
+            LaserAttack warningLine = warningObject.GetComponent<LaserAttack>();
+            warningLine.Configure(
+                warningOrigin,
+                direction,
+                targetPlayer,
+                logicalLayer,
+                Structure.SplitWarningDurationSeconds,
+                0f,
+                1000f,
+                2f,
+                2f,
+                Structure.ChildStructure.ThreatLevel);
+            splitWarningLines.Add(warningLine);
+        }
+    }
+
+    private Vector2 ResolveSplitDirection()
+    {
+        Vector2 baseDirection = body.linearVelocity.sqrMagnitude > Mathf.Epsilon
+            ? body.linearVelocity.normalized
+            : Vector2.down;
+        if (Structure.SplitAimType != BulletSplitAimType.PlayerAimed)
+        {
+            return baseDirection;
+        }
+
+        Vector2 lineOfSight = GetLineOfSight();
+        return lineOfSight.sqrMagnitude > Mathf.Epsilon
+            ? lineOfSight
+            : baseDirection;
+    }
+
+    private void ClearSplitWarningLines()
+    {
+        foreach (LaserAttack warningLine in splitWarningLines)
+        {
+            if (warningLine != null)
+            {
+                Destroy(warningLine.gameObject);
+            }
+        }
+
+        splitWarningLines.Clear();
     }
 
     private Vector2 GetLineOfSight()
