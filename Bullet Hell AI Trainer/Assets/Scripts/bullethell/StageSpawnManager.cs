@@ -75,24 +75,18 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void StartStagePattern()
     {
-        switch (StageId)
+        BulletHellStageDefinition stage =
+            BulletHellStageAttackDefinitions.GetStage(StageId);
+        if (stage == null)
         {
-            case 0:
-                bulletHellShooter.StartFiring(
-                    BulletHellStageAttackDefinitions.Stage1,
-                    spawnedBoss?.transform,
-                    spawnedPlayers);
-                break;
-            case 12:
-                bulletHellShooter.StartFiring(
-                    BulletHellStageAttackDefinitions.Stage13,
-                    spawnedBoss?.transform,
-                    spawnedPlayers);
-                break;
-            default:
-                Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
-                break;
+            Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
+            return;
         }
+
+        bulletHellShooter.StartFiring(
+            stage,
+            spawnedBoss?.transform,
+            spawnedPlayers);
     }
 
     private void SpawnPlayerPopulation(

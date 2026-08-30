@@ -4,7 +4,6 @@ using UnityEngine.UI;
 
 public static class StageSelectView
 {
-    private static readonly int[] ImplementedStageIds = { 0, 12 };
     private static readonly Color SelectedColor = new Color(0.55f, 0.78f, 1f, 1f);
     private static readonly Color NormalColor = Color.white;
 
@@ -19,7 +18,9 @@ public static class StageSelectView
 
         ConfigureLayout(contentObject);
 
-        foreach (int stageId in ImplementedStageIds)
+        for (int stageId = 0;
+             stageId < BulletHellStageAttackDefinitions.Count;
+             stageId++)
         {
             string objectName = GetButtonObjectName(stageId);
             if (contentObject.transform.Find(objectName) != null)
@@ -139,14 +140,10 @@ public static class StageSelectView
 
     private static string GetButtonLabel(int stageId)
     {
-        switch (stageId)
-        {
-            case 0:
-                return "課題1　自機狙い1way";
-            case 12:
-                return "課題13　レーザー";
-            default:
-                return $"Stage {stageId}";
-        }
+        BulletHellStageDefinition stage =
+            BulletHellStageAttackDefinitions.GetStage(stageId);
+        return stage != null
+            ? $"課題{stageId + 1}　{stage.Title}"
+            : $"Stage {stageId}";
     }
 }

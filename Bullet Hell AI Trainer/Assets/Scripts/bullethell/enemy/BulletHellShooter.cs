@@ -10,7 +10,7 @@ public sealed class BulletHellShooter : MonoBehaviour
 
     private readonly List<LaserAttack> activeLasers =
         new List<LaserAttack>();
-    private Coroutine firingRoutine;
+    private readonly List<Coroutine> firingRoutines = new List<Coroutine>();
 
     public event Action<BulletHellShotDefinition> ShotFired;
 
@@ -36,21 +36,48 @@ public sealed class BulletHellShooter : MonoBehaviour
             return;
         }
 
-        firingRoutine = StartCoroutine(RunFiringPattern(
-            definition,
+        firingRoutines.Add(StartCoroutine(RunFiringPattern(
+            new BulletHellStagePattern(definition),
             source,
-            targets));
+            targets)));
     }
 
-    public void StopFiring()
+    public void StartFiring(
+        BulletHellStageDefinition stage,
+        Transform source,
+        IReadOnlyList<GameObject> targets)
     {
-        if (firingRoutine == null)
+        StopFiring();
+        if (stage == null)
         {
             return;
         }
 
-        StopCoroutine(firingRoutine);
-        firingRoutine = null;
+        foreach (BulletHellStagePattern pattern in stage.Patterns)
+        {
+            if (pattern?.Shot == null)
+            {
+                continue;
+            }
+
+            firingRoutines.Add(StartCoroutine(RunFiringPattern(
+                pattern,
+                source,
+                targets)));
+        }
+    }
+
+    public void StopFiring()
+    {
+        foreach (Coroutine routine in firingRoutines)
+        {
+            if (routine != null)
+            {
+                StopCoroutine(routine);
+            }
+        }
+
+        firingRoutines.Clear();
     }
 
     public void Fire(
@@ -58,40 +85,7 @@ public sealed class BulletHellShooter : MonoBehaviour
         Transform source,
         IReadOnlyList<GameObject> targets)
     {
-        if (definition == null)
-        {
-            return;
-        }
-
-        ShotFired?.Invoke(definition);
-
-        Vector2 sourcePosition = source != null
-            ? source.position
-            : transform.position;
-        bool firedForTarget = false;
-
-        if (targets != null)
-        {
-            foreach (GameObject targetObject in targets)
-            {
-                if (targetObject == null ||
-                    !targetObject.TryGetComponent(out PlayerAgent target))
-                {
-                    continue;
-                }
-
-                FireForTarget(definition, sourcePosition, target);
-                firedForTarget = true;
-            }
-        }
-
-        if (!firedForTarget &&
-            definition.AttackType == BulletHellAttackType.Projectile)
-        {
-            FireProjectiles(definition, sourcePosition, null, 0);
-        }
-
-        activeLasers.RemoveAll(laser => laser == null);
+        Fire(definition, source, targets, 0f);
     }
 
     public void ClearEnemyAttacks()
@@ -122,24 +116,106 @@ public sealed class BulletHellShooter : MonoBehaviour
     }
 
     private IEnumerator RunFiringPattern(
-        BulletHellShotDefinition definition,
+        BulletHellStagePattern pattern,
         Transform source,
         IReadOnlyList<GameObject> targets)
     {
-        WaitForSeconds interval = new WaitForSeconds(
-            definition.RepeatIntervalSeconds);
+        BulletHellShotDefinition definition = pattern.Shot;
+        if (pattern.InitialDelaySeconds > 0f)
+        {
+            yield return new WaitForSeconds(pattern.InitialDelaySeconds);
+        }
 
         while (true)
         {
-            yield return interval;
-            Fire(definition, source, targets);
+            for (int burstIndex = 0;
+                 burstIndex < definition.BurstCount;
+                 burstIndex++)
+            {
+                Fire(
+                    definition,
+                    source,
+                    targets,
+                    definition.GetBurstAngleOffset(burstIndex));
+                if (burstIndex + 1 < definition.BurstCount &&
+                    definition.BurstIntervalSeconds > 0f)
+                {
+                    yield return new WaitForSeconds(
+                        definition.BurstIntervalSeconds);
+                }
+            }
+
+            if (definition.RepeatIntervalSeconds <= 0f)
+            {
+                yield break;
+            }
+
+            float burstDuration =
+                (definition.BurstCount - 1) * definition.BurstIntervalSeconds;
+            float remainingInterval =
+                definition.RepeatIntervalSeconds - burstDuration;
+            yield return remainingInterval > 0f
+                ? new WaitForSeconds(remainingInterval)
+                : null;
         }
+    }
+
+    private void Fire(
+        BulletHellShotDefinition definition,
+        Transform source,
+        IReadOnlyList<GameObject> targets,
+        float burstAngleOffset)
+    {
+        if (definition == null)
+        {
+            return;
+        }
+
+        ShotFired?.Invoke(definition);
+
+        Vector2 sourcePosition = source != null
+            ? source.position
+            : transform.position;
+        bool firedForTarget = false;
+
+        if (targets != null)
+        {
+            foreach (GameObject targetObject in targets)
+            {
+                if (targetObject == null ||
+                    !targetObject.TryGetComponent(out PlayerAgent target))
+                {
+                    continue;
+                }
+
+                FireForTarget(
+                    definition,
+                    sourcePosition,
+                    target,
+                    burstAngleOffset);
+                firedForTarget = true;
+            }
+        }
+
+        if (!firedForTarget &&
+            definition.AttackType == BulletHellAttackType.Projectile)
+        {
+            FireProjectiles(
+                definition,
+                sourcePosition,
+                null,
+                0,
+                burstAngleOffset);
+        }
+
+        activeLasers.RemoveAll(laser => laser == null);
     }
 
     private void FireForTarget(
         BulletHellShotDefinition definition,
         Vector2 sourcePosition,
-        PlayerAgent target)
+        PlayerAgent target,
+        float burstAngleOffset)
     {
         switch (definition.AttackType)
         {
@@ -148,7 +224,8 @@ public sealed class BulletHellShooter : MonoBehaviour
                     definition,
                     sourcePosition,
                     target.transform,
-                    target.LogicalLayer);
+                    target.LogicalLayer,
+                    burstAngleOffset);
                 break;
             case BulletHellAttackType.Laser:
                 FireLaser(definition, sourcePosition, target);
@@ -160,36 +237,48 @@ public sealed class BulletHellShooter : MonoBehaviour
         BulletHellShotDefinition definition,
         Vector2 sourcePosition,
         Transform aimTarget,
-        int logicalLayer)
+        int logicalLayer,
+        float burstAngleOffset)
     {
         if (enemyBulletPrefab == null || definition.Bullet == null)
         {
             return;
         }
 
-        if (definition.Bullet.MotionType != BulletMotionType.Straight)
-        {
-            Debug.LogWarning(
-                $"Bullet motion is not implemented: {definition.Bullet.MotionType}",
-                this);
-            return;
-        }
-
         Vector2 baseDirection = ResolveAimDirection(
             definition.AimType,
             sourcePosition,
-            aimTarget);
+            aimTarget,
+            definition.LeadMultiplier);
+        baseDirection = Quaternion.Euler(
+            0f,
+            0f,
+            definition.AimAngleOffsetDegrees + burstAngleOffset) * baseDirection;
 
         for (int index = 0; index < definition.ProjectileCount; index++)
         {
             float angleOffset = definition.GetProjectileAngleOffset(index);
             Vector2 direction = Quaternion.Euler(0f, 0f, angleOffset) *
                 baseDirection;
-            SpawnProjectile(
-                sourcePosition,
-                direction,
-                definition.Bullet,
-                logicalLayer);
+            if (definition.ProjectileWarningDuration > 0f && aimTarget != null)
+            {
+                firingRoutines.Add(StartCoroutine(SpawnWarnedProjectile(
+                    sourcePosition,
+                    direction,
+                    definition.Bullet,
+                    logicalLayer,
+                    aimTarget,
+                    definition.ProjectileWarningDuration)));
+            }
+            else
+            {
+                SpawnProjectile(
+                    sourcePosition,
+                    direction,
+                    definition.Bullet,
+                    logicalLayer,
+                    aimTarget);
+            }
         }
     }
 
@@ -197,7 +286,8 @@ public sealed class BulletHellShooter : MonoBehaviour
         Vector2 position,
         Vector2 direction,
         BulletStructure structure,
-        int logicalLayer)
+        int logicalLayer,
+        Transform aimTarget)
     {
         GameObject bulletObject = ProjectilePool.Acquire(
             enemyBulletPrefab,
@@ -212,7 +302,7 @@ public sealed class BulletHellShooter : MonoBehaviour
         }
 
         Vector2 movementVector = direction.normalized * structure.Speed;
-        body.collisionDetectionMode = CollisionDetectionMode2D.Discrete;
+        body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         bullet bulletData = bulletObject.GetComponent<bullet>();
         if (bulletData == null)
@@ -220,10 +310,60 @@ public sealed class BulletHellShooter : MonoBehaviour
             bulletData = bulletObject.AddComponent<bullet>();
         }
 
-        bulletData.SetData(movementVector, structure, logicalLayer);
+        bulletData.SetData(
+            movementVector,
+            structure,
+            logicalLayer,
+            aimTarget,
+            enemyBulletPrefab);
         bulletObject.SetActive(true);
         body.position = position;
         body.linearVelocity = movementVector;
+    }
+
+    private IEnumerator SpawnWarnedProjectile(
+        Vector2 position,
+        Vector2 direction,
+        BulletStructure structure,
+        int logicalLayer,
+        Transform aimTarget,
+        float warningDuration)
+    {
+        PlayerAgent targetPlayer = aimTarget != null
+            ? aimTarget.GetComponent<PlayerAgent>()
+            : null;
+        if (targetPlayer != null)
+        {
+            GameObject warningObject = new GameObject(
+                $"Projectile Warning Layer {logicalLayer}",
+                typeof(LineRenderer),
+                typeof(LaserAttack));
+            warningObject.transform.SetParent(transform, true);
+            LaserAttack warningLine = warningObject.GetComponent<LaserAttack>();
+            warningLine.Configure(
+                position,
+                direction,
+                targetPlayer,
+                logicalLayer,
+                warningDuration,
+                0f,
+                1000f,
+                2f,
+                2f,
+                structure.ThreatLevel);
+            activeLasers.Add(warningLine);
+        }
+
+        yield return new WaitForSeconds(warningDuration);
+        if (this != null && aimTarget != null)
+        {
+            SpawnProjectile(
+                position,
+                direction,
+                structure,
+                logicalLayer,
+                aimTarget);
+        }
     }
 
     private void FireLaser(
@@ -240,7 +380,8 @@ public sealed class BulletHellShooter : MonoBehaviour
         Vector2 direction = ResolveAimDirection(
             definition.AimType,
             sourcePosition,
-            target.transform);
+            target.transform,
+            0f);
         GameObject laserObject = new GameObject(
             $"Laser Layer {target.LogicalLayer}",
             typeof(LineRenderer),
@@ -264,11 +405,30 @@ public sealed class BulletHellShooter : MonoBehaviour
     private static Vector2 ResolveAimDirection(
         BulletAimType aimType,
         Vector2 sourcePosition,
-        Transform target)
+        Transform target,
+        float leadMultiplier)
     {
-        return aimType == BulletAimType.PlayerAimed && target != null
-            ? ((Vector2)target.position - sourcePosition).normalized
-            : Vector2.down;
+        if (aimType != BulletAimType.PlayerAimed || target == null)
+        {
+            return Vector2.down;
+        }
+
+        Vector2 relativePosition = (Vector2)target.position - sourcePosition;
+        Vector2 direction = relativePosition.normalized;
+        if (Mathf.Abs(leadMultiplier) <= Mathf.Epsilon ||
+            relativePosition.sqrMagnitude <= Mathf.Epsilon ||
+            !target.TryGetComponent(out Rigidbody2D targetBody))
+        {
+            return direction;
+        }
+
+        float lineOfSightRateRadians =
+            (relativePosition.x * targetBody.linearVelocity.y -
+             relativePosition.y * targetBody.linearVelocity.x) /
+            relativePosition.sqrMagnitude;
+        float leadAngle =
+            lineOfSightRateRadians * Mathf.Rad2Deg * leadMultiplier;
+        return Quaternion.Euler(0f, 0f, leadAngle) * direction;
     }
 
     private void OnDestroy()
