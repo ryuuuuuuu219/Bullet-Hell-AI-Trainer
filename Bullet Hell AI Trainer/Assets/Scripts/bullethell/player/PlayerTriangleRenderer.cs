@@ -2,17 +2,43 @@ using UnityEngine;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(LineRenderer))]
+[RequireComponent(typeof(PlayerAgent))]
 public sealed class PlayerTriangleRenderer : MonoBehaviour
 {
     [SerializeField, Min(0.01f)] private float width = 0.8f;
     [SerializeField, Min(0.01f)] private float sideLength = 20f;
-    [SerializeField] private Color color = new Color(0.2f, 0.9f, 1f, 1f);
+    [SerializeField] private Color color = Color.blue;
+    [SerializeField] private Color hitColor = new Color(0.2f, 0.9f, 1f, 1f);
 
     private LineRenderer lineRenderer;
+    private PlayerAgent playerAgent;
 
     private void Awake()
     {
+        playerAgent = GetComponent<PlayerAgent>();
         ApplyShape();
+    }
+
+    private void OnEnable()
+    {
+        if (playerAgent == null)
+        {
+            playerAgent = GetComponent<PlayerAgent>();
+        }
+
+        if (playerAgent != null)
+        {
+            playerAgent.Hit += HandleHit;
+            ApplyColor(playerAgent.IsHit ? hitColor : color);
+        }
+    }
+
+    private void OnDisable()
+    {
+        if (playerAgent != null)
+        {
+            playerAgent.Hit -= HandleHit;
+        }
     }
 
     private void Reset()
@@ -51,10 +77,30 @@ public sealed class PlayerTriangleRenderer : MonoBehaviour
         lineRenderer.SetPosition(2, new Vector3(halfSideLength, bottomY, 0f));
         lineRenderer.startWidth = width;
         lineRenderer.endWidth = width;
-        lineRenderer.startColor = color;
-        lineRenderer.endColor = color;
+        ApplyColor(color);
         lineRenderer.numCornerVertices = 2;
         lineRenderer.numCapVertices = 2;
         lineRenderer.alignment = LineAlignment.TransformZ;
+    }
+
+    private void HandleHit(bullet source)
+    {
+        ApplyColor(hitColor);
+    }
+
+    private void ApplyColor(Color targetColor)
+    {
+        if (lineRenderer == null)
+        {
+            lineRenderer = GetComponent<LineRenderer>();
+        }
+
+        if (lineRenderer == null)
+        {
+            return;
+        }
+
+        lineRenderer.startColor = targetColor;
+        lineRenderer.endColor = targetColor;
     }
 }

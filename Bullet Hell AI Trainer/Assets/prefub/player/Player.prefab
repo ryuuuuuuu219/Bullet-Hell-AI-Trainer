@@ -118,8 +118,8 @@ LineRenderer:
       m_RotationOrder: 4
     colorGradient:
       serializedVersion: 2
-      key0: {r: 0.2, g: 0.9, b: 1, a: 1}
-      key1: {r: 0.2, g: 0.9019608, b: 1, a: 1}
+      key0: {r: 0, g: 0, b: 1, a: 1}
+      key1: {r: 0, g: 0, b: 1, a: 1}
       key2: {r: 0, g: 0, b: 0, a: 0}
       key3: {r: 0, g: 0, b: 0, a: 0}
       key4: {r: 0, g: 0, b: 0, a: 0}
@@ -170,7 +170,8 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::PlayerTriangleRenderer
   width: 0.8
   sideLength: 20
-  color: {r: 0.2, g: 0.9, b: 1, a: 1}
+  color: {r: 0, g: 0, b: 1, a: 1}
+  hitColor: {r: 0.2, g: 0.9, b: 1, a: 1}
 --- !u!114 &1140000000000000001
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1621,4 +1622,4 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 2f944ea1e24c49fa87c50647963217e5, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovementController
-  moveSpeed: 30
+  moveSpeed: 300
