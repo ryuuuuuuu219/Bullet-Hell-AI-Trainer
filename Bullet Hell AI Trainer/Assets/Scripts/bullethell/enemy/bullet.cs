@@ -17,6 +17,7 @@ public sealed class bullet : MonoBehaviour
         new List<LaserAttack>();
     private Vector2 previousLineOfSight;
     private bool hasPreviousLineOfSight;
+    private float usedTurnAngleDegrees;
 
     public Vector2 Vector => vector;
     public int ThreatLevel => threatLevel;
@@ -124,6 +125,7 @@ public sealed class bullet : MonoBehaviour
         ClearSplitWarningLines();
         previousLineOfSight = GetLineOfSight();
         hasPreviousLineOfSight = previousLineOfSight.sqrMagnitude > Mathf.Epsilon;
+        usedTurnAngleDegrees = 0f;
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
 
         if (refreshRegistration)
@@ -163,11 +165,14 @@ public sealed class bullet : MonoBehaviour
             body.linearVelocity.y,
             body.linearVelocity.x) * Mathf.Rad2Deg;
         float targetAngle = Mathf.Atan2(lineOfSight.y, lineOfSight.x) * Mathf.Rad2Deg;
-        float nextAngle = Mathf.MoveTowardsAngle(
-            currentAngle,
-            targetAngle,
+        float requestedTurn = Mathf.Clamp(
+            Mathf.DeltaAngle(currentAngle, targetAngle),
+            -Mathf.Abs(maximumTurnRate) * Time.fixedDeltaTime,
             Mathf.Abs(maximumTurnRate) * Time.fixedDeltaTime);
-        body.linearVelocity = DirectionFromAngle(nextAngle) * Structure.Speed;
+        float appliedTurn = ApplyTurnAngleBudget(requestedTurn);
+        body.linearVelocity = Rotate(
+            body.linearVelocity,
+            appliedTurn).normalized * Structure.Speed;
     }
 
     private void ApplyProportionalNavigation()
@@ -199,10 +204,25 @@ public sealed class bullet : MonoBehaviour
             lineOfSightRate * Structure.NavigationConstant,
             -Mathf.Abs(Structure.TurnRateDegreesPerSecond),
             Mathf.Abs(Structure.TurnRateDegreesPerSecond));
+        float appliedTurn = ApplyTurnAngleBudget(
+            commandedTurnRate * Time.fixedDeltaTime);
         body.linearVelocity = Rotate(
             body.linearVelocity,
-            commandedTurnRate * Time.fixedDeltaTime).normalized * Structure.Speed;
+            appliedTurn).normalized * Structure.Speed;
         previousLineOfSight = lineOfSight;
+    }
+
+    private float ApplyTurnAngleBudget(float requestedTurnDegrees)
+    {
+        float remainingTurn = Mathf.Max(
+            0f,
+            Structure.TotalTurnAngleDegrees - usedTurnAngleDegrees);
+        float appliedTurn = Mathf.Clamp(
+            requestedTurnDegrees,
+            -remainingTurn,
+            remainingTurn);
+        usedTurnAngleDegrees += Mathf.Abs(appliedTurn);
+        return appliedTurn;
     }
 
     private void SplitProjectile()
@@ -355,12 +375,6 @@ public sealed class bullet : MonoBehaviour
     private static Vector2 Rotate(Vector2 value, float angleDegrees)
     {
         return Quaternion.Euler(0f, 0f, angleDegrees) * value;
-    }
-
-    private static Vector2 DirectionFromAngle(float angleDegrees)
-    {
-        float radians = angleDegrees * Mathf.Deg2Rad;
-        return new Vector2(Mathf.Cos(radians), Mathf.Sin(radians));
     }
 
     private void OnTriggerEnter2D(Collider2D other)

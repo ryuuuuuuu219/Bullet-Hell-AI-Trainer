@@ -25,7 +25,8 @@ public sealed class BulletStructure
         float splitAngleIntervalDegrees = 0f,
         BulletSplitAimType splitAimType = BulletSplitAimType.Forward,
         BulletStructure childStructure = null,
-        float splitWarningDurationSeconds = 0f)
+        float splitWarningDurationSeconds = 0f,
+        float totalTurnAngleDegrees = float.PositiveInfinity)
     {
         Speed = UnityEngine.Mathf.Max(0f, speed);
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
@@ -40,6 +41,7 @@ public sealed class BulletStructure
         SplitWarningDurationSeconds = UnityEngine.Mathf.Max(
             0f,
             splitWarningDurationSeconds);
+        TotalTurnAngleDegrees = UnityEngine.Mathf.Max(0f, totalTurnAngleDegrees);
     }
 
     public float Speed { get; }
@@ -53,6 +55,7 @@ public sealed class BulletStructure
     public BulletSplitAimType SplitAimType { get; }
     public BulletStructure ChildStructure { get; }
     public float SplitWarningDurationSeconds { get; }
+    public float TotalTurnAngleDegrees { get; }
     public bool HasSplit => SplitDelaySeconds > 0f &&
                             SplitProjectileCount > 0 &&
                             ChildStructure != null;

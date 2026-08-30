@@ -313,15 +313,15 @@ public static class BulletHellStageAttackDefinitions
                 Pattern(Projectile(Motion(32f, 2, BulletMotionType.ConstantTurn, 18f), 1f, 3, 20f))),
             Stage(21, "曲がる5way", "強化\n曲がる弾5way\n1秒ごとに発射\n間隔72°\n角速度18deg/s\n弾速：32\n脅威度：2",
                 Pattern(Projectile(Motion(32f, 2, BulletMotionType.ConstantTurn, 18f), 1f, 5, 72f))),
-            Stage(22, "単発の弱誘導弾", "単独認識\n誘導弾1発\n2秒ごとに発射\n角速度制限9deg/s\n弾速：64\n脅威度：2",
-                Pattern(Projectile(Motion(64f, 2, BulletMotionType.Homing, 9f), 2f))),
-            Stage(23, "誘導弾　初級", "強化\n誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限18deg/s\n弾速：64\n脅威度：3",
-                Pattern(Projectile(Motion(64f, 3, BulletMotionType.Homing, 18f), 2f,
+            Stage(22, "単発の弱誘導弾", "単独認識\n誘導弾1発\n2秒ごとに発射\n角速度制限9deg/s\n累積旋回角制限90°\n弾速：64\n脅威度：2",
+                Pattern(Projectile(Motion(64f, 2, BulletMotionType.Homing, 9f, totalTurnAngle: 90f), 2f))),
+            Stage(23, "誘導弾　初級", "強化\n誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限18deg/s\n累積旋回角制限90°\n弾速：64\n脅威度：3",
+                Pattern(Projectile(Motion(64f, 3, BulletMotionType.Homing, 18f, totalTurnAngle: 90f), 2f,
                     burstCount: 3, burstInterval: 0.2f))),
-            Stage(24, "単発の比例航法誘導弾", "単独認識\n比例航法誘導弾1発\n2秒ごとに発射\n角速度制限180deg/s\n比例定数2.6\n弾速：64\n脅威度：4",
-                Pattern(Projectile(Motion(64f, 4, BulletMotionType.ProportionalNavigation, 180f, 2.6f), 2f))),
-            Stage(25, "誘導弾　上級", "強化\n比例航法誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限180deg/s\n比例定数2.6\n弾速：64\n脅威度：5",
-                Pattern(Projectile(Motion(64f, 5, BulletMotionType.ProportionalNavigation, 180f, 2.6f), 2f,
+            Stage(24, "単発の比例航法誘導弾", "単独認識\n比例航法誘導弾1発\n2秒ごとに発射\n角速度制限180deg/s\n累積旋回角制限90°\n比例定数2.6\n弾速：64\n脅威度：4",
+                Pattern(Projectile(Motion(64f, 4, BulletMotionType.ProportionalNavigation, 180f, 2.6f, 90f), 2f))),
+            Stage(25, "誘導弾　上級", "強化\n比例航法誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限180deg/s\n累積旋回角制限90°\n比例定数2.6\n弾速：64\n脅威度：5",
+                Pattern(Projectile(Motion(64f, 5, BulletMotionType.ProportionalNavigation, 180f, 2.6f, 90f), 2f,
                     burstCount: 3, burstInterval: 0.2f))),
             Stage(26, "壁", "組み合わせ\n自機狙い10way＋時間差4way\n2秒ごとに発射\n間隔4°／45°\n弾速：40\n脅威度：1",
                 Pattern(Projectile(40f, 1, 2f, 10, 4f), 2f),
@@ -420,14 +420,16 @@ public static class BulletHellStageAttackDefinitions
         int threat,
         BulletMotionType motionType,
         float turnRate,
-        float navigationConstant = 0f)
+        float navigationConstant = 0f,
+        float totalTurnAngle = float.PositiveInfinity)
     {
         return new BulletStructure(
             speed,
             threat,
             motionType,
             turnRate,
-            navigationConstant);
+            navigationConstant,
+            totalTurnAngleDegrees: totalTurnAngle);
     }
 
     private static BulletStructure Split(
