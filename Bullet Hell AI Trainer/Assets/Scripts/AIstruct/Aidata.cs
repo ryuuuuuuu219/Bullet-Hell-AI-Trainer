@@ -25,6 +25,22 @@ public sealed class AiSaveData
     public float[] outputBiases = Array.Empty<float>();
 }
 
+[Serializable]
+public struct HistorySample
+{
+    public Vector2 position;
+    public Vector2 positionDelta;
+    public float proximityDistance;
+    public float laserDistance;
+}
+
+[Serializable]
+public sealed class TeacherSample
+{
+    public float[] inputs = Array.Empty<float>();
+    public Vector2 targetMovement;
+}
+
 public class Aidata : MonoBehaviour
 {
     public const int MovementOutputNodeCount = 2;
@@ -35,11 +51,20 @@ public class Aidata : MonoBehaviour
     public const int CircularSensorSlotCount = 10;
     public const int CircularFeatureCount = CircularSensorSlotCount + 1;
     public const int LaserFeatureCount = 10;
-    public const int NeuralInputNodeCount =
+    public const int ExistingInputNodeCount =
         ProximityFeatureCount +
         AttentionSensor.AttentionCapacity * AttentionFeatureCount +
         CircularFeatureCount +
         WarningLineSensor.DetectionCapacity * LaserFeatureCount;
+    public const int ThreatTimeInputIndex = ExistingInputNodeCount;
+    public const int CurrentHistoryInputIndex = ThreatTimeInputIndex + 1;
+    public const int PreviousHistoryInputIndex = CurrentHistoryInputIndex + 6;
+    public const int NeuralInputNodeCount = PreviousHistoryInputIndex + 6;
+    public const int FinalInputIndex = NeuralInputNodeCount - 1;
+
+    private const float HistorySampleInterval = 0.2f;
+    private const int MaximumTeacherSampleCount = 2048;
+    private const int TeacherSamplesPerSave = 50;
 
     private const string PlayerPrefsKey = "BulletHellAITrainer.AiData.v1";
 
@@ -52,6 +77,16 @@ public class Aidata : MonoBehaviour
         new LaserSensorObservation[WarningLineSensor.DetectionCapacity];
     private readonly int[] runtimeCircularCounts =
         new int[CircularSensorSlotCount];
+    private readonly List<TeacherSample> teacherSamples =
+        new List<TeacherSample>();
+    private HistorySample currentSample;
+    private HistorySample previousSample;
+    private Vector2 lastHistoryWorldPosition;
+    private float historySampleElapsedTime;
+    private bool historyInitialized;
+    private float nextTeacherSampleTime;
+    private float nextStationaryTeacherSampleTime;
+    private int teacherSamplesSinceSave;
 
     [Header("入力")]
     public bool useProximityInput = true;
@@ -76,8 +111,25 @@ public class Aidata : MonoBehaviour
     public float[] layer2ToOutputWeights = Array.Empty<float>();
     public float[] outputBiases = Array.Empty<float>();
 
+    [Header("教師学習")]
+    [SerializeField, Min(0.000001f)] private float teacherLearningRate = 0.01f;
+    [SerializeField, Min(0.01f)] private float teacherSampleInterval = 0.1f;
+    [SerializeField, Min(0.01f)] private float stationarySampleInterval = 0.5f;
+    [SerializeField, Min(0.01f)] private float gradientClamp = 1f;
+
+    [Header("NNデバッグ（実行時）")]
+    [SerializeField] private float debugThreatTimeSignal = -1f;
+    [SerializeField] private HistorySample debugCurrentSample;
+    [SerializeField] private HistorySample debugPreviousSample;
+    [SerializeField] private Vector2 debugManualInput;
+    [SerializeField] private Vector2 debugPrediction;
+    [SerializeField] private float debugTeacherLoss;
+    [SerializeField] private int debugTeacherSampleCount;
+
     private void Awake()
     {
+        Debug.Assert(ExistingInputNodeCount == 72);
+        Debug.Assert(NeuralInputNodeCount == 85 && FinalInputIndex == 84);
         Load();
     }
 
@@ -137,6 +189,11 @@ public class Aidata : MonoBehaviour
 
     public void EnsureNeuralNetworkShape()
     {
+        bool canMigrateExistingInputs =
+            inputNodeCount == ExistingInputNodeCount &&
+            layer1NodeCount == Layer1NodeCount &&
+            layer2NodeCount == Layer2NodeCount &&
+            outputNodeCount == MovementOutputNodeCount;
         bool networkShapeChanged =
             inputNodeCount != NeuralInputNodeCount ||
             layer1NodeCount != Layer1NodeCount ||
@@ -147,7 +204,7 @@ public class Aidata : MonoBehaviour
         layer2NodeCount = Layer2NodeCount;
         outputNodeCount = MovementOutputNodeCount;
 
-        if (networkShapeChanged)
+        if (networkShapeChanged && !canMigrateExistingInputs)
         {
             ClearNetworkCoefficients(
                 ref inputToLayer1Weights,
@@ -366,13 +423,17 @@ public class Aidata : MonoBehaviour
     private static void NormalizeData(AiSaveData data)
     {
         data.circularSensors ??= new List<CircularSensorData>();
+        bool canMigrateExistingInputs =
+            data.inputNodeCount == ExistingInputNodeCount &&
+            data.layer1NodeCount == Layer1NodeCount &&
+            data.layer2NodeCount == Layer2NodeCount &&
+            data.outputNodeCount == MovementOutputNodeCount;
         bool networkShapeChanged =
             data.inputNodeCount != NeuralInputNodeCount ||
             data.layer1NodeCount != Layer1NodeCount ||
             data.layer2NodeCount != Layer2NodeCount ||
             data.outputNodeCount != MovementOutputNodeCount;
-        if (networkShapeChanged ||
-            data.circularSensors.Count != CircularSensorSlotCount)
+        if (data.circularSensors.Count != CircularSensorSlotCount)
         {
             data.circularSensors = CircularSensor.CreateDefaultData();
         }
@@ -391,7 +452,7 @@ public class Aidata : MonoBehaviour
         data.layer2NodeCount = Layer2NodeCount;
         data.outputNodeCount = MovementOutputNodeCount;
 
-        if (networkShapeChanged)
+        if (networkShapeChanged && !canMigrateExistingInputs)
         {
             data.useAttentionInput = true;
             ClearNetworkCoefficients(
@@ -484,6 +545,112 @@ public class Aidata : MonoBehaviour
         EnsureNeuralNetworkShape();
         BuildRuntimeInputs();
 
+        debugPrediction = Forward(runtimeInputs);
+        return debugPrediction;
+    }
+
+    public void RecordTeacherSample(Vector2 targetMovement)
+    {
+        targetMovement = Vector2.ClampMagnitude(targetMovement, 1f);
+        debugManualInput = targetMovement;
+
+        bool stationary = targetMovement.sqrMagnitude <= Mathf.Epsilon;
+        float allowedTime = stationary
+            ? nextStationaryTeacherSampleTime
+            : nextTeacherSampleTime;
+        if (Time.time < allowedTime)
+        {
+            return;
+        }
+
+        TeacherSample sample = new TeacherSample
+        {
+            inputs = (float[])runtimeInputs.Clone(),
+            targetMovement = targetMovement,
+        };
+        if (teacherSamples.Count >= MaximumTeacherSampleCount)
+        {
+            teacherSamples.RemoveAt(0);
+        }
+
+        teacherSamples.Add(sample);
+        debugTeacherSampleCount = teacherSamples.Count;
+        nextTeacherSampleTime = Time.time + teacherSampleInterval;
+        if (stationary)
+        {
+            nextStationaryTeacherSampleTime = Time.time + stationarySampleInterval;
+        }
+
+        debugTeacherLoss = TrainOnSample(sample);
+        teacherSamplesSinceSave++;
+        if (teacherSamplesSinceSave >= TeacherSamplesPerSave)
+        {
+            Save();
+            teacherSamplesSinceSave = 0;
+        }
+    }
+
+    public float TrainOnSample(TeacherSample sample)
+    {
+        if (sample == null ||
+            sample.inputs == null ||
+            sample.inputs.Length != NeuralInputNodeCount)
+        {
+            return float.NaN;
+        }
+
+        Vector2 prediction = Forward(sample.inputs);
+        Vector2 error = prediction - sample.targetMovement;
+        float loss = error.sqrMagnitude;
+
+        float[] outputDelta = new float[MovementOutputNodeCount];
+        float[] layer2Delta = new float[layer2NodeCount];
+        float[] layer1Delta = new float[layer1NodeCount];
+        outputDelta[0] = SafeGradient(
+            2f * error.x * (1f - prediction.x * prediction.x));
+        outputDelta[1] = SafeGradient(
+            2f * error.y * (1f - prediction.y * prediction.y));
+
+        for (int source = 0; source < layer2NodeCount; source++)
+        {
+            float propagated = 0f;
+            for (int destination = 0;
+                 destination < MovementOutputNodeCount;
+                 destination++)
+            {
+                int weightIndex = source * MovementOutputNodeCount + destination;
+                propagated += outputDelta[destination] *
+                    layer2ToOutputWeights[weightIndex];
+            }
+
+            layer2Delta[source] = SafeGradient(
+                propagated *
+                (1f - runtimeLayer2[source] * runtimeLayer2[source]));
+        }
+
+        for (int source = 0; source < layer1NodeCount; source++)
+        {
+            float propagated = 0f;
+            for (int destination = 0; destination < layer2NodeCount; destination++)
+            {
+                int weightIndex = source * layer2NodeCount + destination;
+                propagated += layer2Delta[destination] *
+                    layer1ToLayer2Weights[weightIndex];
+            }
+
+            layer1Delta[source] = SafeGradient(
+                propagated *
+                (1f - runtimeLayer1[source] * runtimeLayer1[source]));
+        }
+
+        ApplyGradients(sample.inputs, outputDelta, layer2Delta, layer1Delta);
+        return loss;
+    }
+
+    private Vector2 Forward(float[] inputs)
+    {
+        EnsureNeuralNetworkShape();
+
         ResizePreserving(ref runtimeLayer1, layer1NodeCount);
         ResizePreserving(ref runtimeLayer2, layer2NodeCount);
 
@@ -493,7 +660,7 @@ public class Aidata : MonoBehaviour
             for (int source = 0; source < inputNodeCount; source++)
             {
                 int weightIndex = source * layer1NodeCount + destination;
-                sum += runtimeInputs[source] * inputToLayer1Weights[weightIndex];
+                sum += inputs[source] * inputToLayer1Weights[weightIndex];
             }
 
             runtimeLayer1[destination] = Activate(sum);
@@ -514,6 +681,114 @@ public class Aidata : MonoBehaviour
         return new Vector2(CalculateOutputNode(0), CalculateOutputNode(1));
     }
 
+    private void ApplyGradients(
+        float[] inputs,
+        float[] outputDelta,
+        float[] layer2Delta,
+        float[] layer1Delta)
+    {
+        float learningRate = Mathf.Max(0.000001f, teacherLearningRate);
+
+        for (int source = 0; source < layer2NodeCount; source++)
+        {
+            for (int destination = 0;
+                 destination < MovementOutputNodeCount;
+                 destination++)
+            {
+                int index = source * MovementOutputNodeCount + destination;
+                ApplyParameterUpdate(
+                    layer2ToOutputWeights,
+                    index,
+                    runtimeLayer2[source] * outputDelta[destination],
+                    learningRate);
+            }
+        }
+
+        for (int destination = 0;
+             destination < MovementOutputNodeCount;
+             destination++)
+        {
+            ApplyParameterUpdate(
+                outputBiases,
+                destination,
+                outputDelta[destination],
+                learningRate);
+        }
+
+        for (int source = 0; source < layer1NodeCount; source++)
+        {
+            for (int destination = 0; destination < layer2NodeCount; destination++)
+            {
+                int index = source * layer2NodeCount + destination;
+                ApplyParameterUpdate(
+                    layer1ToLayer2Weights,
+                    index,
+                    runtimeLayer1[source] * layer2Delta[destination],
+                    learningRate);
+            }
+        }
+
+        for (int destination = 0; destination < layer2NodeCount; destination++)
+        {
+            ApplyParameterUpdate(
+                layer2Biases,
+                destination,
+                layer2Delta[destination],
+                learningRate);
+        }
+
+        for (int source = 0; source < inputNodeCount; source++)
+        {
+            for (int destination = 0; destination < layer1NodeCount; destination++)
+            {
+                int index = source * layer1NodeCount + destination;
+                ApplyParameterUpdate(
+                    inputToLayer1Weights,
+                    index,
+                    inputs[source] * layer1Delta[destination],
+                    learningRate);
+            }
+        }
+
+        for (int destination = 0; destination < layer1NodeCount; destination++)
+        {
+            ApplyParameterUpdate(
+                layer1Biases,
+                destination,
+                layer1Delta[destination],
+                learningRate);
+        }
+    }
+
+    private void ApplyParameterUpdate(
+        float[] parameters,
+        int index,
+        float gradient,
+        float learningRate)
+    {
+        float current = parameters[index];
+        if (float.IsNaN(current) || float.IsInfinity(current))
+        {
+            current = 0f;
+        }
+
+        float next = current - learningRate * SafeGradient(gradient);
+        parameters[index] = float.IsNaN(next) || float.IsInfinity(next)
+            ? current
+            : next;
+    }
+
+    private float SafeGradient(float value)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value))
+        {
+            return 0f;
+        }
+
+        float limit = Mathf.Max(0.01f, gradientClamp);
+        return Mathf.Clamp(value, -limit, limit);
+    }
+
     private void BuildRuntimeInputs()
     {
         ResizePreserving(ref runtimeInputs, inputNodeCount);
@@ -531,11 +806,127 @@ public class Aidata : MonoBehaviour
         WriteAttentionInputs(ref inputIndex, logicalLayer, playerVelocity);
         WriteCircularInputs(ref inputIndex);
         WriteLaserInputs(ref inputIndex, logicalLayer);
+        UpdateHistorySamples(logicalLayer);
+
+        debugThreatTimeSignal = StageSpawnManager.CurrentThreatTimeSignal;
+        WriteInput(ref inputIndex, debugThreatTimeSignal);
+        WriteHistorySample(ref inputIndex, currentSample);
+        WriteHistorySample(ref inputIndex, previousSample);
+        debugCurrentSample = currentSample;
+        debugPreviousSample = previousSample;
 
         Debug.Assert(
             inputIndex == NeuralInputNodeCount,
             $"AI input schema wrote {inputIndex} values; expected " +
             $"{NeuralInputNodeCount}.");
+    }
+
+    private void UpdateHistorySamples(int logicalLayer)
+    {
+        if (!historyInitialized)
+        {
+            Vector2 worldPosition = transform.position;
+            currentSample = CaptureHistorySample(logicalLayer, worldPosition);
+            currentSample.positionDelta = Vector2.zero;
+            previousSample = currentSample;
+            lastHistoryWorldPosition = worldPosition;
+            historySampleElapsedTime = 0f;
+            historyInitialized = true;
+            return;
+        }
+
+        historySampleElapsedTime += Time.fixedDeltaTime;
+        if (historySampleElapsedTime < HistorySampleInterval)
+        {
+            return;
+        }
+
+        historySampleElapsedTime %= HistorySampleInterval;
+        Vector2 currentWorldPosition = transform.position;
+        HistorySample newSample = CaptureHistorySample(
+            logicalLayer,
+            currentWorldPosition);
+        float moveSpeed = TryGetComponent(out PlayerMovementController movement)
+            ? movement.MoveSpeed
+            : 0f;
+        float maximumDistance = moveSpeed * HistorySampleInterval;
+        newSample.positionDelta = maximumDistance > Mathf.Epsilon
+            ? new Vector2(
+                Mathf.Clamp(
+                    (currentWorldPosition.x - lastHistoryWorldPosition.x) /
+                    maximumDistance,
+                    -1f,
+                    1f),
+                Mathf.Clamp(
+                    (currentWorldPosition.y - lastHistoryWorldPosition.y) /
+                    maximumDistance,
+                    -1f,
+                    1f))
+            : Vector2.zero;
+
+        previousSample = currentSample;
+        currentSample = newSample;
+        lastHistoryWorldPosition = currentWorldPosition;
+    }
+
+    private HistorySample CaptureHistorySample(
+        int logicalLayer,
+        Vector2 worldPosition)
+    {
+        Camera camera = Camera.main;
+        Vector2 normalizedPosition = Vector2.zero;
+        if (camera != null)
+        {
+            Vector3 viewport = camera.WorldToViewportPoint(worldPosition);
+            normalizedPosition = new Vector2(
+                Mathf.Clamp(viewport.x * 2f - 1f, -1f, 1f),
+                Mathf.Clamp(viewport.y * 2f - 1f, -1f, 1f));
+        }
+
+        ProximityObservation proximity = useProximityInput
+            ? ProximitySensor.Observe(worldPosition, logicalLayer)
+            : default;
+        float proximityDistance = proximity.isValid
+            ? proximity.normalizedDistance
+            : 1f;
+
+        Array.Clear(runtimeLaserThreats, 0, runtimeLaserThreats.Length);
+        if (useWarningLineInput)
+        {
+            WarningLineSensor.SelectActiveThreats(
+                worldPosition,
+                logicalLayer,
+                runtimeLaserThreats);
+        }
+
+        float laserDistance = 1f;
+        foreach (LaserSensorObservation laser in runtimeLaserThreats)
+        {
+            if (laser.isValid)
+            {
+                laserDistance = Mathf.Min(
+                    laserDistance,
+                    Mathf.Clamp01(laser.surfaceDistance));
+            }
+        }
+
+        return new HistorySample
+        {
+            position = normalizedPosition,
+            positionDelta = Vector2.zero,
+            proximityDistance = proximityDistance,
+            laserDistance = laserDistance,
+        };
+    }
+
+    private void WriteHistorySample(ref int inputIndex, HistorySample sample)
+    {
+        WriteInput(ref inputIndex, sample.position.x);
+        WriteInput(ref inputIndex, sample.position.y);
+        WriteInput(ref inputIndex, sample.positionDelta.x);
+        WriteInput(ref inputIndex, sample.positionDelta.y);
+        WriteInput(ref inputIndex, sample.proximityDistance);
+        WriteInput(ref inputIndex, sample.laserDistance);
     }
 
     private void WriteProximityInputs(ref int inputIndex, int logicalLayer)
@@ -683,6 +1074,12 @@ public class Aidata : MonoBehaviour
 #if UNITY_EDITOR
     private void OnValidate()
     {
+        teacherLearningRate = Mathf.Max(0.000001f, teacherLearningRate);
+        teacherSampleInterval = Mathf.Max(0.01f, teacherSampleInterval);
+        stationarySampleInterval = Mathf.Max(
+            teacherSampleInterval,
+            stationarySampleInterval);
+        gradientClamp = Mathf.Max(0.01f, gradientClamp);
         EnsureNeuralNetworkShape();
     }
 #endif

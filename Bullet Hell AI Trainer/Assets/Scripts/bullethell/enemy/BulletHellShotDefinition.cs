@@ -173,17 +173,47 @@ public sealed class BulletHellStageDefinition
         string title,
         string description,
         params BulletHellStagePattern[] patterns)
+        : this(id, title, description, Array.Empty<float>(), patterns)
+    {
+    }
+
+    public BulletHellStageDefinition(
+        int id,
+        string title,
+        string description,
+        float[] threatArrivalTimes,
+        params BulletHellStagePattern[] patterns)
     {
         Id = id;
         Title = title;
         Description = description;
+        this.threatArrivalTimes = NormalizeThreatArrivalTimes(threatArrivalTimes);
         Patterns = patterns ?? Array.Empty<BulletHellStagePattern>();
     }
 
     public int Id { get; }
     public string Title { get; }
     public string Description { get; }
+    public float[] threatArrivalTimes { get; }
+    public IReadOnlyList<float> ThreatArrivalTimes => threatArrivalTimes;
     public IReadOnlyList<BulletHellStagePattern> Patterns { get; }
+
+    private static float[] NormalizeThreatArrivalTimes(float[] values)
+    {
+        if (values == null || values.Length == 0)
+        {
+            return Array.Empty<float>();
+        }
+
+        float[] normalized = new float[values.Length];
+        for (int index = 0; index < values.Length; index++)
+        {
+            normalized[index] = Mathf.Max(0f, values[index]);
+        }
+
+        Array.Sort(normalized);
+        return normalized;
+    }
 }
 
 public static class BulletHellStageAttackDefinitions

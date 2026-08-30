@@ -12,6 +12,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject playerBulletPrefab;
     [SerializeField] private GameObject layerInfoPrefab;
+    [SerializeField] private bool teacherModeEnabled;
 
     [Header("Boss")]
     [SerializeField] private GameObject bossPrefab;
@@ -26,20 +27,35 @@ public sealed class StageSpawnManager : MonoBehaviour
     private PopulationSettingsData activePopulationData;
     private float nextGenerationConditionCheckTime;
     private bool isInitialized;
+    private bool spawnManualPlayer;
+    private AiSaveData teacherNetworkSnapshot;
+    private IReadOnlyList<float> activeThreatArrivalTimes = Array.Empty<float>();
+    private float stageElapsedTime;
+    private int nextThreatTimeIndex;
+
+    public static float CurrentThreatTimeSignal { get; private set; } = -1f;
 
     public int StageId { get; private set; } = -1;
 
     public event Action<BulletHellShotDefinition> SpawnRequested;
 
-    public void Initialize(int stageId)
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetStaticState()
+    {
+        CurrentThreatTimeSignal = -1f;
+    }
+
+    public void Initialize(int stageId, bool shouldSpawnManualPlayer = false)
     {
         EnsureBulletHellShooter();
         bulletHellShooter.ClearEnemyAttacks();
         StageId = stageId;
+        spawnManualPlayer = shouldSpawnManualPlayer;
         PopulationSettingsData populationData = populationSetting.LoadData();
         activePopulationData = populationData;
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
-        SpawnBoss(populationData.populationSize);
+        int playerCount = GetSpawnedPlayerCount(populationData);
+        SpawnBoss(playerCount);
         SpawnPlayerPopulation(populationData, initialGenomes);
         StartStagePattern();
         nextGenerationConditionCheckTime = Time.unscaledTime;
@@ -48,7 +64,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         StageView.BuildLayerInfo(
             layerInfoPrefab,
             this,
-            populationData.populationSize);
+            playerCount);
     }
 
     private void Update()
@@ -73,10 +89,32 @@ public sealed class StageSpawnManager : MonoBehaviour
         }
     }
 
+    private void FixedUpdate()
+    {
+        if (!isInitialized)
+        {
+            return;
+        }
+
+        stageElapsedTime += Time.fixedDeltaTime;
+        CurrentThreatTimeSignal = Mathf.MoveTowards(
+            CurrentThreatTimeSignal,
+            -1f,
+            Time.fixedDeltaTime * 0.1f);
+
+        while (nextThreatTimeIndex < activeThreatArrivalTimes.Count &&
+               stageElapsedTime >= activeThreatArrivalTimes[nextThreatTimeIndex])
+        {
+            CurrentThreatTimeSignal = 1f;
+            nextThreatTimeIndex++;
+        }
+    }
+
     private void StartStagePattern()
     {
         BulletHellStageDefinition stage =
             BulletHellStageAttackDefinitions.GetStage(StageId);
+        ResetThreatTimeSignal(stage);
         if (stage == null)
         {
             Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
@@ -87,6 +125,14 @@ public sealed class StageSpawnManager : MonoBehaviour
             stage,
             spawnedBoss?.transform,
             spawnedPlayers);
+    }
+
+    private void ResetThreatTimeSignal(BulletHellStageDefinition stage)
+    {
+        stageElapsedTime = 0f;
+        CurrentThreatTimeSignal = -1f;
+        nextThreatTimeIndex = 0;
+        activeThreatArrivalTimes = stage?.ThreatArrivalTimes ?? Array.Empty<float>();
     }
 
     private void SpawnPlayerPopulation(
@@ -104,54 +150,103 @@ public sealed class StageSpawnManager : MonoBehaviour
         int populationSize = populationData.populationSize;
         for (int index = 0; index < populationSize; index++)
         {
-            GameObject player = Instantiate(
-                playerPrefab,
-                PlayerSpawnPosition,
-                Quaternion.identity);
-            player.name = $"Player {index + 1}";
-            PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
-            if (playerAgent == null)
-            {
-                playerAgent = player.AddComponent<PlayerAgent>();
-            }
-
-            playerAgent.SetLogicalLayer(index);
-
-            PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
-            if (playerShooter == null)
-            {
-                playerShooter = player.AddComponent<PlayerShooter>();
-            }
-
-            playerShooter.Configure(playerBulletPrefab, index);
-
-            Aidata aiData = player.GetComponent<Aidata>();
-            if (aiData != null)
-            {
-                if (genomes != null && index < genomes.Count)
-                {
-                    aiData.ApplySnapshot(genomes[index]);
-                }
-                else
-                {
-                    int seed = CreateNetworkSeed(
-                        populationData.currentGeneration,
-                        index);
-                    aiData.RandomizeNetwork(seed);
-                }
-            }
-
-            PlayerEvaluationTracker tracker =
-                player.GetComponent<PlayerEvaluationTracker>();
-            if (tracker == null)
-            {
-                tracker = player.AddComponent<PlayerEvaluationTracker>();
-            }
-
-            tracker.Initialize(populationData.centerDistanceSampleIntervalSeconds);
-
-            spawnedPlayers.Add(player);
+            int genomeIndex = teacherModeEnabled && index > 0
+                ? index - 1
+                : index;
+            AiSaveData genome = genomes != null && genomeIndex < genomes.Count
+                ? genomes[genomeIndex]
+                : null;
+            SpawnPlayer(populationData, index, genome, false);
         }
+
+        if (spawnManualPlayer)
+        {
+            SpawnPlayer(populationData, populationSize, null, true);
+        }
+    }
+
+    private void SpawnPlayer(
+        PopulationSettingsData populationData,
+        int logicalLayer,
+        AiSaveData genome,
+        bool manualControl)
+    {
+        GameObject player = Instantiate(
+            playerPrefab,
+            PlayerSpawnPosition,
+            Quaternion.identity);
+        player.name = manualControl
+            ? "Manual Player"
+            : $"Player {logicalLayer + 1}";
+
+        PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
+        if (playerAgent == null)
+        {
+            playerAgent = player.AddComponent<PlayerAgent>();
+        }
+
+        playerAgent.SetLogicalLayer(logicalLayer);
+
+        PlayerMovementController movement =
+            player.GetComponent<PlayerMovementController>();
+        if (movement == null)
+        {
+            movement = player.AddComponent<PlayerMovementController>();
+        }
+
+        movement.SetManualControl(manualControl);
+        movement.SetTeacherMode(
+            !manualControl && logicalLayer == 0 && teacherModeEnabled);
+
+        PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
+        if (playerShooter == null)
+        {
+            playerShooter = player.AddComponent<PlayerShooter>();
+        }
+
+        playerShooter.Configure(playerBulletPrefab, logicalLayer);
+
+        Aidata aiData = player.GetComponent<Aidata>();
+        if (!manualControl && aiData != null)
+        {
+            if (movement.IsTeacherControlled && teacherNetworkSnapshot != null)
+            {
+                aiData.ApplySnapshot(teacherNetworkSnapshot);
+            }
+            else if (genome != null)
+            {
+                aiData.ApplySnapshot(genome);
+            }
+            else
+            {
+                int seed = CreateNetworkSeed(
+                    populationData.currentGeneration,
+                    logicalLayer);
+                aiData.RandomizeNetwork(seed);
+            }
+        }
+
+        PlayerEvaluationTracker tracker =
+            player.GetComponent<PlayerEvaluationTracker>();
+        if (tracker == null)
+        {
+            tracker = player.AddComponent<PlayerEvaluationTracker>();
+        }
+
+        tracker.Initialize(populationData.centerDistanceSampleIntervalSeconds);
+        spawnedPlayers.Add(player);
+    }
+
+    private int GetSpawnedPlayerCount(PopulationSettingsData populationData)
+    {
+        return populationData.populationSize + (spawnManualPlayer ? 1 : 0);
+    }
+
+    private int GetGeneticPlayerCount(PopulationSettingsData populationData)
+    {
+        return Mathf.Max(
+            0,
+            populationData.populationSize - (teacherModeEnabled ? 1 : 0));
     }
 
     private void SpawnBoss(int populationSize)
@@ -192,7 +287,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         return GenerationGeneticAlgorithm.CreatePopulationFromSavedGenome(
             savedGenome,
-            populationData.populationSize,
+            GetGeneticPlayerCount(populationData),
             populationData.mutationRate,
             populationData.mutationStrength,
             populationData.eliteCount,
@@ -206,6 +301,12 @@ public sealed class StageSpawnManager : MonoBehaviour
         {
             if (player == null ||
                 !player.TryGetComponent(out PlayerAgent playerAgent))
+            {
+                continue;
+            }
+
+            if (player.TryGetComponent(out PlayerMovementController movement) &&
+                movement.IsExcludedFromGeneticAlgorithm)
             {
                 continue;
             }
@@ -240,6 +341,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             Aidata.SaveData(Aidata.CloneData(savedCandidate.Genome));
         }
 
+        CaptureTeacherNetwork();
+
         int completedGeneration = populationData.currentGeneration;
         populationData.currentGeneration++;
         if (consumeManualRequest)
@@ -255,7 +358,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         List<AiSaveData> nextGenomes =
             GenerationGeneticAlgorithm.BreedNextGeneration(
                 candidates,
-                populationData.populationSize,
+                GetGeneticPlayerCount(populationData),
                 populationData.mutationRate,
                 populationData.mutationStrength,
                 populationData.eliteCount,
@@ -268,10 +371,28 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         bulletHellShooter.ClearEnemyAttacks();
         ClearPlayerBullets();
-        SpawnBoss(populationData.populationSize);
+        SpawnBoss(GetSpawnedPlayerCount(populationData));
         SpawnPlayerPopulation(populationData, nextGenomes);
         StartStagePattern();
         StageView.RefreshGenerationLabel();
+    }
+
+    private void CaptureTeacherNetwork()
+    {
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerMovementController movement) ||
+                !movement.IsTeacherControlled ||
+                !player.TryGetComponent(out Aidata aiData))
+            {
+                continue;
+            }
+
+            teacherNetworkSnapshot = aiData.CreateSnapshot();
+            Aidata.SaveData(Aidata.CloneData(teacherNetworkSnapshot));
+            return;
+        }
     }
 
     public bool TryGetLayerInfo(
@@ -320,6 +441,12 @@ public sealed class StageSpawnManager : MonoBehaviour
                 !player.TryGetComponent(out PlayerAgent playerAgent) ||
                 !player.TryGetComponent(out Aidata aiData) ||
                 !player.TryGetComponent(out PlayerEvaluationTracker tracker))
+            {
+                continue;
+            }
+
+            if (player.TryGetComponent(out PlayerMovementController movement) &&
+                movement.IsExcludedFromGeneticAlgorithm)
             {
                 continue;
             }

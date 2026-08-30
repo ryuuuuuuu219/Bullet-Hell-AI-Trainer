@@ -1,4 +1,5 @@
 using UnityEngine;
+using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Aidata))]
@@ -8,11 +9,29 @@ public sealed class PlayerMovementController : MonoBehaviour
         new Plane(Vector3.forward, Vector3.zero);
 
     [SerializeField, Min(0f)] private float moveSpeed = 300f;
+    [SerializeField] private bool teacherModeEnabled;
 
     private Aidata aiData;
     private PlayerAgent playerAgent;
     private Rigidbody2D body;
     private Camera movementCamera;
+
+    public bool IsManualControl { get; private set; }
+    public bool IsTeacherControlled =>
+        teacherModeEnabled && playerAgent != null && playerAgent.LogicalLayer == 0;
+    public bool IsExcludedFromGeneticAlgorithm =>
+        IsManualControl || IsTeacherControlled;
+    public float MoveSpeed => moveSpeed;
+
+    public void SetManualControl(bool enabled)
+    {
+        IsManualControl = enabled;
+    }
+
+    public void SetTeacherMode(bool enabled)
+    {
+        teacherModeEnabled = enabled;
+    }
 
     private void Awake()
     {
@@ -44,13 +63,56 @@ public sealed class PlayerMovementController : MonoBehaviour
             return;
         }
 
-        Vector2 movementOutput = Vector2.ClampMagnitude(aiData.output(), 1f);
+        Vector2 prediction = aiData.output();
+        bool useManualInput = IsManualControl || IsTeacherControlled;
+        Vector2 movementOutput = useManualInput
+            ? ReadManualMovement()
+            : prediction;
+        movementOutput = Vector2.ClampMagnitude(movementOutput, 1f);
+        if (IsTeacherControlled)
+        {
+            aiData.RecordTeacherSample(movementOutput);
+        }
         Vector2 desiredVelocity = movementOutput * moveSpeed;
         Vector2 nextPosition = currentPosition +
             desiredVelocity * Time.fixedDeltaTime;
         Vector2 clampedNextPosition = ClampToCameraView(nextPosition);
         body.linearVelocity = (clampedNextPosition - currentPosition) /
             Time.fixedDeltaTime;
+    }
+
+    private static Vector2 ReadManualMovement()
+    {
+        Keyboard keyboard = Keyboard.current;
+        if (keyboard == null)
+        {
+            return Vector2.zero;
+        }
+
+        float horizontal = 0f;
+        float vertical = 0f;
+
+        if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed)
+        {
+            horizontal -= 1f;
+        }
+
+        if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed)
+        {
+            horizontal += 1f;
+        }
+
+        if (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed)
+        {
+            vertical -= 1f;
+        }
+
+        if (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed)
+        {
+            vertical += 1f;
+        }
+
+        return new Vector2(horizontal, vertical);
     }
 
     private Vector2 ClampToCameraView(Vector2 worldPosition)

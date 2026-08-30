@@ -6,9 +6,12 @@ public static class StageSelectView
 {
     private static readonly Color SelectedColor = new Color(0.55f, 0.78f, 1f, 1f);
     private static readonly Color NormalColor = Color.white;
+    private const string ManualToggleObjectName = "Manual Player Toggle";
 
     public static void Build()
     {
+        BuildManualPlayerToggle();
+
         GameObject contentObject = GameObject.Find("Content");
         if (contentObject == null)
         {
@@ -145,5 +148,157 @@ public static class StageSelectView
         return stage != null
             ? $"課題{stageId + 1}　{stage.Title}"
             : $"Stage {stageId}";
+    }
+
+    private static void BuildManualPlayerToggle()
+    {
+        GameObject toggleObject = GameObject.Find(ManualToggleObjectName);
+        if (toggleObject == null)
+        {
+            Button startButton = FindButton("Start");
+            if (startButton == null)
+            {
+                Debug.LogWarning("Stage Start button was not found for the manual player toggle.");
+                return;
+            }
+
+            toggleObject = new GameObject(
+                ManualToggleObjectName,
+                typeof(RectTransform));
+            toggleObject.layer = startButton.gameObject.layer;
+            toggleObject.transform.SetParent(startButton.transform.parent, false);
+
+            RectTransform startRect = startButton.GetComponent<RectTransform>();
+            RectTransform toggleRect = toggleObject.GetComponent<RectTransform>();
+            toggleRect.anchorMin = startRect.anchorMin;
+            toggleRect.anchorMax = startRect.anchorMax;
+            toggleRect.pivot = startRect.pivot;
+            toggleRect.sizeDelta = new Vector2(340f, startRect.sizeDelta.y);
+            toggleRect.anchoredPosition = startRect.anchoredPosition +
+                Vector2.left * (startRect.sizeDelta.x * 0.5f + 190f);
+        }
+
+        Toggle toggle = toggleObject.GetComponent<Toggle>();
+        if (toggle == null)
+        {
+            toggle = toggleObject.AddComponent<Toggle>();
+        }
+
+        Image background = GetOrCreateToggleImage(
+            toggleObject.transform,
+            "Background",
+            new Color(0.92f, 0.92f, 0.92f, 1f));
+        RectTransform backgroundRect = background.rectTransform;
+        backgroundRect.anchorMin = new Vector2(0f, 0.5f);
+        backgroundRect.anchorMax = new Vector2(0f, 0.5f);
+        backgroundRect.pivot = new Vector2(0f, 0.5f);
+        backgroundRect.anchoredPosition = new Vector2(8f, 0f);
+        backgroundRect.sizeDelta = new Vector2(40f, 40f);
+
+        Image checkmark = GetOrCreateToggleImage(
+            background.transform,
+            "Checkmark",
+            new Color(0f, 0f, 1f, 1f));
+        RectTransform checkmarkRect = checkmark.rectTransform;
+        checkmarkRect.anchorMin = Vector2.zero;
+        checkmarkRect.anchorMax = Vector2.one;
+        checkmarkRect.offsetMin = new Vector2(7f, 7f);
+        checkmarkRect.offsetMax = new Vector2(-7f, -7f);
+
+        TextMeshProUGUI label = GetOrCreateToggleLabel(toggleObject.transform);
+        RectTransform labelRect = label.rectTransform;
+        labelRect.anchorMin = Vector2.zero;
+        labelRect.anchorMax = Vector2.one;
+        labelRect.offsetMin = new Vector2(58f, 0f);
+        labelRect.offsetMax = new Vector2(-8f, 0f);
+
+        toggle.targetGraphic = background;
+        toggle.graphic = checkmark;
+        toggle.SetIsOnWithoutNotify(GameSceneManager.SpawnManualPlayer);
+        toggle.onValueChanged.RemoveListener(GameSceneManager.SetSpawnManualPlayer);
+        toggle.onValueChanged.AddListener(GameSceneManager.SetSpawnManualPlayer);
+    }
+
+    private static Image GetOrCreateToggleImage(
+        Transform parent,
+        string objectName,
+        Color color)
+    {
+        Transform existing = parent.Find(objectName);
+        GameObject imageObject;
+        if (existing != null)
+        {
+            imageObject = existing.gameObject;
+        }
+        else
+        {
+            imageObject = new GameObject(
+                objectName,
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(Image));
+            imageObject.layer = parent.gameObject.layer;
+            imageObject.transform.SetParent(parent, false);
+        }
+
+        Image image = imageObject.GetComponent<Image>();
+        image.color = color;
+        return image;
+    }
+
+    private static TextMeshProUGUI GetOrCreateToggleLabel(Transform parent)
+    {
+        Transform existing = parent.Find("Label");
+        GameObject labelObject;
+        if (existing != null)
+        {
+            labelObject = existing.gameObject;
+        }
+        else
+        {
+            labelObject = new GameObject(
+                "Label",
+                typeof(RectTransform),
+                typeof(CanvasRenderer),
+                typeof(TextMeshProUGUI));
+            labelObject.layer = parent.gameObject.layer;
+            labelObject.transform.SetParent(parent, false);
+        }
+
+        TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
+        label.text = "手動操作自機をスポーン";
+        label.alignment = TextAlignmentOptions.MidlineLeft;
+        label.color = Color.white;
+        label.fontSize = 24f;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 14f;
+        label.fontSizeMax = 24f;
+
+        TMP_Text descriptionText =
+            GameObject.Find("Discription")?.GetComponentInChildren<TMP_Text>(true);
+        if (descriptionText != null)
+        {
+            label.font = descriptionText.font;
+        }
+
+        return label;
+    }
+
+    private static Button FindButton(string label)
+    {
+        foreach (Button button in
+                 UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include))
+        {
+            TMP_Text text = button.GetComponentInChildren<TMP_Text>(true);
+            if (text != null && string.Equals(
+                    text.text.Trim(),
+                    label,
+                    System.StringComparison.OrdinalIgnoreCase))
+            {
+                return button;
+            }
+        }
+
+        return null;
     }
 }

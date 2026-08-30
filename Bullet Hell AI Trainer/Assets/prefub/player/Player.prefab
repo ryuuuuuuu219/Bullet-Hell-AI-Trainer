@@ -202,7 +202,7 @@ MonoBehaviour:
   useCircularSensorInput: 1
   useWarningLineInput: 1
   sensors: []
-  inputNodeCount: 72
+  inputNodeCount: 85
   layer1NodeCount: 16
   layer2NodeCount: 12
   outputNodeCount: 2
@@ -1623,3 +1623,4 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::PlayerMovementController
   moveSpeed: 300
+  teacherModeEnabled: 0
