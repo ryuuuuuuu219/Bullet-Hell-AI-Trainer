@@ -212,8 +212,12 @@ public static class BulletHellStageAttackDefinitions
         BulletStructure geometricA = Split(
             160f, 3, 1.6f, 5, 72f, BulletSplitAimType.Forward,
             Split(
-                192f, 3, 1.6f, 1, 0f, BulletSplitAimType.Forward,
-                Straight(224f, 1),
+                192f, 3, 1.6f, 5, 72f, BulletSplitAimType.Forward,
+                Split(
+                    224f, 3, 1.6f, 1, 0f, BulletSplitAimType.Forward,
+                    Straight(224f, 1),
+                    BulletMotionType.ConstantTurn,
+                    40f),
                 BulletMotionType.ConstantTurn,
                 40f),
             BulletMotionType.ConstantTurn,
@@ -293,7 +297,7 @@ public static class BulletHellStageAttackDefinitions
                 Pattern(Projectile(40f, 1, 2f, 4, 45f, BulletAimType.FixedDown), 3f)),
             Stage(27, "ずっと連射", "組み合わせ\n自機狙い3way\n0.4秒ごとに発射\n間隔7°\n弾速：32\n脅威度：1",
                 Pattern(Projectile(32f, 1, 0.4f, 3, 7f))),
-            Stage(28, "幾何的弾幕A", "組み合わせ\n曲がる5wayを2段階展開後、1wayへ展開\n8秒ごとに発射\n各段階1.6秒後に展開\n間隔72°\n角速度40deg/s\n弾速：160→192→224\n脅威度：3→3→1",
+            Stage(28, "幾何的弾幕A", "組み合わせ\n曲がる5wayを3段階展開後、1wayへ展開\n8秒ごとに発射\n各段階1.6秒後に展開\n間隔72°\n角速度40deg/s\n弾速：160→192→224→224\n脅威度：3→3→3→1",
                 Pattern(Projectile(geometricA, 8f, 5, 72f))),
             Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\nBPM：30\n第1段階の間隔40°\n各段階1.6秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
                 Pattern(Projectile(geometricB, 2f, 2, 40f))),
