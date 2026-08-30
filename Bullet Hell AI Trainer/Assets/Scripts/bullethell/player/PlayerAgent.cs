@@ -63,7 +63,7 @@ public sealed class PlayerAgent : MonoBehaviour
         }
 
         collisionShape.isTrigger = true;
-        collisionShape.radius = 5f;
+        collisionShape.radius = 2f;
     }
 
 #if UNITY_EDITOR
