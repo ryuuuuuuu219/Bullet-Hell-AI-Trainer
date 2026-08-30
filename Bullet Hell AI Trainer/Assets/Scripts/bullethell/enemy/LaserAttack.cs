@@ -7,6 +7,7 @@ public sealed class LaserAttack : MonoBehaviour
 {
     private static readonly Color WarningColor = Color.gray;
     private static readonly Color ActiveColor = Color.red;
+    private static Material lineMaterial;
     private static int nextThreatId;
 
     private LineRenderer lineRenderer;
@@ -35,6 +36,31 @@ public sealed class LaserAttack : MonoBehaviour
         lineRenderer.loop = false;
         lineRenderer.positionCount = 2;
         lineRenderer.alignment = LineAlignment.TransformZ;
+        lineRenderer.sharedMaterial = GetLineMaterial();
+    }
+
+    private static Material GetLineMaterial()
+    {
+        if (lineMaterial != null)
+        {
+            return lineMaterial;
+        }
+
+        Shader shader = Shader.Find("Sprites/Default") ??
+                        Shader.Find("Universal Render Pipeline/Unlit") ??
+                        Shader.Find("UI/Default");
+        if (shader == null)
+        {
+            Debug.LogError("No compatible shader was found for laser warning lines.");
+            return null;
+        }
+
+        lineMaterial = new Material(shader)
+        {
+            name = "Generated Laser Line Material",
+            hideFlags = HideFlags.HideAndDontSave,
+        };
+        return lineMaterial;
     }
 
     public void Configure(
