@@ -54,6 +54,7 @@ public sealed class StageSpawnManager : MonoBehaviour
             teacherModeEnabled ? 0 : -1);
         PopulationSettingsData populationData = populationSetting.LoadData();
         activePopulationData = populationData;
+        LoadTeacherNetworkSnapshot();
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
         int playerCount = GetSpawnedPlayerCount(populationData);
         SpawnBoss(playerCount);
@@ -148,29 +149,35 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
+        if (teacherModeEnabled)
+        {
+            SpawnPlayer(populationData, 0, teacherNetworkSnapshot, true);
+        }
+
         int populationSize = populationData.populationSize;
         for (int index = 0; index < populationSize; index++)
         {
-            int genomeIndex = teacherModeEnabled && index > 0
-                ? index - 1
-                : index;
-            AiSaveData genome = genomes != null && genomeIndex < genomes.Count
-                ? genomes[genomeIndex]
+            int logicalLayer = index + (teacherModeEnabled ? 1 : 0);
+            AiSaveData genome = genomes != null && index < genomes.Count
+                ? genomes[index]
                 : null;
-            SpawnPlayer(populationData, index, genome);
+            SpawnPlayer(populationData, logicalLayer, genome, false);
         }
     }
 
     private void SpawnPlayer(
         PopulationSettingsData populationData,
         int logicalLayer,
-        AiSaveData genome)
+        AiSaveData genome,
+        bool teacherControl)
     {
         GameObject player = Instantiate(
             playerPrefab,
             PlayerSpawnPosition,
             Quaternion.identity);
-        player.name = $"Player {logicalLayer + 1}";
+        player.name = teacherControl
+            ? "Manual Player"
+            : $"Player {logicalLayer + 1}";
 
         PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
         if (playerAgent == null)
@@ -187,9 +194,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             movement = player.AddComponent<PlayerMovementController>();
         }
 
-        movement.SetManualControl(false);
-        movement.SetTeacherMode(
-            logicalLayer == 0 && teacherModeEnabled);
+        movement.SetManualControl(teacherControl);
+        movement.SetTeacherMode(teacherControl);
 
         PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
         if (playerShooter == null)
@@ -232,14 +238,26 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private int GetSpawnedPlayerCount(PopulationSettingsData populationData)
     {
-        return populationData.populationSize;
+        return populationData.populationSize + (teacherModeEnabled ? 1 : 0);
     }
 
     private int GetGeneticPlayerCount(PopulationSettingsData populationData)
     {
-        return Mathf.Max(
-            0,
-            populationData.populationSize - (teacherModeEnabled ? 1 : 0));
+        return populationData.populationSize;
+    }
+
+    private void LoadTeacherNetworkSnapshot()
+    {
+        if (!teacherModeEnabled || teacherNetworkSnapshot != null)
+        {
+            return;
+        }
+
+        AiSaveData savedNetwork = Aidata.LoadData();
+        if (Aidata.HasTrainableNetwork(savedNetwork))
+        {
+            teacherNetworkSnapshot = Aidata.CloneData(savedNetwork);
+        }
     }
 
     private void SpawnBoss(int populationSize)
@@ -294,12 +312,6 @@ public sealed class StageSpawnManager : MonoBehaviour
         {
             if (player == null ||
                 !player.TryGetComponent(out PlayerAgent playerAgent))
-            {
-                continue;
-            }
-
-            if (player.TryGetComponent(out PlayerMovementController movement) &&
-                movement.IsExcludedFromGeneticAlgorithm)
             {
                 continue;
             }
