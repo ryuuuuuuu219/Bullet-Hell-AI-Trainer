@@ -245,6 +245,7 @@ public sealed class BulletHellShooter : MonoBehaviour
             $"Laser Layer {target.LogicalLayer}",
             typeof(LineRenderer),
             typeof(LaserAttack));
+        laserObject.transform.SetParent(transform, true);
         LaserAttack laserAttack = laserObject.GetComponent<LaserAttack>();
         laserAttack.Configure(
             sourcePosition,
@@ -272,6 +273,9 @@ public sealed class BulletHellShooter : MonoBehaviour
 
     private void OnDestroy()
     {
-        ClearEnemyAttacks();
+        // Scene shutdown destroys active projectiles and child lasers itself.
+        // Returning projectiles here could create the persistent pool root from
+        // inside OnDestroy, which Unity rejects while closing the scene.
+        StopFiring();
     }
 }
