@@ -26,6 +26,11 @@ public sealed class PlayerBullet : MonoBehaviour
 
     private void Update()
     {
+        if (ProjectilePool.ReleaseIfOutsideCameraView(gameObject))
+        {
+            return;
+        }
+
         damage = Mathf.Max(0f, damage - damageDecayPerSecond * Time.deltaTime);
         if (damage <= 0f)
         {

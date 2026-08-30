@@ -7,12 +7,14 @@ public static class ProjectilePool
         new Dictionary<GameObject, Stack<GameObject>>();
 
     private static Transform poolRoot;
+    private static Camera mainCamera;
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetState()
     {
         Pools.Clear();
         poolRoot = null;
+        mainCamera = null;
     }
 
     public static GameObject Acquire(
@@ -99,6 +101,44 @@ public static class ProjectilePool
         }
 
         pool.Push(instance);
+    }
+
+    public static bool ReleaseIfOutsideCameraView(GameObject instance)
+    {
+        if (instance == null)
+        {
+            return false;
+        }
+
+        Camera camera = GetMainCamera();
+        if (camera == null || !camera.orthographic)
+        {
+            return false;
+        }
+
+        float viewHeight = camera.orthographicSize * 2f;
+        float viewWidth = viewHeight * camera.aspect;
+        float releaseDistanceSqr =
+            viewWidth * viewWidth + viewHeight * viewHeight;
+        Vector2 cameraToProjectile =
+            (Vector2)instance.transform.position - (Vector2)camera.transform.position;
+        if (cameraToProjectile.sqrMagnitude <= releaseDistanceSqr)
+        {
+            return false;
+        }
+
+        Release(instance);
+        return true;
+    }
+
+    private static Camera GetMainCamera()
+    {
+        if (mainCamera == null || !mainCamera.isActiveAndEnabled)
+        {
+            mainCamera = Camera.main;
+        }
+
+        return mainCamera;
     }
 
     private static Transform GetPoolRoot()

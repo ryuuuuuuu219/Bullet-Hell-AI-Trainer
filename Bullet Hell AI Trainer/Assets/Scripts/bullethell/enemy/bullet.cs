@@ -34,6 +34,11 @@ public sealed class bullet : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (ProjectilePool.ReleaseIfOutsideCameraView(gameObject))
+        {
+            return;
+        }
+
         if (body == null || Structure == null)
         {
             return;
