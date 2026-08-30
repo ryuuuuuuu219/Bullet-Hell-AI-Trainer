@@ -214,9 +214,9 @@ public static class StageSelectView
 
         toggle.targetGraphic = background;
         toggle.graphic = checkmark;
-        toggle.SetIsOnWithoutNotify(GameSceneManager.SpawnManualPlayer);
-        toggle.onValueChanged.RemoveListener(GameSceneManager.SetSpawnManualPlayer);
-        toggle.onValueChanged.AddListener(GameSceneManager.SetSpawnManualPlayer);
+        toggle.SetIsOnWithoutNotify(GameSceneManager.TeacherModeEnabled);
+        toggle.onValueChanged.RemoveListener(GameSceneManager.SetTeacherModeEnabled);
+        toggle.onValueChanged.AddListener(GameSceneManager.SetTeacherModeEnabled);
     }
 
     private static Image GetOrCreateToggleImage(
@@ -266,7 +266,7 @@ public static class StageSelectView
         }
 
         TextMeshProUGUI label = labelObject.GetComponent<TextMeshProUGUI>();
-        label.text = "手動操作自機をスポーン";
+        label.text = "教師モード（手動操作）";
         label.alignment = TextAlignmentOptions.MidlineLeft;
         label.color = Color.white;
         label.fontSize = 24f;

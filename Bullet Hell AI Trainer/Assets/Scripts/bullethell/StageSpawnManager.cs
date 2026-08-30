@@ -27,7 +27,6 @@ public sealed class StageSpawnManager : MonoBehaviour
     private PopulationSettingsData activePopulationData;
     private float nextGenerationConditionCheckTime;
     private bool isInitialized;
-    private bool spawnManualPlayer;
     private AiSaveData teacherNetworkSnapshot;
     private IReadOnlyList<float> activeThreatArrivalTimes = Array.Empty<float>();
     private float stageElapsedTime;
@@ -45,12 +44,14 @@ public sealed class StageSpawnManager : MonoBehaviour
         CurrentThreatTimeSignal = -1f;
     }
 
-    public void Initialize(int stageId, bool shouldSpawnManualPlayer = false)
+    public void Initialize(int stageId, bool shouldEnableTeacherMode = false)
     {
         EnsureBulletHellShooter();
         bulletHellShooter.ClearEnemyAttacks();
         StageId = stageId;
-        spawnManualPlayer = shouldSpawnManualPlayer;
+        teacherModeEnabled = shouldEnableTeacherMode;
+        LogicalLayerVisibility.SetExclusiveVisibleLayer(
+            teacherModeEnabled ? 0 : -1);
         PopulationSettingsData populationData = populationSetting.LoadData();
         activePopulationData = populationData;
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
@@ -156,28 +157,20 @@ public sealed class StageSpawnManager : MonoBehaviour
             AiSaveData genome = genomes != null && genomeIndex < genomes.Count
                 ? genomes[genomeIndex]
                 : null;
-            SpawnPlayer(populationData, index, genome, false);
-        }
-
-        if (spawnManualPlayer)
-        {
-            SpawnPlayer(populationData, populationSize, null, true);
+            SpawnPlayer(populationData, index, genome);
         }
     }
 
     private void SpawnPlayer(
         PopulationSettingsData populationData,
         int logicalLayer,
-        AiSaveData genome,
-        bool manualControl)
+        AiSaveData genome)
     {
         GameObject player = Instantiate(
             playerPrefab,
             PlayerSpawnPosition,
             Quaternion.identity);
-        player.name = manualControl
-            ? "Manual Player"
-            : $"Player {logicalLayer + 1}";
+        player.name = $"Player {logicalLayer + 1}";
 
         PlayerAgent playerAgent = player.GetComponent<PlayerAgent>();
         if (playerAgent == null)
@@ -194,9 +187,9 @@ public sealed class StageSpawnManager : MonoBehaviour
             movement = player.AddComponent<PlayerMovementController>();
         }
 
-        movement.SetManualControl(manualControl);
+        movement.SetManualControl(false);
         movement.SetTeacherMode(
-            !manualControl && logicalLayer == 0 && teacherModeEnabled);
+            logicalLayer == 0 && teacherModeEnabled);
 
         PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
         if (playerShooter == null)
@@ -207,7 +200,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         playerShooter.Configure(playerBulletPrefab, logicalLayer);
 
         Aidata aiData = player.GetComponent<Aidata>();
-        if (!manualControl && aiData != null)
+        if (aiData != null)
         {
             if (movement.IsTeacherControlled && teacherNetworkSnapshot != null)
             {
@@ -239,7 +232,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private int GetSpawnedPlayerCount(PopulationSettingsData populationData)
     {
-        return populationData.populationSize + (spawnManualPlayer ? 1 : 0);
+        return populationData.populationSize;
     }
 
     private int GetGeneticPlayerCount(PopulationSettingsData populationData)

@@ -49,6 +49,14 @@ public sealed class PlayerMovementController : MonoBehaviour
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
     }
 
+    private void Start()
+    {
+        if (IsManualControl || IsTeacherControlled)
+        {
+            WarpCursorToPlayerPosition();
+        }
+    }
+
     private void FixedUpdate()
     {
         Vector2 currentPosition = ClampToCameraView(body.position);
@@ -81,53 +89,57 @@ public sealed class PlayerMovementController : MonoBehaviour
             Time.fixedDeltaTime;
     }
 
-    private static Vector2 ReadManualMovement()
+    private Vector2 ReadManualMovement()
     {
-        Keyboard keyboard = Keyboard.current;
-        if (keyboard == null)
+        Mouse mouse = Mouse.current;
+        if (mouse == null || !TryGetMovementCamera(out Camera camera))
         {
             return Vector2.zero;
         }
 
-        float horizontal = 0f;
-        float vertical = 0f;
-
-        if (keyboard.leftArrowKey.isPressed || keyboard.aKey.isPressed)
+        Ray pointerRay = camera.ScreenPointToRay(mouse.position.ReadValue());
+        if (!MovementPlane.Raycast(pointerRay, out float distance))
         {
-            horizontal -= 1f;
+            return Vector2.zero;
         }
 
-        if (keyboard.rightArrowKey.isPressed || keyboard.dKey.isPressed)
+        Vector3 pointerWorldPosition = pointerRay.GetPoint(distance);
+        Vector2 movementDelta = (Vector2)pointerWorldPosition - body.position;
+        float maximumStep = moveSpeed * Time.fixedDeltaTime;
+        if (maximumStep <= Mathf.Epsilon)
         {
-            horizontal += 1f;
+            return Vector2.zero;
         }
 
-        if (keyboard.downArrowKey.isPressed || keyboard.sKey.isPressed)
+        return Vector2.ClampMagnitude(movementDelta / maximumStep, 1f);
+    }
+
+    private void WarpCursorToPlayerPosition()
+    {
+        Mouse mouse = Mouse.current;
+        if (mouse == null || !TryGetMovementCamera(out Camera camera))
         {
-            vertical -= 1f;
+            return;
         }
 
-        if (keyboard.upArrowKey.isPressed || keyboard.wKey.isPressed)
+        Vector3 screenPosition = camera.WorldToScreenPoint(
+            new Vector3(body.position.x, body.position.y, 0f));
+        if (screenPosition.z <= 0f)
         {
-            vertical += 1f;
+            return;
         }
 
-        return new Vector2(horizontal, vertical);
+        mouse.WarpCursorPosition(new Vector2(screenPosition.x, screenPosition.y));
     }
 
     private Vector2 ClampToCameraView(Vector2 worldPosition)
     {
-        if (movementCamera == null)
-        {
-            movementCamera = Camera.main;
-        }
-
-        if (movementCamera == null)
+        if (!TryGetMovementCamera(out Camera camera))
         {
             return worldPosition;
         }
 
-        Vector3 viewportPosition = movementCamera.WorldToViewportPoint(
+        Vector3 viewportPosition = camera.WorldToViewportPoint(
             new Vector3(worldPosition.x, worldPosition.y, 0f));
         if (viewportPosition.z <= 0f)
         {
@@ -142,7 +154,7 @@ public sealed class PlayerMovementController : MonoBehaviour
             return worldPosition;
         }
 
-        Ray viewportRay = movementCamera.ViewportPointToRay(
+        Ray viewportRay = camera.ViewportPointToRay(
             new Vector3(clampedX, clampedY, 0f));
         if (!MovementPlane.Raycast(viewportRay, out float distance))
         {
@@ -151,6 +163,17 @@ public sealed class PlayerMovementController : MonoBehaviour
 
         Vector3 intersection = viewportRay.GetPoint(distance);
         return new Vector2(intersection.x, intersection.y);
+    }
+
+    private bool TryGetMovementCamera(out Camera camera)
+    {
+        if (movementCamera == null)
+        {
+            movementCamera = Camera.main;
+        }
+
+        camera = movementCamera;
+        return camera != null;
     }
 
 #if UNITY_EDITOR

@@ -12,7 +12,7 @@ public static class GameSceneManager
     public const string StageSceneName = "Stage";
 
     public static int StageId { get; private set; }
-    public static bool SpawnManualPlayer { get; private set; }
+    public static bool TeacherModeEnabled { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
     private static void Initialize()
@@ -54,9 +54,9 @@ public static class GameSceneManager
         RefreshStageDescription();
     }
 
-    public static void SetSpawnManualPlayer(bool enabled)
+    public static void SetTeacherModeEnabled(bool enabled)
     {
-        SpawnManualPlayer = enabled;
+        TeacherModeEnabled = enabled;
     }
 
     public static string GetStageDescription(int stageId)
@@ -147,6 +147,6 @@ public static class GameSceneManager
             spawnManager = managerObject.AddComponent<StageSpawnManager>();
         }
 
-        spawnManager.Initialize(StageId, SpawnManualPlayer);
+        spawnManager.Initialize(StageId, TeacherModeEnabled);
     }
 }
