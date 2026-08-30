@@ -13,8 +13,8 @@ public sealed class AiSaveData
     public List<CircularSensorData> circularSensors = new List<CircularSensorData>();
 
     public int inputNodeCount = Aidata.NeuralInputNodeCount;
-    public int layer1NodeCount = 10;
-    public int layer2NodeCount = 10;
+    public int layer1NodeCount = Aidata.Layer1NodeCount;
+    public int layer2NodeCount = Aidata.Layer2NodeCount;
     public int outputNodeCount = 2;
 
     public float[] inputToLayer1Weights = Array.Empty<float>();
@@ -28,6 +28,8 @@ public sealed class AiSaveData
 public class Aidata : MonoBehaviour
 {
     public const int MovementOutputNodeCount = 2;
+    public const int Layer1NodeCount = 16;
+    public const int Layer2NodeCount = 12;
     public const int ProximityFeatureCount = 6;
     public const int AttentionFeatureCount = 7;
     public const int CircularSensorSlotCount = 10;
@@ -61,9 +63,9 @@ public class Aidata : MonoBehaviour
     [Header("ニューラルネットワーク構造")]
     [Min(1)] public int inputNodeCount = NeuralInputNodeCount;
     [FormerlySerializedAs("layer1nodes")]
-    [Min(1)] public int layer1NodeCount = 10;
+    [Min(1)] public int layer1NodeCount = Layer1NodeCount;
     [FormerlySerializedAs("layer2nodes")]
-    [Min(1)] public int layer2NodeCount = 10;
+    [Min(1)] public int layer2NodeCount = Layer2NodeCount;
     [Min(1)] public int outputNodeCount = 2;
 
     [Header("ニューラルネットワーク係数")]
@@ -135,13 +137,17 @@ public class Aidata : MonoBehaviour
 
     public void EnsureNeuralNetworkShape()
     {
-        bool inputSchemaChanged = inputNodeCount != NeuralInputNodeCount;
+        bool networkShapeChanged =
+            inputNodeCount != NeuralInputNodeCount ||
+            layer1NodeCount != Layer1NodeCount ||
+            layer2NodeCount != Layer2NodeCount ||
+            outputNodeCount != MovementOutputNodeCount;
         inputNodeCount = NeuralInputNodeCount;
-        layer1NodeCount = Mathf.Max(1, layer1NodeCount);
-        layer2NodeCount = Mathf.Max(1, layer2NodeCount);
+        layer1NodeCount = Layer1NodeCount;
+        layer2NodeCount = Layer2NodeCount;
         outputNodeCount = MovementOutputNodeCount;
 
-        if (inputSchemaChanged)
+        if (networkShapeChanged)
         {
             ClearNetworkCoefficients(
                 ref inputToLayer1Weights,
@@ -360,8 +366,12 @@ public class Aidata : MonoBehaviour
     private static void NormalizeData(AiSaveData data)
     {
         data.circularSensors ??= new List<CircularSensorData>();
-        bool inputSchemaChanged = data.inputNodeCount != NeuralInputNodeCount;
-        if (inputSchemaChanged ||
+        bool networkShapeChanged =
+            data.inputNodeCount != NeuralInputNodeCount ||
+            data.layer1NodeCount != Layer1NodeCount ||
+            data.layer2NodeCount != Layer2NodeCount ||
+            data.outputNodeCount != MovementOutputNodeCount;
+        if (networkShapeChanged ||
             data.circularSensors.Count != CircularSensorSlotCount)
         {
             data.circularSensors = CircularSensor.CreateDefaultData();
@@ -377,11 +387,11 @@ public class Aidata : MonoBehaviour
                 : Mathf.Clamp(sensor.arcSegments, 3, 64);
         }
         data.inputNodeCount = NeuralInputNodeCount;
-        data.layer1NodeCount = Mathf.Max(1, data.layer1NodeCount);
-        data.layer2NodeCount = Mathf.Max(1, data.layer2NodeCount);
+        data.layer1NodeCount = Layer1NodeCount;
+        data.layer2NodeCount = Layer2NodeCount;
         data.outputNodeCount = MovementOutputNodeCount;
 
-        if (inputSchemaChanged)
+        if (networkShapeChanged)
         {
             data.useAttentionInput = true;
             ClearNetworkCoefficients(

@@ -202,8 +202,8 @@ MonoBehaviour:
   useWarningLineInput: 1
   sensors: []
   inputNodeCount: 72
-  layer1NodeCount: 10
-  layer2NodeCount: 10
+  layer1NodeCount: 16
+  layer2NodeCount: 12
   outputNodeCount: 2
   inputToLayer1Weights:
   - 0
