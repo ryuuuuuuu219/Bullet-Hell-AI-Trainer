@@ -39,7 +39,7 @@ public sealed class LaserAttack : MonoBehaviour
         lineRenderer.sharedMaterial = GetLineMaterial();
     }
 
-    private static Material GetLineMaterial()
+    internal static Material GetLineMaterial()
     {
         if (lineMaterial != null)
         {

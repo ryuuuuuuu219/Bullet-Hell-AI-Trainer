@@ -3,6 +3,9 @@ using UnityEngine;
 
 public sealed class bullet : MonoBehaviour
 {
+    private const float FlightWarningLength = 1000f;
+    private const float FlightWarningWidth = 2f;
+
     [SerializeField] private Vector2 vector;
     [SerializeField, Min(0)] private int threatLevel = 1;
     [SerializeField, Min(0)] private int logicalLayer;
@@ -18,6 +21,7 @@ public sealed class bullet : MonoBehaviour
     private Vector2 previousLineOfSight;
     private bool hasPreviousLineOfSight;
     private float usedTurnAngleDegrees;
+    private LineRenderer flightWarningLine;
 
     public Vector2 Vector => vector;
     public int ThreatLevel => threatLevel;
@@ -67,10 +71,19 @@ public sealed class bullet : MonoBehaviour
         }
     }
 
+    private void LateUpdate()
+    {
+        UpdateFlightWarningLine();
+    }
+
     private void OnDisable()
     {
         BulletManager.Unregister(this);
         ClearSplitWarningLines();
+        if (flightWarningLine != null)
+        {
+            flightWarningLine.enabled = false;
+        }
     }
 
     public void SetData(Vector2 movementVector, int threat)
@@ -126,12 +139,60 @@ public sealed class bullet : MonoBehaviour
         previousLineOfSight = GetLineOfSight();
         hasPreviousLineOfSight = previousLineOfSight.sqrMagnitude > Mathf.Epsilon;
         usedTurnAngleDegrees = 0f;
+        EnsureFlightWarningLine();
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
 
         if (refreshRegistration)
         {
             BulletManager.Register(this);
         }
+    }
+
+    private void EnsureFlightWarningLine()
+    {
+        if (flightWarningLine == null)
+        {
+            GameObject warningObject = new GameObject(
+                "Flight Warning Line",
+                typeof(LineRenderer));
+            warningObject.transform.SetParent(transform, false);
+            flightWarningLine = warningObject.GetComponent<LineRenderer>();
+            flightWarningLine.useWorldSpace = true;
+            flightWarningLine.loop = false;
+            flightWarningLine.positionCount = 2;
+            flightWarningLine.alignment = LineAlignment.TransformZ;
+            flightWarningLine.sharedMaterial = LaserAttack.GetLineMaterial();
+            flightWarningLine.startColor = Color.gray;
+            flightWarningLine.endColor = Color.gray;
+            flightWarningLine.startWidth = FlightWarningWidth;
+            flightWarningLine.endWidth = FlightWarningWidth;
+        }
+
+        flightWarningLine.enabled = true;
+        UpdateFlightWarningLine();
+    }
+
+    private void UpdateFlightWarningLine()
+    {
+        if (flightWarningLine == null || body == null)
+        {
+            return;
+        }
+
+        Vector2 velocity = body.linearVelocity;
+        if (velocity.sqrMagnitude <= Mathf.Epsilon)
+        {
+            flightWarningLine.enabled = false;
+            return;
+        }
+
+        flightWarningLine.enabled =
+            LogicalLayerVisibility.IsVisible(logicalLayer);
+        Vector2 origin = body.position;
+        flightWarningLine.SetPosition(0, origin);
+        flightWarningLine.SetPosition(
+            1,
+            origin + velocity.normalized * FlightWarningLength);
     }
 
     private void ApplyMotion()
