@@ -250,6 +250,6 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::RegularPolygonLineRenderer
   sides: 6
-  radius: 5
+  radius: 2
   lineWidth: 1
   color: {r: 1, g: 0, b: 0, a: 1}

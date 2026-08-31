@@ -330,8 +330,8 @@ public static class BulletHellStageAttackDefinitions
                 Pattern(Projectile(96f, 1, 0.4f, 3, 7f))),
             Stage(28, "幾何的弾幕A", "組み合わせ\n曲がる5wayを3段階展開後、1wayへ展開\n8秒ごとに発射\n各段階1.6秒後に展開\n間隔72°\n角速度40deg/s\n弾速：160→192→224→224\n脅威度：3→3→3→1",
                 Pattern(Projectile(geometricA, 8f, 5, 72f))),
-            Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\nBPM：30\n第1段階の間隔40°\n各段階1.6秒後に展開\n第3段階は予告線の0.5秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
-                Pattern(Projectile(geometricB, 2f, 2, 40f))),
+            Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\n5秒ごとに発射\nBPM：12\n第1段階の間隔40°\n各段階1.6秒後に展開\n第3段階は予告線の0.5秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
+                Pattern(Projectile(geometricB, 5f, 2, 40f))),
         };
     }
 
