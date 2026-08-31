@@ -3,6 +3,8 @@ using UnityEngine;
 
 public static class ProjectilePool
 {
+    private const float ViewportReleaseMargin = 0.1f;
+
     private static readonly Dictionary<GameObject, Stack<GameObject>> Pools =
         new Dictionary<GameObject, Stack<GameObject>>();
 
@@ -111,18 +113,18 @@ public static class ProjectilePool
         }
 
         Camera camera = GetMainCamera();
-        if (camera == null || !camera.orthographic)
+        if (camera == null)
         {
             return false;
         }
 
-        float viewHeight = camera.orthographicSize * 2f;
-        float viewWidth = viewHeight * camera.aspect;
-        float releaseDistanceSqr =
-            viewWidth * viewWidth + viewHeight * viewHeight;
-        Vector2 cameraToProjectile =
-            (Vector2)instance.transform.position - (Vector2)camera.transform.position;
-        if (cameraToProjectile.sqrMagnitude <= releaseDistanceSqr)
+        Vector3 viewportPosition = camera.WorldToViewportPoint(
+            instance.transform.position);
+        if (viewportPosition.z > 0f &&
+            viewportPosition.x >= -ViewportReleaseMargin &&
+            viewportPosition.x <= 1f + ViewportReleaseMargin &&
+            viewportPosition.y >= -ViewportReleaseMargin &&
+            viewportPosition.y <= 1f + ViewportReleaseMargin)
         {
             return false;
         }

@@ -1,0 +1,19 @@
+Basic Challenge
+
+（現状の課題28まで）
+
+Applied Challengeステージ案
+
+（現状の課題29）
+幾何的弾幕として全方位にBasic Challengeの構成要素が複製される
+
+Advanced Challenge
+
+（現状の課題30）
+Applied Challengeまでの要素に加え、弾速と発射周期のゆらぎ（+/-15%）複数要素の合成
+補助的予告線停止
+
+finaly Challenge
+
+ゲーム全体の最終課題扱い
+個体数は1に制限　教育モードの逆伝播停止　

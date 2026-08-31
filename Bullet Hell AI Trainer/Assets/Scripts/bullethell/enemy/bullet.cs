@@ -5,6 +5,7 @@ public sealed class bullet : MonoBehaviour
 {
     private const float FlightWarningLength = 1000f;
     private const float FlightWarningWidth = 2f;
+    private const float MaximumLifetimeSeconds = 30f;
 
     [SerializeField] private Vector2 vector;
     [SerializeField, Min(0)] private int threatLevel = 1;
@@ -23,6 +24,7 @@ public sealed class bullet : MonoBehaviour
     private float usedTurnAngleDegrees;
     private LineRenderer flightWarningLine;
     private bool showFlightWarningLine;
+    private float releaseTime;
 
     public Vector2 Vector => vector;
     public int ThreatLevel => threatLevel;
@@ -45,6 +47,12 @@ public sealed class bullet : MonoBehaviour
 
     private void FixedUpdate()
     {
+        if (Time.time >= releaseTime)
+        {
+            ProjectilePool.Release(gameObject);
+            return;
+        }
+
         if (ProjectilePool.ReleaseIfOutsideCameraView(gameObject))
         {
             return;
@@ -133,6 +141,7 @@ public sealed class bullet : MonoBehaviour
         logicalLayer = Mathf.Max(0, layer);
         target = aimTarget;
         sourcePrefab = projectilePrefab;
+        releaseTime = Time.time + MaximumLifetimeSeconds;
         splitTime = Structure.HasSplit
             ? Time.time + Structure.SplitDelaySeconds
             : float.PositiveInfinity;
