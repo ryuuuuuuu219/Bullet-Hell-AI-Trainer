@@ -22,6 +22,7 @@ public sealed class bullet : MonoBehaviour
     private bool hasPreviousLineOfSight;
     private float usedTurnAngleDegrees;
     private LineRenderer flightWarningLine;
+    private bool showFlightWarningLine;
 
     public Vector2 Vector => vector;
     public int ThreatLevel => threatLevel;
@@ -80,6 +81,7 @@ public sealed class bullet : MonoBehaviour
     {
         BulletManager.Unregister(this);
         ClearSplitWarningLines();
+        showFlightWarningLine = false;
         if (flightWarningLine != null)
         {
             flightWarningLine.enabled = false;
@@ -112,7 +114,8 @@ public sealed class bullet : MonoBehaviour
         BulletStructure structure,
         int layer,
         Transform aimTarget,
-        GameObject projectilePrefab)
+        GameObject projectilePrefab,
+        bool enableFlightWarningLine = false)
     {
         bool refreshRegistration = isActiveAndEnabled &&
                                    logicalLayer != Mathf.Max(0, layer);
@@ -139,7 +142,15 @@ public sealed class bullet : MonoBehaviour
         previousLineOfSight = GetLineOfSight();
         hasPreviousLineOfSight = previousLineOfSight.sqrMagnitude > Mathf.Epsilon;
         usedTurnAngleDegrees = 0f;
-        EnsureFlightWarningLine();
+        showFlightWarningLine = enableFlightWarningLine;
+        if (showFlightWarningLine)
+        {
+            EnsureFlightWarningLine();
+        }
+        else if (flightWarningLine != null)
+        {
+            flightWarningLine.enabled = false;
+        }
         LogicalLayerVisibility.Apply(gameObject, logicalLayer);
 
         if (refreshRegistration)
@@ -174,8 +185,13 @@ public sealed class bullet : MonoBehaviour
 
     private void UpdateFlightWarningLine()
     {
-        if (flightWarningLine == null || body == null)
+        if (!showFlightWarningLine || flightWarningLine == null || body == null)
         {
+            if (flightWarningLine != null)
+            {
+                flightWarningLine.enabled = false;
+            }
+
             return;
         }
 
@@ -338,7 +354,8 @@ public sealed class bullet : MonoBehaviour
                 childStructure,
                 logicalLayer,
                 target,
-                sourcePrefab);
+                sourcePrefab,
+                !childStructure.HasSplit);
             childObject.SetActive(true);
             childBody.position = spawnPosition;
             childBody.linearVelocity = childVelocity;
