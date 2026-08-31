@@ -1,8 +1,11 @@
+◇ステージ区分概要
+
 Basic Challenge
 
 （現状の課題28まで）
 
-Applied Challengeステージ案
+
+Applied Challenge
 
 （現状の課題29）
 幾何的弾幕として全方位にBasic Challengeの構成要素が複製される
