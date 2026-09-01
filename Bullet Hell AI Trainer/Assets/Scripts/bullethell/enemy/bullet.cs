@@ -25,6 +25,8 @@ public sealed class bullet : MonoBehaviour
     private float motionElapsedSeconds;
     private float guidanceCommandElapsedSeconds;
     private float cachedGuidanceTurnRate;
+    private float speedMultiplier = 1f;
+    private int childSpawnEventCount;
     private LineRenderer flightWarningLine;
     private bool showFlightWarningLine;
     private float releaseTime;
@@ -126,7 +128,8 @@ public sealed class bullet : MonoBehaviour
         int layer,
         Transform aimTarget,
         GameObject projectilePrefab,
-        bool enableFlightWarningLine = false)
+        bool enableFlightWarningLine = false,
+        float projectileSpeedMultiplier = 1f)
     {
         bool refreshRegistration = isActiveAndEnabled &&
                                    logicalLayer != Mathf.Max(0, layer);
@@ -144,10 +147,15 @@ public sealed class bullet : MonoBehaviour
         logicalLayer = Mathf.Max(0, layer);
         target = aimTarget;
         sourcePrefab = projectilePrefab;
+        speedMultiplier = Mathf.Max(0f, projectileSpeedMultiplier);
         releaseTime = Time.time + MaximumLifetimeSeconds;
         splitTime = Structure.HasSplit
-            ? Time.time + Structure.ChildSpawnFirstDelaySeconds
+            ? Time.time + Mathf.Max(
+                0f,
+                Structure.ChildSpawnFirstDelaySeconds -
+                Structure.SplitWarningDurationSeconds)
             : float.PositiveInfinity;
+        childSpawnEventCount = 0;
         splitWarningStarted = false;
         warnedSplitDirection = Vector2.zero;
         ClearSplitWarningLines();
@@ -259,7 +267,8 @@ public sealed class bullet : MonoBehaviour
             Structure.LinearAccelerationDurationSeconds);
         return Mathf.Max(
             0f,
-            Structure.Speed + Structure.LinearAcceleration * accelerationTime);
+            (Structure.Speed + Structure.LinearAcceleration * accelerationTime) *
+            speedMultiplier);
     }
 
     private float GetCurrentTurnRate()
@@ -376,7 +385,9 @@ public sealed class bullet : MonoBehaviour
     private void SplitProjectile()
     {
         BulletStructure childStructure = Structure.ChildStructure;
-        if (sourcePrefab == null || childStructure == null)
+        LaserStructure childLaserStructure = Structure.ChildLaserStructure;
+        if ((childStructure != null && sourcePrefab == null) ||
+            (childStructure == null && childLaserStructure == null))
         {
             ProjectilePool.Release(gameObject);
             return;
@@ -390,13 +401,17 @@ public sealed class bullet : MonoBehaviour
             baseDirection = Vector2.down;
         }
 
-        float centerIndex = (Structure.SplitProjectileCount - 1) * 0.5f;
         Vector2 spawnPosition = body.position;
         for (int index = 0; index < Structure.SplitProjectileCount; index++)
         {
-            float angleOffset =
-                (index - centerIndex) * Structure.SplitAngleIntervalDegrees;
+            float angleOffset = Structure.GetSplitAngleOffset(index);
             Vector2 direction = Rotate(baseDirection, angleOffset).normalized;
+            if (childLaserStructure != null)
+            {
+                SpawnChildLaser(spawnPosition, direction, childLaserStructure);
+                continue;
+            }
+
             GameObject childObject = ProjectilePool.Acquire(
                 sourcePrefab,
                 spawnPosition,
@@ -417,7 +432,8 @@ public sealed class bullet : MonoBehaviour
                 childData = childObject.AddComponent<bullet>();
             }
 
-            Vector2 childVelocity = direction * childStructure.Speed;
+            Vector2 childVelocity = direction * childStructure.Speed *
+                speedMultiplier;
             childBody.collisionDetectionMode =
                 CollisionDetectionMode2D.Continuous;
             childData.SetData(
@@ -426,22 +442,64 @@ public sealed class bullet : MonoBehaviour
                 logicalLayer,
                 target,
                 sourcePrefab,
-                !childStructure.HasSplit);
+                !childStructure.HasSplit,
+                speedMultiplier);
             childObject.SetActive(true);
             childBody.position = spawnPosition;
             childBody.linearVelocity = childVelocity;
         }
+
+        childSpawnEventCount++;
 
         bool isSingleSpawn = float.IsPositiveInfinity(
             Structure.ChildSpawnIntervalSeconds);
         bool isPeriodicSpawn = !isSingleSpawn;
         if (isPeriodicSpawn)
         {
+            if (Structure.MaximumChildSpawnEvents > 0 &&
+                childSpawnEventCount >= Structure.MaximumChildSpawnEvents)
+            {
+                splitTime = float.PositiveInfinity;
+                return;
+            }
+
+            splitWarningStarted = false;
             splitTime = Time.time + Structure.ChildSpawnIntervalSeconds;
             return;
         }
 
         ProjectilePool.Release(gameObject);
+    }
+
+    private void SpawnChildLaser(
+        Vector2 origin,
+        Vector2 direction,
+        LaserStructure laserStructure)
+    {
+        PlayerAgent targetPlayer = target != null
+            ? target.GetComponent<PlayerAgent>()
+            : null;
+        if (targetPlayer == null)
+        {
+            return;
+        }
+
+        GameObject laserObject = new GameObject(
+            $"Child Laser Layer {logicalLayer}",
+            typeof(LineRenderer),
+            typeof(LaserAttack));
+        LaserAttack laserAttack = laserObject.GetComponent<LaserAttack>();
+        laserAttack.Configure(
+            origin,
+            direction,
+            targetPlayer,
+            logicalLayer,
+            laserStructure.WarningDuration,
+            laserStructure.ActiveDuration,
+            laserStructure.Length,
+            laserStructure.WarningWidth,
+            laserStructure.ActiveWidth,
+            laserStructure.ThreatLevel);
     }
 
     private void BeginSplitWarning()
@@ -465,12 +523,10 @@ public sealed class bullet : MonoBehaviour
             return;
         }
 
-        float centerIndex = (Structure.SplitProjectileCount - 1) * 0.5f;
         Vector2 warningOrigin = body.position;
         for (int index = 0; index < Structure.SplitProjectileCount; index++)
         {
-            float angleOffset =
-                (index - centerIndex) * Structure.SplitAngleIntervalDegrees;
+            float angleOffset = Structure.GetSplitAngleOffset(index);
             Vector2 direction = Rotate(warnedSplitDirection, angleOffset).normalized;
             GameObject warningObject = new GameObject(
                 $"Split Projectile Warning Layer {logicalLayer}",
@@ -487,7 +543,9 @@ public sealed class bullet : MonoBehaviour
                 1000f,
                 2f,
                 2f,
-                Structure.ChildStructure.ThreatLevel);
+                Structure.ChildStructure != null
+                    ? Structure.ChildStructure.ThreatLevel
+                    : Structure.ChildLaserStructure.ThreatLevel);
             splitWarningLines.Add(warningLine);
         }
     }

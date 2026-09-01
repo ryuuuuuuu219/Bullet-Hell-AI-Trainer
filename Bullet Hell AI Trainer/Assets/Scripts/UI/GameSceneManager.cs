@@ -4,6 +4,14 @@ using UnityEngine;
 using UnityEngine.SceneManagement;
 using UnityEngine.UI;
 
+public enum ChallengeCategory
+{
+    Basic,
+    Applied,
+    Advanced,
+    Final,
+}
+
 public static class GameSceneManager
 {
     public const string MainMenuSceneName = "Mainmenu";
@@ -12,6 +20,8 @@ public static class GameSceneManager
     public const string StageSceneName = "Stage";
 
     public static int StageId { get; private set; }
+    public static ChallengeCategory SelectedCategory { get; private set; } =
+        ChallengeCategory.Basic;
     public static bool TeacherModeEnabled { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -35,6 +45,13 @@ public static class GameSceneManager
     public static void LoadStageSelect()
     {
         SceneManager.LoadScene(StageSelectSceneName);
+    }
+
+    public static void LoadStageSelect(ChallengeCategory category)
+    {
+        SelectedCategory = category;
+        StageId = 0;
+        LoadStageSelect();
     }
 
     public static void LoadStage()
@@ -61,7 +78,9 @@ public static class GameSceneManager
 
     public static string GetStageDescription(int stageId)
     {
-        return BulletHellStageAttackDefinitions.GetStage(stageId)?.Description ??
+        return BulletHellStageAttackDefinitions.GetStage(
+                   SelectedCategory,
+                   stageId)?.Description ??
                string.Empty;
     }
 
@@ -76,7 +95,10 @@ public static class GameSceneManager
         {
             case MainMenuSceneName:
                 BindButton("Setting", LoadSetting);
-                BindButton("Basic Challenge", LoadStageSelect);
+                BindButton("Basic Challenge", LoadBasicChallengeSelect);
+                BindButton("Applied Challenge", LoadAppliedChallengeSelect);
+                BindButton("Advanced Challenge", LoadAdvancedChallengeSelect);
+                BindButton("Final Challenge", LoadFinalChallengeSelect);
                 break;
             case SettingSceneName:
                 BindButton("Back", LoadMainMenu);
@@ -136,6 +158,16 @@ public static class GameSceneManager
         }
 
         description.text = GetStageDescription(StageId);
+
+        Button startButton = FindButton("Start");
+        BulletHellStageDefinition selectedStage =
+            BulletHellStageAttackDefinitions.GetStage(
+                SelectedCategory,
+                StageId);
+        if (startButton != null)
+        {
+            startButton.interactable = selectedStage?.IsPlayable ?? false;
+        }
     }
 
     private static void ConfigureStageSpawner()
@@ -147,6 +179,47 @@ public static class GameSceneManager
             spawnManager = managerObject.AddComponent<StageSpawnManager>();
         }
 
-        spawnManager.Initialize(StageId, TeacherModeEnabled);
+        spawnManager.Initialize(
+            SelectedCategory,
+            StageId,
+            TeacherModeEnabled);
+    }
+
+    private static Button FindButton(string label)
+    {
+        foreach (Button button in
+                 UnityEngine.Object.FindObjectsByType<Button>(FindObjectsInactive.Include))
+        {
+            TMP_Text buttonText = button.GetComponentInChildren<TMP_Text>(true);
+            if (buttonText != null && string.Equals(
+                    buttonText.text.Trim(),
+                    label,
+                    StringComparison.OrdinalIgnoreCase))
+            {
+                return button;
+            }
+        }
+
+        return null;
+    }
+
+    private static void LoadBasicChallengeSelect()
+    {
+        LoadStageSelect(ChallengeCategory.Basic);
+    }
+
+    private static void LoadAppliedChallengeSelect()
+    {
+        LoadStageSelect(ChallengeCategory.Applied);
+    }
+
+    private static void LoadAdvancedChallengeSelect()
+    {
+        LoadStageSelect(ChallengeCategory.Advanced);
+    }
+
+    private static void LoadFinalChallengeSelect()
+    {
+        LoadStageSelect(ChallengeCategory.Final);
     }
 }

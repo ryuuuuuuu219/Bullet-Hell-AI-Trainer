@@ -6,6 +6,7 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class BulletHellShooter : MonoBehaviour
 {
+    private const float AdvancedVariationRatio = 0.15f;
     [SerializeField] private GameObject enemyBulletPrefab;
 
     private readonly List<LaserAttack> activeLasers =
@@ -85,7 +86,7 @@ public sealed class BulletHellShooter : MonoBehaviour
         Transform source,
         IReadOnlyList<GameObject> targets)
     {
-        Fire(definition, source, targets, 0f);
+        Fire(definition, source, targets, 0f, 1f, null, 0);
     }
 
     public void ClearEnemyAttacks()
@@ -102,6 +103,14 @@ public sealed class BulletHellShooter : MonoBehaviour
         }
 
         activeLasers.Clear();
+
+        foreach (LaserAttack laser in FindObjectsByType<LaserAttack>())
+        {
+            if (laser != null)
+            {
+                Destroy(laser.gameObject);
+            }
+        }
 
         for (int index = BulletManager.ActiveBullets.Count - 1;
              index >= 0;
@@ -126,8 +135,18 @@ public sealed class BulletHellShooter : MonoBehaviour
             yield return new WaitForSeconds(pattern.InitialDelaySeconds);
         }
 
+        int cycleIndex = 0;
         while (true)
         {
+            float speedMultiplier = definition.RandomizeSpeedAndInterval
+                ? UnityEngine.Random.Range(
+                    1f - AdvancedVariationRatio,
+                    1f + AdvancedVariationRatio)
+                : 1f;
+            Dictionary<int, Vector2> lockedAimDirections =
+                definition.ReaimDuringBurst
+                    ? null
+                    : CaptureAimDirections(source, targets, definition);
             for (int burstIndex = 0;
                  burstIndex < definition.BurstCount;
                  burstIndex++)
@@ -136,7 +155,10 @@ public sealed class BulletHellShooter : MonoBehaviour
                     definition,
                     source,
                     targets,
-                    definition.GetBurstAngleOffset(burstIndex));
+                    definition.GetBurstAngleOffset(burstIndex),
+                    speedMultiplier,
+                    lockedAimDirections,
+                    burstIndex);
                 if (burstIndex + 1 < definition.BurstCount &&
                     definition.BurstIntervalSeconds > 0f)
                 {
@@ -152,8 +174,16 @@ public sealed class BulletHellShooter : MonoBehaviour
 
             float burstDuration =
                 (definition.BurstCount - 1) * definition.BurstIntervalSeconds;
+            float repeatInterval = pattern.GetRepeatInterval(cycleIndex);
+            if (definition.RandomizeSpeedAndInterval)
+            {
+                repeatInterval *= UnityEngine.Random.Range(
+                    1f - AdvancedVariationRatio,
+                    1f + AdvancedVariationRatio);
+            }
             float remainingInterval =
-                definition.RepeatIntervalSeconds - burstDuration;
+                repeatInterval - burstDuration;
+            cycleIndex++;
             yield return remainingInterval > 0f
                 ? new WaitForSeconds(remainingInterval)
                 : null;
@@ -164,7 +194,10 @@ public sealed class BulletHellShooter : MonoBehaviour
         BulletHellShotDefinition definition,
         Transform source,
         IReadOnlyList<GameObject> targets,
-        float burstAngleOffset)
+        float burstAngleOffset,
+        float speedMultiplier,
+        IReadOnlyDictionary<int, Vector2> lockedAimDirections,
+        int burstIndex)
     {
         if (definition == null)
         {
@@ -192,7 +225,10 @@ public sealed class BulletHellShooter : MonoBehaviour
                     definition,
                     sourcePosition,
                     target,
-                    burstAngleOffset);
+                    burstAngleOffset,
+                    speedMultiplier,
+                    lockedAimDirections,
+                    burstIndex);
                 firedForTarget = true;
             }
         }
@@ -205,7 +241,10 @@ public sealed class BulletHellShooter : MonoBehaviour
                 sourcePosition,
                 null,
                 0,
-                burstAngleOffset);
+                burstAngleOffset,
+                speedMultiplier,
+                null,
+                burstIndex);
         }
 
         activeLasers.RemoveAll(laser => laser == null);
@@ -215,7 +254,10 @@ public sealed class BulletHellShooter : MonoBehaviour
         BulletHellShotDefinition definition,
         Vector2 sourcePosition,
         PlayerAgent target,
-        float burstAngleOffset)
+        float burstAngleOffset,
+        float speedMultiplier,
+        IReadOnlyDictionary<int, Vector2> lockedAimDirections,
+        int burstIndex)
     {
         switch (definition.AttackType)
         {
@@ -225,7 +267,15 @@ public sealed class BulletHellShooter : MonoBehaviour
                     sourcePosition,
                     target.transform,
                     target.LogicalLayer,
-                    burstAngleOffset);
+                    burstAngleOffset,
+                    speedMultiplier,
+                    lockedAimDirections != null &&
+                    lockedAimDirections.TryGetValue(
+                        target.LogicalLayer,
+                        out Vector2 lockedDirection)
+                        ? lockedDirection
+                        : (Vector2?)null,
+                    burstIndex);
                 break;
             case BulletHellAttackType.Laser:
                 FireLaser(definition, sourcePosition, target);
@@ -238,27 +288,36 @@ public sealed class BulletHellShooter : MonoBehaviour
         Vector2 sourcePosition,
         Transform aimTarget,
         int logicalLayer,
-        float burstAngleOffset)
+        float burstAngleOffset,
+        float speedMultiplier,
+        Vector2? lockedAimDirection,
+        int burstIndex)
     {
         if (enemyBulletPrefab == null || definition.Bullet == null)
         {
             return;
         }
 
-        Vector2 baseDirection = ResolveAimDirection(
-            definition.AimType,
-            sourcePosition,
-            aimTarget,
-            definition.LeadMultiplier);
+        Vector2 baseDirection = lockedAimDirection ?? ResolveAimDirection(
+                definition.AimType,
+                sourcePosition,
+                aimTarget,
+                definition.LeadMultiplier);
         baseDirection = Quaternion.Euler(
             0f,
             0f,
             definition.AimAngleOffsetDegrees + burstAngleOffset) *
             baseDirection;
 
-        for (int index = 0; index < definition.ProjectileCount; index++)
+        int projectileCount = definition.GetBurstProjectileCount(burstIndex);
+        float angleInterval =
+            definition.GetBurstProjectileAngleInterval(burstIndex);
+        for (int index = 0; index < projectileCount; index++)
         {
-            float angleOffset = definition.GetProjectileAngleOffset(index);
+            float angleOffset = definition.GetProjectileAngleOffset(
+                index,
+                projectileCount,
+                angleInterval);
             Vector2 direction = Quaternion.Euler(0f, 0f, angleOffset) *
                 baseDirection;
             Vector2 projectilePosition = sourcePosition;
@@ -272,6 +331,10 @@ public sealed class BulletHellShooter : MonoBehaviour
 
             BulletStructure projectileStructure =
                 definition.GetProjectileStructure(index);
+            if (definition.ProjectileStructures.Count == 0)
+            {
+                projectileStructure = definition.GetBurstStructure(burstIndex);
+            }
             if (definition.ProjectileWarningDuration > 0f && aimTarget != null)
             {
                 firingRoutines.Add(StartCoroutine(SpawnWarnedProjectile(
@@ -280,7 +343,8 @@ public sealed class BulletHellShooter : MonoBehaviour
                     projectileStructure,
                     logicalLayer,
                     aimTarget,
-                    definition.ProjectileWarningDuration)));
+                    definition.ProjectileWarningDuration,
+                    speedMultiplier)));
             }
             else
             {
@@ -289,7 +353,8 @@ public sealed class BulletHellShooter : MonoBehaviour
                     direction,
                     projectileStructure,
                     logicalLayer,
-                    aimTarget);
+                    aimTarget,
+                    speedMultiplier);
             }
         }
     }
@@ -299,7 +364,8 @@ public sealed class BulletHellShooter : MonoBehaviour
         Vector2 direction,
         BulletStructure structure,
         int logicalLayer,
-        Transform aimTarget)
+        Transform aimTarget,
+        float speedMultiplier)
     {
         GameObject bulletObject = ProjectilePool.Acquire(
             enemyBulletPrefab,
@@ -313,7 +379,8 @@ public sealed class BulletHellShooter : MonoBehaviour
             return;
         }
 
-        Vector2 movementVector = direction.normalized * structure.Speed;
+        Vector2 movementVector = direction.normalized * structure.Speed *
+            speedMultiplier;
         body.collisionDetectionMode = CollisionDetectionMode2D.Continuous;
 
         bullet bulletData = bulletObject.GetComponent<bullet>();
@@ -327,7 +394,9 @@ public sealed class BulletHellShooter : MonoBehaviour
             structure,
             logicalLayer,
             aimTarget,
-            enemyBulletPrefab);
+            enemyBulletPrefab,
+            false,
+            speedMultiplier);
         bulletObject.SetActive(true);
         body.position = position;
         body.linearVelocity = movementVector;
@@ -339,7 +408,8 @@ public sealed class BulletHellShooter : MonoBehaviour
         BulletStructure structure,
         int logicalLayer,
         Transform aimTarget,
-        float warningDuration)
+        float warningDuration,
+        float speedMultiplier)
     {
         PlayerAgent targetPlayer = aimTarget != null
             ? aimTarget.GetComponent<PlayerAgent>()
@@ -374,8 +444,41 @@ public sealed class BulletHellShooter : MonoBehaviour
                 direction,
                 structure,
                 logicalLayer,
-                aimTarget);
+                aimTarget,
+                speedMultiplier);
         }
+    }
+
+    private static Dictionary<int, Vector2> CaptureAimDirections(
+        Transform source,
+        IReadOnlyList<GameObject> targets,
+        BulletHellShotDefinition definition)
+    {
+        Dictionary<int, Vector2> directions = new Dictionary<int, Vector2>();
+        if (targets == null)
+        {
+            return directions;
+        }
+
+        Vector2 sourcePosition = source != null
+            ? source.position
+            : Vector2.zero;
+        foreach (GameObject targetObject in targets)
+        {
+            if (targetObject == null ||
+                !targetObject.TryGetComponent(out PlayerAgent target))
+            {
+                continue;
+            }
+
+            directions[target.LogicalLayer] = ResolveAimDirection(
+                definition.AimType,
+                sourcePosition,
+                target.transform,
+                definition.LeadMultiplier);
+        }
+
+        return directions;
     }
 
     private void FireLaser(

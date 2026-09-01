@@ -10,6 +10,7 @@ public sealed class PlayerMovementController : MonoBehaviour
 
     [SerializeField, Min(0f)] private float moveSpeed = 300f;
     [SerializeField] private bool teacherModeEnabled;
+    [SerializeField] private bool teacherTrainingEnabled = true;
 
     private Aidata aiData;
     private PlayerAgent playerAgent;
@@ -31,6 +32,11 @@ public sealed class PlayerMovementController : MonoBehaviour
     public void SetTeacherMode(bool enabled)
     {
         teacherModeEnabled = enabled;
+    }
+
+    public void SetTeacherTrainingEnabled(bool enabled)
+    {
+        teacherTrainingEnabled = enabled;
     }
 
     private void Awake()
@@ -77,7 +83,7 @@ public sealed class PlayerMovementController : MonoBehaviour
             ? ReadManualMovement()
             : prediction;
         movementOutput = Vector2.ClampMagnitude(movementOutput, 1f);
-        if (IsTeacherControlled)
+        if (IsTeacherControlled && teacherTrainingEnabled)
         {
             aiData.RecordTeacherSample(movementOutput);
         }

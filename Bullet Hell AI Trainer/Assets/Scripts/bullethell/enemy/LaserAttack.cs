@@ -5,6 +5,7 @@ using UnityEngine;
 [RequireComponent(typeof(LineRenderer))]
 public sealed class LaserAttack : MonoBehaviour
 {
+    private const float InfiniteRangeVisualLength = 1000f;
     private static readonly Color WarningColor = Color.gray;
     private static readonly Color ActiveColor = Color.red;
     private static Material lineMaterial;
@@ -15,6 +16,7 @@ public sealed class LaserAttack : MonoBehaviour
     private Vector2 origin;
     private Vector2 direction;
     private float length;
+    private bool hasInfiniteRange;
     private float warningWidth;
     private float laserWidth;
     private int logicalLayer;
@@ -81,7 +83,10 @@ public sealed class LaserAttack : MonoBehaviour
             : Vector2.down;
         logicalLayer = Mathf.Max(0, layer);
         targetPlayer = target;
-        length = Mathf.Max(0.01f, beamLength);
+        hasInfiniteRange = float.IsPositiveInfinity(beamLength);
+        length = hasInfiniteRange
+            ? float.PositiveInfinity
+            : Mathf.Max(0.01f, beamLength);
         warningWidth = Mathf.Max(0.01f, warningLineWidth);
         laserWidth = Mathf.Max(0.01f, activeLaserWidth);
 
@@ -139,7 +144,10 @@ public sealed class LaserAttack : MonoBehaviour
         lineRenderer.startWidth = width;
         lineRenderer.endWidth = width;
         lineRenderer.SetPosition(0, origin);
-        lineRenderer.SetPosition(1, origin + direction * length);
+        float visualLength = hasInfiniteRange
+            ? InfiniteRangeVisualLength
+            : length;
+        lineRenderer.SetPosition(1, origin + direction * visualLength);
     }
 
     private void RegisterLaserHits()
@@ -152,10 +160,13 @@ public sealed class LaserAttack : MonoBehaviour
 
         Collider2D hitbox = targetPlayer.GetComponent<Collider2D>();
         Vector2 playerPosition = targetPlayer.transform.position;
-        float distanceAlongLaser = Mathf.Clamp(
-            Vector2.Dot(playerPosition - origin, direction),
+        float distanceAlongLaser = Mathf.Max(
             0f,
-            length);
+            Vector2.Dot(playerPosition - origin, direction));
+        if (!hasInfiniteRange)
+        {
+            distanceAlongLaser = Mathf.Min(distanceAlongLaser, length);
+        }
         Vector2 closestPointOnLaser = origin + direction * distanceAlongLaser;
         Vector2 closestPointOnPlayer = hitbox != null
             ? hitbox.ClosestPoint(closestPointOnLaser)

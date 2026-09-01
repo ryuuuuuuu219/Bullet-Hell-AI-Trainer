@@ -32,7 +32,10 @@ public sealed class BulletStructure
         float angularAccelerationDegreesPerSecondSquared = 0f,
         float angularAccelerationDurationSeconds = 0f,
         float guidanceCommandIntervalSeconds = 0f,
-        float childSpawnIntervalSeconds = float.PositiveInfinity)
+        float childSpawnIntervalSeconds = float.PositiveInfinity,
+        float[] splitAngleOffsetsDegrees = null,
+        LaserStructure childLaserStructure = null,
+        int maximumChildSpawnEvents = 0)
     {
         Speed = UnityEngine.Mathf.Max(0f, speed);
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
@@ -65,6 +68,12 @@ public sealed class BulletStructure
         GuidanceCommandIntervalSeconds = UnityEngine.Mathf.Max(
             0f,
             guidanceCommandIntervalSeconds);
+        SplitAngleOffsetsDegrees = splitAngleOffsetsDegrees ??
+            System.Array.Empty<float>();
+        ChildLaserStructure = childLaserStructure;
+        MaximumChildSpawnEvents = UnityEngine.Mathf.Max(
+            0,
+            maximumChildSpawnEvents);
     }
 
     public float Speed { get; }
@@ -85,8 +94,24 @@ public sealed class BulletStructure
     public float AngularAccelerationDegreesPerSecondSquared { get; }
     public float AngularAccelerationDurationSeconds { get; }
     public float GuidanceCommandIntervalSeconds { get; }
+    public System.Collections.Generic.IReadOnlyList<float>
+        SplitAngleOffsetsDegrees { get; }
+    public LaserStructure ChildLaserStructure { get; }
+    public int MaximumChildSpawnEvents { get; }
     public bool HasSplit => SplitProjectileCount > 0 &&
-                            ChildStructure != null;
+                            (ChildStructure != null ||
+                             ChildLaserStructure != null);
+
+    public float GetSplitAngleOffset(int index)
+    {
+        if (index >= 0 && index < SplitAngleOffsetsDegrees.Count)
+        {
+            return SplitAngleOffsetsDegrees[index];
+        }
+
+        float centerIndex = (SplitProjectileCount - 1) * 0.5f;
+        return (index - centerIndex) * SplitAngleIntervalDegrees;
+    }
 
     public static BulletStructure Straight(float speed, int threatLevel)
     {

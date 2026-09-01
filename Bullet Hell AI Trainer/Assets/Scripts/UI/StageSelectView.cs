@@ -21,8 +21,10 @@ public static class StageSelectView
 
         ConfigureLayout(contentObject);
 
+        int stageCount = BulletHellStageAttackDefinitions.GetCount(
+            GameSceneManager.SelectedCategory);
         for (int stageId = 0;
-             stageId < BulletHellStageAttackDefinitions.Count;
+             stageId < stageCount;
              stageId++)
         {
             string objectName = GetButtonObjectName(stageId);
@@ -144,9 +146,11 @@ public static class StageSelectView
     private static string GetButtonLabel(int stageId)
     {
         BulletHellStageDefinition stage =
-            BulletHellStageAttackDefinitions.GetStage(stageId);
+            BulletHellStageAttackDefinitions.GetStage(
+                GameSceneManager.SelectedCategory,
+                stageId);
         return stage != null
-            ? $"課題A-{stageId + 1}　{stage.Title}"
+            ? $"課題{stage.ChallengeCode}　{stage.Title}"
             : $"Stage {stageId}";
     }
 

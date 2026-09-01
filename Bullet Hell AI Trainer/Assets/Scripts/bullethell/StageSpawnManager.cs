@@ -35,6 +35,8 @@ public sealed class StageSpawnManager : MonoBehaviour
     public static float CurrentThreatTimeSignal { get; private set; } = -1f;
 
     public int StageId { get; private set; } = -1;
+    public ChallengeCategory Category { get; private set; } =
+        ChallengeCategory.Basic;
 
     public event Action<BulletHellShotDefinition> SpawnRequested;
 
@@ -44,10 +46,14 @@ public sealed class StageSpawnManager : MonoBehaviour
         CurrentThreatTimeSignal = -1f;
     }
 
-    public void Initialize(int stageId, bool shouldEnableTeacherMode = false)
+    public void Initialize(
+        ChallengeCategory category,
+        int stageId,
+        bool shouldEnableTeacherMode = false)
     {
         EnsureBulletHellShooter();
         bulletHellShooter.ClearEnemyAttacks();
+        Category = category;
         StageId = stageId;
         teacherModeEnabled = shouldEnableTeacherMode;
         LogicalLayerVisibility.SetExclusiveVisibleLayer(
@@ -115,11 +121,12 @@ public sealed class StageSpawnManager : MonoBehaviour
     private void StartStagePattern()
     {
         BulletHellStageDefinition stage =
-            BulletHellStageAttackDefinitions.GetStage(StageId);
+            BulletHellStageAttackDefinitions.GetStage(Category, StageId);
         ResetThreatTimeSignal(stage);
         if (stage == null)
         {
-            Debug.LogWarning($"Spawn control is not implemented for stage ID {StageId}.");
+            Debug.LogWarning(
+                $"Spawn control is not implemented for {Category} stage ID {StageId}.");
             return;
         }
 
@@ -154,7 +161,7 @@ public sealed class StageSpawnManager : MonoBehaviour
             SpawnPlayer(populationData, 0, teacherNetworkSnapshot, true);
         }
 
-        int populationSize = populationData.populationSize;
+        int populationSize = GetGeneticPlayerCount(populationData);
         for (int index = 0; index < populationSize; index++)
         {
             int logicalLayer = index + (teacherModeEnabled ? 1 : 0);
@@ -196,6 +203,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         movement.SetManualControl(teacherControl);
         movement.SetTeacherMode(teacherControl);
+        movement.SetTeacherTrainingEnabled(Category != ChallengeCategory.Final);
 
         PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
         if (playerShooter == null)
@@ -238,12 +246,15 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private int GetSpawnedPlayerCount(PopulationSettingsData populationData)
     {
-        return populationData.populationSize + (teacherModeEnabled ? 1 : 0);
+        return GetGeneticPlayerCount(populationData) +
+            (teacherModeEnabled ? 1 : 0);
     }
 
     private int GetGeneticPlayerCount(PopulationSettingsData populationData)
     {
-        return populationData.populationSize;
+        return Category == ChallengeCategory.Final
+            ? (teacherModeEnabled ? 0 : 1)
+            : populationData.populationSize;
     }
 
     private void LoadTeacherNetworkSnapshot()
