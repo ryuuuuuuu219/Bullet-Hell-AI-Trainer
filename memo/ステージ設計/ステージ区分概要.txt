@@ -18,21 +18,21 @@ Basic Challenge
 
 課題番号：A-1から区分内通し番号
 
-（A-1～A-21）
+（A-1～A-20）
 
 
 Applied Challenge
 
 課題番号：B-1から区分内通し番号
 
-（B-1～B-9）
+（B-1～B-8）
 幾何的弾幕として全方位にBasic Challengeの構成要素が複製される
 
 Advanced Challenge
 
 課題番号：C-1から区分内通し番号
 
-（C-1～C-9）
+（C-1～C-10）
 Applied Challengeまでの要素に加え、弾速と発射周期のゆらぎ（+/-15%）複数要素の合成
 補助的予告線停止
 
