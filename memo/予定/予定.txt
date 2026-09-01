@@ -1,0 +1,22 @@
+1.要素抽出　一覧化　-終了
+2.ブレインストーミング　
+3.データ構造拡張
+4.下位3区分の数的バランス調整
+5.最終課題記述
+
+◇◇追加実装
+
+・曲率の減衰
+・複数回の拡散
+・・拡散中の発射角度変化
+・・・弾自体のベクトル基準と対プレイヤーベクトル基準の選択
+・加減速
+
+・脅威度設定見直し
+
+◇◇ステージ構成の移動先
+
+Basic Challenge：memo\ステージ設計\Basic Challenge.txt
+Applied Challenge：memo\ステージ設計\Applied Challenge.txt
+Advanced Challenge：memo\ステージ設計\Advanced Challenge.txt
+Final Challenge：memo\ステージ設計\Final Challenge.txt

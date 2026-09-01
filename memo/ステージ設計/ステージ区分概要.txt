@@ -16,7 +16,7 @@ Advanced Challenge
 Applied Challengeまでの要素に加え、弾速と発射周期のゆらぎ（+/-15%）複数要素の合成
 補助的予告線停止
 
-finaly Challenge
+Final Challenge
 
 ゲーム全体の最終課題扱い
 個体数は1に制限　教育モードの逆伝播停止　
