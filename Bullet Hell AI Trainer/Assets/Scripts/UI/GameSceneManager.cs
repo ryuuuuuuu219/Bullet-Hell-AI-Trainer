@@ -76,7 +76,7 @@ public static class GameSceneManager
         {
             case MainMenuSceneName:
                 BindButton("Setting", LoadSetting);
-                BindButton("challenge", LoadStageSelect);
+                BindButton("Basic Challenge", LoadStageSelect);
                 break;
             case SettingSceneName:
                 BindButton("Back", LoadMainMenu);

@@ -253,19 +253,31 @@ public sealed class BulletHellShooter : MonoBehaviour
         baseDirection = Quaternion.Euler(
             0f,
             0f,
-            definition.AimAngleOffsetDegrees + burstAngleOffset) * baseDirection;
+            definition.AimAngleOffsetDegrees + burstAngleOffset) *
+            baseDirection;
 
         for (int index = 0; index < definition.ProjectileCount; index++)
         {
             float angleOffset = definition.GetProjectileAngleOffset(index);
             Vector2 direction = Quaternion.Euler(0f, 0f, angleOffset) *
                 baseDirection;
+            Vector2 projectilePosition = sourcePosition;
+            if (definition.ConvergesOnAimPoint && aimTarget != null)
+            {
+                Vector2 aimPoint = aimTarget.position;
+                float travelDistance = Vector2.Distance(sourcePosition, aimPoint);
+                projectilePosition = aimPoint -
+                    direction.normalized * travelDistance;
+            }
+
+            BulletStructure projectileStructure =
+                definition.GetProjectileStructure(index);
             if (definition.ProjectileWarningDuration > 0f && aimTarget != null)
             {
                 firingRoutines.Add(StartCoroutine(SpawnWarnedProjectile(
-                    sourcePosition,
+                    projectilePosition,
                     direction,
-                    definition.Bullet,
+                    projectileStructure,
                     logicalLayer,
                     aimTarget,
                     definition.ProjectileWarningDuration)));
@@ -273,9 +285,9 @@ public sealed class BulletHellShooter : MonoBehaviour
             else
             {
                 SpawnProjectile(
-                    sourcePosition,
+                    projectilePosition,
                     direction,
-                    definition.Bullet,
+                    projectileStructure,
                     logicalLayer,
                     aimTarget);
             }

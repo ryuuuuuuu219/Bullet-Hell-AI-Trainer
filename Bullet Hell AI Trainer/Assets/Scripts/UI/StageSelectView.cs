@@ -146,7 +146,7 @@ public static class StageSelectView
         BulletHellStageDefinition stage =
             BulletHellStageAttackDefinitions.GetStage(stageId);
         return stage != null
-            ? $"課題{stageId + 1}　{stage.Title}"
+            ? $"課題A-{stageId + 1}　{stage.Title}"
             : $"Stage {stageId}";
     }
 

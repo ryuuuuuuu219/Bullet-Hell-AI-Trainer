@@ -55,7 +55,9 @@ public sealed class BulletHellShotDefinition
         float[] burstAngleOffsets,
         float aimAngleOffsetDegrees,
         float leadMultiplier,
-        float projectileWarningDuration)
+        float projectileWarningDuration,
+        bool convergesOnAimPoint,
+        BulletStructure[] projectileStructures)
     {
         AttackType = attackType;
         AimType = aimType;
@@ -70,6 +72,8 @@ public sealed class BulletHellShotDefinition
         AimAngleOffsetDegrees = aimAngleOffsetDegrees;
         LeadMultiplier = leadMultiplier;
         ProjectileWarningDuration = Mathf.Max(0f, projectileWarningDuration);
+        ConvergesOnAimPoint = convergesOnAimPoint;
+        ProjectileStructures = projectileStructures ?? Array.Empty<BulletStructure>();
     }
 
     public BulletHellAttackType AttackType { get; }
@@ -85,11 +89,22 @@ public sealed class BulletHellShotDefinition
     public float AimAngleOffsetDegrees { get; }
     public float LeadMultiplier { get; }
     public float ProjectileWarningDuration { get; }
+    public bool ConvergesOnAimPoint { get; }
+    public IReadOnlyList<BulletStructure> ProjectileStructures { get; }
 
     public float GetProjectileAngleOffset(int projectileIndex)
     {
         float centerIndex = (ProjectileCount - 1) * 0.5f;
         return (projectileIndex - centerIndex) * AngleIntervalDegrees;
+    }
+
+    public BulletStructure GetProjectileStructure(int projectileIndex)
+    {
+        return projectileIndex >= 0 &&
+               projectileIndex < ProjectileStructures.Count &&
+               ProjectileStructures[projectileIndex] != null
+            ? ProjectileStructures[projectileIndex]
+            : Bullet;
     }
 
     public float GetBurstAngleOffset(int burstIndex)
@@ -110,7 +125,9 @@ public sealed class BulletHellShotDefinition
         float[] burstAngleOffsets = null,
         float aimAngleOffsetDegrees = 0f,
         float leadMultiplier = 0f,
-        float warningDuration = 0f)
+        float warningDuration = 0f,
+        bool convergesOnAimPoint = false,
+        BulletStructure[] projectileStructures = null)
     {
         return new BulletHellShotDefinition(
             BulletHellAttackType.Projectile,
@@ -125,7 +142,9 @@ public sealed class BulletHellShotDefinition
             burstAngleOffsets,
             aimAngleOffsetDegrees,
             leadMultiplier,
-            warningDuration);
+            warningDuration,
+            convergesOnAimPoint,
+            projectileStructures);
     }
 
     public static BulletHellShotDefinition CreateLaser(
@@ -146,7 +165,9 @@ public sealed class BulletHellShotDefinition
             null,
             0f,
             0f,
-            0f);
+            0f,
+            false,
+            null);
     }
 }
 
@@ -233,105 +254,90 @@ public static class BulletHellStageAttackDefinitions
 
     private static BulletHellStageDefinition[] BuildStages()
     {
-        BulletStructure splitOneWay = Split(
-            192f, 2, 5f, 1, 0f, BulletSplitAimType.Forward,
-            Straight(144f, 1));
-        BulletStructure dispenser = Split(
-            192f, 3, 5f, 3, 4f, BulletSplitAimType.PlayerAimed,
-            Straight(144f, 1));
-        BulletStructure geometricA = Split(
-            160f, 3, 1.6f, 5, 72f, BulletSplitAimType.Forward,
-            Split(
-                192f, 3, 1.6f, 5, 72f, BulletSplitAimType.Forward,
-                Split(
-                    224f, 3, 1.6f, 1, 0f, BulletSplitAimType.Forward,
-                    Straight(224f, 1),
-                    BulletMotionType.ConstantTurn,
-                    40f),
+        BulletStructure[] changingConvergence = new BulletStructure[8];
+        for (int index = 0; index < changingConvergence.Length; index++)
+        {
+            float ratio = index / (changingConvergence.Length - 1f);
+            changingConvergence[index] = Motion(
+                400f,
+                2,
                 BulletMotionType.ConstantTurn,
-                40f),
-            BulletMotionType.ConstantTurn,
-            40f);
-        BulletStructure geometricB = Split(
-            160f, 3, 1.6f, 4, 45f, BulletSplitAimType.PlayerAimed,
-            Split(
-                192f, 3, 1.6f, 3, 10f, BulletSplitAimType.PlayerAimed,
-                Straight(224f, 1),
-                splitWarningDuration: 0.5f));
+                Mathf.Lerp(-30f, 30f, ratio),
+                angularAcceleration: Mathf.Lerp(-4f, 4f, ratio),
+                angularAccelerationDuration: 15f);
+        }
+
+        BulletStructure timedForwardSplit = Split(
+            200f,
+            3,
+            1.2f,
+            5,
+            16f,
+            BulletSplitAimType.Forward,
+            Straight(250f, 1));
+        BulletStructure timedPlayerAimedSplit = Split(
+            200f,
+            3,
+            1.2f,
+            3,
+            8f,
+            BulletSplitAimType.PlayerAimed,
+            Straight(250f, 1));
 
         return new[]
         {
-            Stage(0, "自機狙い1way", "単独認識\n自機狙い1way\n2秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f))),
-            Stage(1, "高頻度1way", "強化\n自機狙い1way\n1秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 1f))),
-            Stage(2, "自機狙い5way・広間隔", "単独認識\n自機狙い5way\n2秒ごとに発射\n間隔10°\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, 5, 10f))),
-            Stage(3, "自機狙い4+3way", "組み合わせ\n自機狙い3way＋時間差4way\n4wayは目標方向を基準に-9°／-3°／+3°／+9°\n2秒ごとに発射\n間隔10°／6°\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, 3, 10f), 2f),
-                Pattern(Projectile(120f, 1, 2f, 4, 6f), 3f)),
-            Stage(4, "編隊射撃", "強化\n自機狙い4way\n2秒ごとに発射\n間隔4°\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, 4, 4f))),
-            Stage(5, "固定偏差1way・左右交互", "単独認識\n固定偏差1way\n2秒ごとに左右10°へ交互に発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 4f, aimOffset: -10f), 2f),
-                Pattern(Projectile(120f, 1, 4f, aimOffset: 10f), 4f)),
-            Stage(6, "弱い偏差射撃", "強化\n偏差射撃1way\n視線角速度の1.5倍でリード\n2秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, leadMultiplier: 1.5f))),
-            Stage(7, "偏差射撃", "強化\n偏差射撃3way\n視線角速度の3倍でリード\n2秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, 3, 10f, leadMultiplier: 3f))),
-            Stage(8, "固定方向5連射", "単独認識\n固定方向へ0.2秒間隔5連射\n2秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, burstCount: 5, burstInterval: 0.2f))),
-            Stage(9, "薙ぎ払い", "強化\n-15°から+15°へ0.03秒間隔10連射\n2秒ごとに発射\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, burstCount: 10, burstInterval: 0.03f,
-                    burstOffsets: Sweep(10, -15f, 15f)))),
-            Stage(10, "3点バースト", "組み合わせ\n0→-3°→+5°へ0.2秒間隔3発射\n2秒ごとに発射\n弾速：192\n脅威度：1",
-                Pattern(Projectile(192f, 1, 2f, burstCount: 3, burstInterval: 0.2f,
-                    burstOffsets: new[] { 0f, -3f, 5f }))),
-            Stage(11, "予告線付き通常弾", "単独認識\n予告線付き直進弾\n4秒ごとに発射\n弾速：120\n予告：2秒\n脅威度：1",
-                Pattern(Projectile(120f, 1, 4f, warning: 2f))),
-            Stage(12, "予告線付き中速弾", "強化\n予告線付き直進弾\n4秒ごとに発射\n弾速：240\n予告：2秒\n脅威度：2",
-                Pattern(Projectile(240f, 2, 4f, warning: 2f))),
-            Stage(13, "高速弾", "強化\n予告線付き高速弾\n4秒ごとに発射\n弾速：360\n予告：2秒\n脅威度：3",
-                Pattern(Projectile(360f, 3, 4f, warning: 2f))),
-            Stage(14, "予告線付き高速3点バースト", "組み合わせ\n0→-1°→+2°へ0.2秒間隔3連射\n4秒ごとに発射\n弾速：336\n予告：2秒\n脅威度：3",
-                Pattern(Projectile(336f, 3, 4f, burstCount: 3, burstInterval: 0.2f,
-                    burstOffsets: new[] { 0f, -1f, 2f }, warning: 2f))),
-            Stage(15, "乱射", "強化\n指定リードで0.03秒間隔10連射\n4秒ごとに発射\n弾速：336\n予告：2秒\n脅威度：3",
-                Pattern(Projectile(336f, 3, 4f, burstCount: 10, burstInterval: 0.03f,
-                    burstOffsets: new[] { 0f, -1f, 2f, -5f, 7f, -2f, 3f, -3f, 5f, -2f },
-                    warning: 2f))),
-            Stage(16, "レーザー", "単独認識\n予告線付きレーザー\n4秒ごとに発射\n予告：2秒\n脅威度：4",
+            Stage(0, "自機狙い1way", "単独認識\n自機狙い1way\n自機を直接狙う単発弾の回避を学習する\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f))),
+            Stage(1, "自機狙い5way", "強化\n自機狙い5way\n中央に自機を直接狙う弾を含む奇数way弾\n間隔：12deg\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, 5, 12f))),
+            Stage(2, "自機狙い2way", "単独認識\n自機狙い2way\n中央に自機を直接狙う弾を含まない偶数way弾\n間隔：12deg\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, 2, 12f))),
+            Stage(3, "自機狙い6way", "強化\n自機狙い6way\n弾数を増やした偶数way弾\n間隔：8deg\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, 6, 8f))),
+            Stage(4, "収束弾", "単独認識\n収束9way\n一点へ収束する直進弾\n間隔：4deg\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, 9, 4f,
+                    convergesOnAimPoint: true))),
+            Stage(5, "一定曲率弾", "単独認識\n角速度が一定の曲がる弾\n角速度：30deg/s\n角加速度：0deg/s²\n発射周期：2秒\n弾速：400\n脅威度：2",
+                Pattern(Projectile(Motion(400f, 2, BulletMotionType.ConstantTurn, 30f), 2f))),
+            Stage(6, "曲率増加弾", "強化\n角速度が時間とともに増加する曲がる弾\n初期角速度：0deg/s\n角加速度：+5deg/s²\n変化時間：15秒\n発射周期：2秒\n弾速：400\n脅威度：2",
+                Pattern(Projectile(Motion(400f, 2, BulletMotionType.ConstantTurn, 0f,
+                    angularAcceleration: 5f, angularAccelerationDuration: 15f), 2f))),
+            Stage(7, "軌道変化する収束弾", "強化\n8way収束弾\n収束する角速度と角加速度に差を持つ8発\n間隔：0deg\n角速度：-30～+30deg/s\n角加速度：-4～+4deg/s²\n変化時間：15秒\n発射周期：2秒\n弾速：400\n脅威度：2",
+                Pattern(Projectile(changingConvergence[0], 2f, 8, 0f,
+                    convergesOnAimPoint: true,
+                    projectileStructures: changingConvergence))),
+            Stage(8, "N=1比例航法誘導弾・1way", "単独認識\n航法定数N=1の比例航法誘導弾、1way\n角速度制限：12deg/s\ntotalΔθ：90deg\n発射周期：2秒\n弾速：500\n脅威度：3",
+                Pattern(Projectile(Motion(500f, 3, BulletMotionType.ProportionalNavigation,
+                    12f, 1f, 90f), 2f))),
+            Stage(9, "N=1比例航法誘導弾・4way", "強化\n航法定数N=1の比例航法誘導弾、4way\n角速度制限：12deg/s\ntotalΔθ：90deg\n発射周期：2秒\n弾速：500\n脅威度：3",
+                Pattern(Projectile(Motion(500f, 3, BulletMotionType.ProportionalNavigation,
+                    12f, 1f, 90f), 2f, 4, 12f,
+                    convergesOnAimPoint: true))),
+            Stage(10, "減速弾", "単独認識\n減速する直進弾\n初速：500Unit/s\n加速度：-250Unit/s²\n加減速時間：1.5秒\n発射周期：2秒\n脅威度：1",
+                Pattern(Projectile(Straight(500f, 1, -250f, 1.5f), 2f))),
+            Stage(11, "加速弾", "単独認識\n加速する直進弾\n初速：150Unit/s\n加速度：+200Unit/s²\n加減速時間：2秒\n発射周期：2秒\n脅威度：1",
+                Pattern(Projectile(Straight(150f, 1, 200f, 2f), 2f))),
+            Stage(12, "移動方向への偏差射撃", "強化\n自機の移動方向を参照する偏差射撃\nリード量：LOS角速度×3\n発射周期：1.2秒\n弾速：500\n脅威度：1",
+                Pattern(Projectile(500f, 1, 1.2f, leadMultiplier: 3f))),
+            Stage(13, "N=3誘導弾", "強化\n航法定数N=3の比例航法誘導弾\n角速度制限：18deg/s\ntotalΔθ：120deg\n発射周期：2秒\n弾速：400\n脅威度：3",
+                Pattern(Projectile(Motion(400f, 3, BulletMotionType.ProportionalNavigation,
+                    18f, 3f, 120f), 2f))),
+            Stage(14, "固定方向への連射", "単独認識\n固定された射線への連射弾\n連射数：5\n連射間隔：0.2秒\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, aimType: BulletAimType.FixedDown,
+                    burstCount: 5, burstInterval: 0.2f))),
+            Stage(15, "薙ぎ払い連射", "強化\n射線を変化させる連射弾\n連射数：10\n連射間隔：0.1秒\n偏差角：-18→+18\n発射周期：2秒\n弾速：400\n脅威度：1",
+                Pattern(Projectile(400f, 1, 2f, aimType: BulletAimType.FixedDown,
+                    burstCount: 10, burstInterval: 0.1f,
+                    burstOffsets: Sweep(10, -18f, 18f)))),
+            Stage(16, "予告線付き高速弾", "単独認識\n予告線付き高速直進弾\n予告時間：0.5秒\n発射周期：2秒\n弾速：800\n脅威度：4",
+                Pattern(Projectile(800f, 4, 2f, warning: 0.5f))),
+            Stage(17, "レーザー", "強化\n予告線付きレーザー\n予告時間：1秒\n照射時間：2秒\n発射周期：2秒\n脅威度：5",
                 Pattern(BulletHellShotDefinition.CreateLaser(new LaserStructure(
-                    4, 2f, 0.5f, WarningLength, 2f, 12f), 4f))),
-            Stage(17, "時限分裂1way", "単独認識\n5秒後に1wayへ展開\n2秒ごとに発射\n弾速：192→144\n脅威度：2→1",
-                Pattern(Projectile(splitOneWay, 2f))),
-            Stage(18, "ディスペンサー", "強化\n5秒後に自機狙い3wayへ展開\n2秒ごとに発射\n間隔4°\n弾速：192→144\n脅威度：3→1",
-                Pattern(Projectile(dispenser, 2f))),
-            Stage(19, "曲がる1way", "単独認識\n曲がる弾1way\n1秒ごとに発射\n角速度18deg/s\n弾速：96\n脅威度：1",
-                Pattern(Projectile(Motion(96f, 1, BulletMotionType.ConstantTurn, 18f), 1f))),
-            Stage(20, "曲がる3way", "強化\n曲がる弾3way\n1秒ごとに発射\n間隔20°\n角速度18deg/s\n弾速：96\n脅威度：2",
-                Pattern(Projectile(Motion(96f, 2, BulletMotionType.ConstantTurn, 18f), 1f, 3, 20f))),
-            Stage(21, "曲がる5way", "強化\n曲がる弾5way\n1秒ごとに発射\n間隔72°\n角速度18deg/s\n弾速：96\n脅威度：2",
-                Pattern(Projectile(Motion(96f, 2, BulletMotionType.ConstantTurn, 18f), 1f, 5, 72f))),
-            Stage(22, "単発の弱誘導弾", "単独認識\n誘導弾1発\n2秒ごとに発射\n角速度制限9deg/s\n累積旋回角制限90°\n弾速：192\n脅威度：2",
-                Pattern(Projectile(Motion(192f, 2, BulletMotionType.Homing, 9f, totalTurnAngle: 90f), 2f))),
-            Stage(23, "誘導弾　初級", "強化\n誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限18deg/s\n累積旋回角制限90°\n弾速：192\n脅威度：3",
-                Pattern(Projectile(Motion(192f, 3, BulletMotionType.Homing, 18f, totalTurnAngle: 90f), 2f,
-                    burstCount: 3, burstInterval: 0.2f))),
-            Stage(24, "単発の比例航法誘導弾", "単独認識\n比例航法誘導弾1発\n2秒ごとに発射\n角速度制限180deg/s\n累積旋回角制限90°\n比例定数2.6\n弾速：192\n脅威度：4",
-                Pattern(Projectile(Motion(192f, 4, BulletMotionType.ProportionalNavigation, 180f, 2.6f, 90f), 2f))),
-            Stage(25, "誘導弾　上級", "強化\n比例航法誘導弾を0.2秒間隔3発射\n2秒ごとに発射\n角速度制限180deg/s\n累積旋回角制限90°\n比例定数2.6\n弾速：192\n脅威度：5",
-                Pattern(Projectile(Motion(192f, 5, BulletMotionType.ProportionalNavigation, 180f, 2.6f, 90f), 2f,
-                    burstCount: 3, burstInterval: 0.2f))),
-            Stage(26, "壁", "組み合わせ\n自機狙い10way＋時間差4way\n2秒ごとに発射\n間隔4°／45°\n弾速：120\n脅威度：1",
-                Pattern(Projectile(120f, 1, 2f, 10, 4f), 2f),
-                Pattern(Projectile(120f, 1, 2f, 4, 45f, BulletAimType.FixedDown), 3f)),
-            Stage(27, "ずっと連射", "組み合わせ\n自機狙い3way\n0.4秒ごとに発射\n間隔7°\n弾速：96\n脅威度：1",
-                Pattern(Projectile(96f, 1, 0.4f, 3, 7f))),
-            Stage(28, "幾何的弾幕A", "組み合わせ\n曲がる5wayを3段階展開後、1wayへ展開\n8秒ごとに発射\n各段階1.6秒後に展開\n間隔72°\n角速度40deg/s\n弾速：160→192→224→224\n脅威度：3→3→3→1",
-                Pattern(Projectile(geometricA, 8f, 5, 72f))),
-            Stage(29, "幾何的弾幕B", "組み合わせ\n自機狙い2way→4way→3way拡散弾\n5秒ごとに発射\nBPM：12\n第1段階の間隔40°\n各段階1.6秒後に展開\n第3段階は予告線の0.5秒後に展開\n弾速：160→192→224\n脅威度：3→3→1",
-                Pattern(Projectile(geometricB, 5f, 2, 40f))),
+                    5, 1f, 2f, WarningLength, 2f, 12f), 2f))),
+            Stage(18, "時限分裂弾", "単独認識\n1.2秒後にベクトル基準5wayへ分裂\n子弾：基礎的飛翔体5way\n間隔：16deg\n発射周期：2秒\n弾速：200→250\n脅威度：3→1",
+                Pattern(Projectile(timedForwardSplit, 2f))),
+            Stage(19, "飛翔中の弾を起点とする自機狙い拡散弾", "強化\n飛翔中の親弾を起点とする対プレイヤー3way\n分裂時間：1.2秒\n間隔：8deg\n発射周期：2秒\n弾速：200→250\n脅威度：3→1",
+                Pattern(Projectile(timedPlayerAimedSplit, 2f))),
         };
     }
 
@@ -344,7 +350,7 @@ public static class BulletHellStageAttackDefinitions
         return new BulletHellStageDefinition(
             id,
             title,
-            $"課題{id + 1}\n{title}\n{details}",
+            $"課題A-{id + 1}\n{title}\n{details}",
             patterns);
     }
 
@@ -367,7 +373,9 @@ public static class BulletHellStageAttackDefinitions
         float[] burstOffsets = null,
         float aimOffset = 0f,
         float leadMultiplier = 0f,
-        float warning = 0f)
+        float warning = 0f,
+        bool convergesOnAimPoint = false,
+        BulletStructure[] projectileStructures = null)
     {
         return Projectile(
             Straight(speed, threat),
@@ -380,7 +388,9 @@ public static class BulletHellStageAttackDefinitions
             burstOffsets,
             aimOffset,
             leadMultiplier,
-            warning);
+            warning,
+            convergesOnAimPoint,
+            projectileStructures);
     }
 
     private static BulletHellShotDefinition Projectile(
@@ -394,7 +404,9 @@ public static class BulletHellStageAttackDefinitions
         float[] burstOffsets = null,
         float aimOffset = 0f,
         float leadMultiplier = 0f,
-        float warning = 0f)
+        float warning = 0f,
+        bool convergesOnAimPoint = false,
+        BulletStructure[] projectileStructures = null)
     {
         return BulletHellShotDefinition.CreateProjectile(
             structure,
@@ -407,12 +419,22 @@ public static class BulletHellStageAttackDefinitions
             burstOffsets,
             aimOffset,
             leadMultiplier,
-            warning);
+            warning,
+            convergesOnAimPoint,
+            projectileStructures);
     }
 
-    private static BulletStructure Straight(float speed, int threat)
+    private static BulletStructure Straight(
+        float speed,
+        int threat,
+        float acceleration = 0f,
+        float accelerationDuration = 0f)
     {
-        return BulletStructure.Straight(speed, threat);
+        return new BulletStructure(
+            speed,
+            threat,
+            linearAcceleration: acceleration,
+            linearAccelerationDurationSeconds: accelerationDuration);
     }
 
     private static BulletStructure Motion(
@@ -421,7 +443,12 @@ public static class BulletHellStageAttackDefinitions
         BulletMotionType motionType,
         float turnRate,
         float navigationConstant = 0f,
-        float totalTurnAngle = float.PositiveInfinity)
+        float totalTurnAngle = float.PositiveInfinity,
+        float acceleration = 0f,
+        float accelerationDuration = 0f,
+        float angularAcceleration = 0f,
+        float angularAccelerationDuration = 0f,
+        float guidanceCommandInterval = 0f)
     {
         return new BulletStructure(
             speed,
@@ -429,7 +456,12 @@ public static class BulletHellStageAttackDefinitions
             motionType,
             turnRate,
             navigationConstant,
-            totalTurnAngleDegrees: totalTurnAngle);
+            totalTurnAngleDegrees: totalTurnAngle,
+            linearAcceleration: acceleration,
+            linearAccelerationDurationSeconds: accelerationDuration,
+            angularAccelerationDegreesPerSecondSquared: angularAcceleration,
+            angularAccelerationDurationSeconds: angularAccelerationDuration,
+            guidanceCommandIntervalSeconds: guidanceCommandInterval);
     }
 
     private static BulletStructure Split(
@@ -442,7 +474,8 @@ public static class BulletHellStageAttackDefinitions
         BulletStructure child,
         BulletMotionType motionType = BulletMotionType.Straight,
         float turnRate = 0f,
-        float splitWarningDuration = 0f)
+        float splitWarningDuration = 0f,
+        float childSpawnInterval = float.PositiveInfinity)
     {
         return new BulletStructure(
             speed,
@@ -455,7 +488,8 @@ public static class BulletHellStageAttackDefinitions
             childInterval,
             splitAimType,
             child,
-            splitWarningDuration);
+            splitWarningDuration,
+            childSpawnIntervalSeconds: childSpawnInterval);
     }
 
     private static float[] Sweep(int count, float start, float end)
