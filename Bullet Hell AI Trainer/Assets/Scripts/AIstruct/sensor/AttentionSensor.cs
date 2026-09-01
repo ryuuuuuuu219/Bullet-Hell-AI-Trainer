@@ -19,7 +19,7 @@ public static class AttentionSensor
     public const float DistanceReference = 150f;
     public const float PredictionTimeLimit = 3f;
 
-    private const float ThreatReference = 5f;
+    private const float ThreatReference = 10f;
 
     public static void Select(
         Vector2 playerPosition,

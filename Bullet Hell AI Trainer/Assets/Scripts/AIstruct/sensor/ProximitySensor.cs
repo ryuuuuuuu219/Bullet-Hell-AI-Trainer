@@ -12,7 +12,7 @@ public struct ProximityObservation
 public static class ProximitySensor
 {
     public const float DistanceReference = 150f;
-    private const float ThreatReference = 5f;
+    private const float ThreatReference = 10f;
 
     public static float Sense(Vector2 position, int logicalLayer)
     {

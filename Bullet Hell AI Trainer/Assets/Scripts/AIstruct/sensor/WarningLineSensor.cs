@@ -42,7 +42,7 @@ public static class WarningLineSensor
     public const float DetectionRadius = 50f;
     public const float WarningTimeReference = 10f;
 
-    private const float ThreatReference = 5f;
+    private const float ThreatReference = 10f;
     private static readonly List<LaserThreatData> ActiveThreats =
         new List<LaserThreatData>();
 
