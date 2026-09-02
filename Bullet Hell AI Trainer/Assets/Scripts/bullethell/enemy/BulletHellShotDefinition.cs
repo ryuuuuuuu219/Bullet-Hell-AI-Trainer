@@ -655,14 +655,16 @@ public static class BulletHellStageAttackDefinitions
             BulletMotionType.ConstantTurn,
             120f,
             childSpawnFirstDelaySeconds: 2f,
-            splitProjectileCount: 3,
+            splitProjectileCount: 6,
             splitAimType: BulletSplitAimType.Forward,
             childStructure: acceleratedChild,
             angularAccelerationDegreesPerSecondSquared: -8f,
             angularAccelerationDurationSeconds: 4f,
-            childSpawnIntervalSeconds: 0.8f,
-            splitAngleOffsetsDegrees: new[] { 125f, 150f, 160f },
-            maximumChildSpawnEvents: 6);
+            childSpawnIntervalSeconds: 3.2f,
+            splitAngleOffsetsDegrees: new[]
+            {
+                125f, 150f, 160f, -125f, -150f, -160f,
+            });
 
         LaserStructure barrierLaser = new LaserStructure(
             5, 1f, 2f, LaserRange, 4f, 4f);
@@ -682,7 +684,7 @@ public static class BulletHellStageAttackDefinitions
         return new[]
         {
             Stage(ChallengeCategory.Final, 0, "弾幕結界",
-                "個体数1、教育モードの逆伝播停止\n周期8-0.005n秒（6～8秒）\nT+2：8発×6way螺旋弾、角速度120deg/s\nT+4～8：各螺旋弾から0.8秒周期で125/150/160degへ3発加速弾\nT+4：自機狙い4way拡散弾、弾速162.5\nT+4.8以降：弾速400/3の各拡散弾から0.3秒周期で±90degレーザー\nレーザー射程無限、幅4、最大脅威度7",
+                "個体数1、教育モードの逆伝播停止\n周期8-0.005n秒（6～8秒）\nT+2：8発×6way螺旋弾、角速度120deg/s\nT+4以降：各螺旋弾から3.2秒周期・無制限で±125/±150/±160degへ6発加速弾\nT+4：自機狙い4way拡散弾、弾速162.5\nT+4.8以降：弾速400/3の各拡散弾から0.3秒周期で±90degレーザー\nレーザー射程無限、幅4、最大脅威度7",
                 Pattern(ProjectileRepeatedDirections(
                     barrierSpiral, 8f, 6, 60f, 8),
                     2f, 0.005f, 6f),
