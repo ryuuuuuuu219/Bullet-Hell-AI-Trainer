@@ -484,11 +484,8 @@ public sealed class bullet : MonoBehaviour
             return;
         }
 
-        GameObject laserObject = new GameObject(
-            $"Child Laser Layer {logicalLayer}",
-            typeof(LineRenderer),
-            typeof(LaserAttack));
-        LaserAttack laserAttack = laserObject.GetComponent<LaserAttack>();
+        LaserAttack laserAttack = LaserPool.Acquire();
+        laserAttack.name = $"Child Laser Layer {logicalLayer}";
         laserAttack.Configure(
             origin,
             direction,

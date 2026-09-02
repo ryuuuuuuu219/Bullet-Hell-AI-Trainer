@@ -7,7 +7,6 @@ public static class ProjectilePool
 
     private static readonly Dictionary<GameObject, Stack<GameObject>> Pools =
         new Dictionary<GameObject, Stack<GameObject>>();
-
     private static Transform poolRoot;
     private static Camera mainCamera;
 
@@ -17,6 +16,28 @@ public static class ProjectilePool
         Pools.Clear();
         poolRoot = null;
         mainCamera = null;
+    }
+
+    public static void Prewarm(GameObject prefab, int initialCount)
+    {
+        if (prefab == null || initialCount <= 0)
+        {
+            return;
+        }
+
+        if (!Pools.TryGetValue(prefab, out Stack<GameObject> pool))
+        {
+            pool = new Stack<GameObject>(initialCount);
+            Pools.Add(prefab, pool);
+        }
+
+        while (pool.Count < initialCount)
+        {
+            GameObject instance = CreateInstance(prefab);
+            PooledProjectile marker = instance.GetComponent<PooledProjectile>();
+            marker.IsStored = true;
+            pool.Push(instance);
+        }
     }
 
     public static GameObject Acquire(
@@ -43,15 +64,7 @@ public static class ProjectilePool
 
         if (instance == null)
         {
-            instance = Object.Instantiate(prefab);
-            instance.SetActive(false);
-            PooledProjectile marker = instance.GetComponent<PooledProjectile>();
-            if (marker == null)
-            {
-                marker = instance.AddComponent<PooledProjectile>();
-            }
-
-            marker.SourcePrefab = prefab;
+            instance = CreateInstance(prefab);
         }
 
         PooledProjectile pooledProjectile = instance.GetComponent<PooledProjectile>();
@@ -105,6 +118,20 @@ public static class ProjectilePool
         pool.Push(instance);
     }
 
+    private static GameObject CreateInstance(GameObject prefab)
+    {
+        GameObject instance = Object.Instantiate(prefab, GetPoolRoot(), false);
+        instance.SetActive(false);
+        PooledProjectile marker = instance.GetComponent<PooledProjectile>();
+        if (marker == null)
+        {
+            marker = instance.AddComponent<PooledProjectile>();
+        }
+
+        marker.SourcePrefab = prefab;
+        return instance;
+    }
+
     public static bool ReleaseIfOutsideCameraView(GameObject instance)
     {
         if (instance == null)
@@ -151,6 +178,7 @@ public static class ProjectilePool
         }
 
         GameObject rootObject = new GameObject("Projectile Pool");
+        rootObject.SetActive(false);
         Object.DontDestroyOnLoad(rootObject);
         poolRoot = rootObject.transform;
         return poolRoot;

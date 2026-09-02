@@ -67,3 +67,7 @@
 .DS_Store
 Thumbs.db
 Desktop.ini
+
+# Local unityroom credentials (generated automatically in the Unity Editor)
+/Bullet Hell AI Trainer/Assets/Resources/UnityroomRankingSettings.asset
+/Bullet Hell AI Trainer/Assets/Resources/UnityroomRankingSettings.asset.meta

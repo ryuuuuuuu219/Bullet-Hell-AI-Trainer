@@ -1,5 +1,87 @@
 using System.Collections;
+using System.Collections.Generic;
 using UnityEngine;
+
+public static class LaserPool
+{
+    private static readonly Stack<LaserAttack> Pool =
+        new Stack<LaserAttack>();
+
+    private static Transform poolRoot;
+    [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
+    private static void ResetState()
+    {
+        Pool.Clear();
+        poolRoot = null;
+    }
+
+    public static void Prewarm(int initialCount)
+    {
+        while (Pool.Count < Mathf.Max(0, initialCount))
+        {
+            LaserAttack instance = CreateInstance();
+            instance.IsStored = true;
+            instance.transform.SetParent(GetPoolRoot(), false);
+            Pool.Push(instance);
+        }
+    }
+
+    public static LaserAttack Acquire()
+    {
+        LaserAttack instance = null;
+        while (Pool.Count > 0 && instance == null)
+        {
+            instance = Pool.Pop();
+        }
+
+        if (instance == null)
+        {
+            instance = CreateInstance();
+        }
+
+        instance.IsStored = false;
+        instance.transform.SetParent(null, false);
+        instance.gameObject.SetActive(true);
+        return instance;
+    }
+
+    public static void Release(LaserAttack instance)
+    {
+        if (instance == null || instance.IsStored)
+        {
+            return;
+        }
+
+        instance.IsStored = true;
+        instance.gameObject.SetActive(false);
+        instance.transform.SetParent(GetPoolRoot(), false);
+        Pool.Push(instance);
+    }
+
+    private static LaserAttack CreateInstance()
+    {
+        GameObject laserObject = new GameObject(
+            "Pooled Laser",
+            typeof(LineRenderer),
+            typeof(LaserAttack));
+        laserObject.SetActive(false);
+        return laserObject.GetComponent<LaserAttack>();
+    }
+
+    private static Transform GetPoolRoot()
+    {
+        if (poolRoot != null)
+        {
+            return poolRoot;
+        }
+
+        GameObject rootObject = new GameObject("Laser Pool");
+        rootObject.SetActive(false);
+        Object.DontDestroyOnLoad(rootObject);
+        poolRoot = rootObject.transform;
+        return poolRoot;
+    }
+}
 
 [DisallowMultipleComponent]
 [RequireComponent(typeof(LineRenderer))]
@@ -22,6 +104,8 @@ public sealed class LaserAttack : MonoBehaviour
     private int logicalLayer;
     private PlayerAgent targetPlayer;
     private bool isConfigured;
+
+    internal bool IsStored { get; set; }
 
     public int LogicalLayer => logicalLayer;
 
@@ -77,6 +161,8 @@ public sealed class LaserAttack : MonoBehaviour
         float activeLaserWidth,
         int threatLevel)
     {
+        StopAllCoroutines();
+        UnregisterThreat();
         origin = start;
         direction = aimDirection.sqrMagnitude > Mathf.Epsilon
             ? aimDirection.normalized
@@ -133,7 +219,7 @@ public sealed class LaserAttack : MonoBehaviour
             yield return null;
         }
 
-        Destroy(gameObject);
+        LaserPool.Release(this);
     }
 
     private void ApplyLine(Color color, float width)
@@ -179,11 +265,25 @@ public sealed class LaserAttack : MonoBehaviour
         }
     }
 
+    private void OnDisable()
+    {
+        StopAllCoroutines();
+        UnregisterThreat();
+    }
+
     private void OnDestroy()
+    {
+        UnregisterThreat();
+    }
+
+    private void UnregisterThreat()
     {
         if (isConfigured)
         {
             WarningLineSensor.Unregister(threatData);
+            isConfigured = false;
         }
+
+        targetPlayer = null;
     }
 }

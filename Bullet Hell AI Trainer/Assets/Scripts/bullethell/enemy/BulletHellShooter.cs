@@ -7,6 +7,8 @@ using UnityEngine;
 public sealed class BulletHellShooter : MonoBehaviour
 {
     private const float AdvancedVariationRatio = 0.15f;
+    private const int EnemyBulletInitialPoolSize = 50000;
+    private const int LaserInitialPoolSize = 1000;
     [SerializeField] private GameObject enemyBulletPrefab;
 
     private readonly List<LaserAttack> activeLasers =
@@ -18,6 +20,8 @@ public sealed class BulletHellShooter : MonoBehaviour
     public void Configure(GameObject bulletPrefab)
     {
         enemyBulletPrefab = bulletPrefab;
+        ProjectilePool.Prewarm(enemyBulletPrefab, EnemyBulletInitialPoolSize);
+        LaserPool.Prewarm(LaserInitialPoolSize);
     }
 
     public void StartFiring(
@@ -97,8 +101,7 @@ public sealed class BulletHellShooter : MonoBehaviour
         {
             if (laser != null)
             {
-                laser.gameObject.SetActive(false);
-                Destroy(laser.gameObject);
+                LaserPool.Release(laser);
             }
         }
 
@@ -108,7 +111,7 @@ public sealed class BulletHellShooter : MonoBehaviour
         {
             if (laser != null)
             {
-                Destroy(laser.gameObject);
+                LaserPool.Release(laser);
             }
         }
 
@@ -247,7 +250,7 @@ public sealed class BulletHellShooter : MonoBehaviour
                 burstIndex);
         }
 
-        activeLasers.RemoveAll(laser => laser == null);
+        activeLasers.RemoveAll(laser => laser == null || laser.IsStored);
     }
 
     private void FireForTarget(
@@ -497,12 +500,9 @@ public sealed class BulletHellShooter : MonoBehaviour
             sourcePosition,
             target.transform,
             0f);
-        GameObject laserObject = new GameObject(
-            $"Laser Layer {target.LogicalLayer}",
-            typeof(LineRenderer),
-            typeof(LaserAttack));
-        laserObject.transform.SetParent(transform, true);
-        LaserAttack laserAttack = laserObject.GetComponent<LaserAttack>();
+        LaserAttack laserAttack = LaserPool.Acquire();
+        laserAttack.name = $"Laser Layer {target.LogicalLayer}";
+        laserAttack.transform.SetParent(transform, true);
         laserAttack.Configure(
             sourcePosition,
             direction,

@@ -31,6 +31,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     private IReadOnlyList<float> activeThreatArrivalTimes = Array.Empty<float>();
     private float stageElapsedTime;
     private int nextThreatTimeIndex;
+    private bool finalChallengeScoreSubmittedForCurrentRun;
 
     public static float CurrentThreatTimeSignal { get; private set; } = -1f;
 
@@ -77,8 +78,14 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void Update()
     {
-        if (!isInitialized ||
-            Time.unscaledTime < nextGenerationConditionCheckTime)
+        if (!isInitialized)
+        {
+            return;
+        }
+
+        TrySubmitFinalChallengeScore();
+
+        if (Time.unscaledTime < nextGenerationConditionCheckTime)
         {
             return;
         }
@@ -120,6 +127,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void StartStagePattern()
     {
+        finalChallengeScoreSubmittedForCurrentRun = false;
         BulletHellStageDefinition stage =
             BulletHellStageAttackDefinitions.GetStage(Category, StageId);
         ResetThreatTimeSignal(stage);
@@ -134,6 +142,32 @@ public sealed class StageSpawnManager : MonoBehaviour
             stage,
             spawnedBoss?.transform,
             spawnedPlayers);
+    }
+
+    private void TrySubmitFinalChallengeScore()
+    {
+        if (finalChallengeScoreSubmittedForCurrentRun ||
+            Category != ChallengeCategory.Final ||
+            teacherModeEnabled)
+        {
+            return;
+        }
+
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerAgent playerAgent) ||
+                !playerAgent.IsHit ||
+                !player.TryGetComponent(out PlayerEvaluationTracker tracker))
+            {
+                continue;
+            }
+
+            finalChallengeScoreSubmittedForCurrentRun = true;
+            UnityroomFinalChallengeRanking.SubmitSurvivalTime(
+                tracker.SurvivalTime);
+            return;
+        }
     }
 
     private void ResetThreatTimeSignal(BulletHellStageDefinition stage)
