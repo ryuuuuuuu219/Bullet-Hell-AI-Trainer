@@ -148,6 +148,7 @@ public sealed class StageSpawnManager : MonoBehaviour
     {
         if (finalChallengeScoreSubmittedForCurrentRun ||
             Category != ChallengeCategory.Final ||
+            StageId != 0 ||
             teacherModeEnabled)
         {
             return;

@@ -681,6 +681,64 @@ public static class BulletHellStageAttackDefinitions
             160f, 4, 0.8f, 2, 180f,
             BulletSplitAimType.Forward, laserEmitter);
 
+        BulletStructure d2OpeningChild = Straight(250f, 1, 100f, 1f);
+        BulletStructure d2OpeningSplit = new BulletStructure(
+            500f,
+            4,
+            childSpawnFirstDelaySeconds: 1f,
+            splitProjectileCount: 6,
+            splitAngleIntervalDegrees: 25f,
+            splitAimType: BulletSplitAimType.PlayerAimed,
+            childStructure: d2OpeningChild,
+            linearAcceleration: -500f,
+            linearAccelerationDurationSeconds: 1f,
+            childSpawnIntervalSeconds: 0.2f,
+            maximumChildSpawnEvents: 5);
+
+        BulletStructure d2HomingChild = Straight(300f, 1, 200f, 2f);
+        BulletStructure d2HomingSplit = new BulletStructure(
+            300f,
+            3,
+            BulletMotionType.Homing,
+            45f,
+            childSpawnFirstDelaySeconds: 0.25f,
+            splitProjectileCount: 3,
+            splitAimType: BulletSplitAimType.Forward,
+            childStructure: d2HomingChild,
+            totalTurnAngleDegrees: 90f,
+            childSpawnIntervalSeconds: 0.25f,
+            splitAngleOffsetsDegrees: new[] { -180f, -165f, 165f },
+            maximumChildSpawnEvents: 16);
+
+        float[] d2TimedChildAngles =
+        {
+            -37.5f, -12.5f, 12.5f, 37.5f,
+            -50f, -25f, 0f, 25f, 50f,
+        };
+        BulletStructure[] d2TimedChildren =
+        {
+            Straight(500f, 1, 100f, 1f),
+            Straight(500f, 1, 100f, 1f),
+            Straight(500f, 1, 100f, 1f),
+            Straight(500f, 1, 100f, 1f),
+            Straight(350f, 1, 100f, 1f),
+            Straight(350f, 1, 100f, 1f),
+            Straight(350f, 1, 100f, 1f),
+            Straight(350f, 1, 100f, 1f),
+            Straight(350f, 1, 100f, 1f),
+        };
+        BulletStructure d2TimedSplit = new BulletStructure(
+            500f,
+            4,
+            childSpawnFirstDelaySeconds: 0.5f,
+            splitProjectileCount: d2TimedChildAngles.Length,
+            splitAimType: BulletSplitAimType.PlayerAimed,
+            linearAcceleration: -1000f,
+            linearAccelerationDurationSeconds: 0.5f,
+            splitAngleOffsetsDegrees: d2TimedChildAngles,
+            maximumChildSpawnEvents: 1,
+            splitProjectileStructures: d2TimedChildren);
+
         return new[]
         {
             Stage(ChallengeCategory.Final, 0, "弾幕結界",
@@ -690,6 +748,27 @@ public static class BulletHellStageAttackDefinitions
                     2f, 0.005f, 6f),
                 Pattern(Projectile(barrierSplit, 8f, 4, 90f),
                     4f, 0.005f, 6f)),
+            Stage(ChallengeCategory.Final, 1, "分裂・追尾複合弾幕",
+                "個体数1、教育モードの逆伝播停止、周期12秒\nT+0：自機狙い±135degの2way分裂弾。初速500、加速度-500Unit/s²を1秒\n第2段階は自機狙い6way（±12.5/±37.5/±62.5deg）を0.2秒周期で1秒間、初速250、加速度100Unit/s²を1秒\nT+0/3/6/9：純粋追尾3way（0/±25deg）、弾速300、角速度45deg/s、totalΔθ90deg\n第2段階はベクトル基準3way（-180/±165deg）を0.25秒周期で4秒間（16回）、初速300、加速度200Unit/s²を2秒\nT+5/10：自機狙い2wayを±45/65/85/105/85/65/45degの順に0.3秒周期で7連射。初速500、加速度-1000Unit/s²を0.5秒\n第2段階は自機狙い4way＋5wayを単発。4way初速500、5way初速350、加速度100Unit/s²を1秒",
+                Pattern(Projectile(d2OpeningSplit, 12f, 2,
+                    projectileAngles: new[] { -135f, 135f }), 0f),
+                Pattern(Projectile(d2HomingSplit, 3f, 3, 25f), 0f),
+                Pattern(Projectile(d2TimedSplit, 12f, 2,
+                    burstCount: 7,
+                    burstInterval: 0.3f,
+                    reaimDuringBurst: true,
+                    burstProjectileIntervals: new[]
+                    {
+                        90f, 130f, 170f, 210f, 170f, 130f, 90f,
+                    }), 5f),
+                Pattern(Projectile(d2TimedSplit, 12f, 2,
+                    burstCount: 7,
+                    burstInterval: 0.3f,
+                    reaimDuringBurst: true,
+                    burstProjectileIntervals: new[]
+                    {
+                        90f, 130f, 170f, 210f, 170f, 130f, 90f,
+                    }), 10f)),
         };
     }
 

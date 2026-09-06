@@ -35,7 +35,8 @@ public sealed class BulletStructure
         float childSpawnIntervalSeconds = float.PositiveInfinity,
         float[] splitAngleOffsetsDegrees = null,
         LaserStructure childLaserStructure = null,
-        int maximumChildSpawnEvents = 0)
+        int maximumChildSpawnEvents = 0,
+        BulletStructure[] splitProjectileStructures = null)
     {
         Speed = UnityEngine.Mathf.Max(0f, speed);
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
@@ -74,6 +75,8 @@ public sealed class BulletStructure
         MaximumChildSpawnEvents = UnityEngine.Mathf.Max(
             0,
             maximumChildSpawnEvents);
+        SplitProjectileStructures = splitProjectileStructures ??
+            System.Array.Empty<BulletStructure>();
     }
 
     public float Speed { get; }
@@ -98,8 +101,11 @@ public sealed class BulletStructure
         SplitAngleOffsetsDegrees { get; }
     public LaserStructure ChildLaserStructure { get; }
     public int MaximumChildSpawnEvents { get; }
+    public System.Collections.Generic.IReadOnlyList<BulletStructure>
+        SplitProjectileStructures { get; }
     public bool HasSplit => SplitProjectileCount > 0 &&
                             (ChildStructure != null ||
+                             SplitProjectileStructures.Count > 0 ||
                              ChildLaserStructure != null);
 
     public float GetSplitAngleOffset(int index)
@@ -111,6 +117,15 @@ public sealed class BulletStructure
 
         float centerIndex = (SplitProjectileCount - 1) * 0.5f;
         return (index - centerIndex) * SplitAngleIntervalDegrees;
+    }
+
+    public BulletStructure GetSplitProjectileStructure(int index)
+    {
+        return index >= 0 &&
+               index < SplitProjectileStructures.Count &&
+               SplitProjectileStructures[index] != null
+            ? SplitProjectileStructures[index]
+            : ChildStructure;
     }
 
     public static BulletStructure Straight(float speed, int threatLevel)

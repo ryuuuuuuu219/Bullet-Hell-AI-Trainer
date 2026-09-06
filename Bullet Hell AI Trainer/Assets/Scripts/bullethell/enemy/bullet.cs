@@ -384,10 +384,11 @@ public sealed class bullet : MonoBehaviour
 
     private void SplitProjectile()
     {
-        BulletStructure childStructure = Structure.ChildStructure;
         LaserStructure childLaserStructure = Structure.ChildLaserStructure;
-        if ((childStructure != null && sourcePrefab == null) ||
-            (childStructure == null && childLaserStructure == null))
+        bool hasProjectileChildren = Structure.ChildStructure != null ||
+            Structure.SplitProjectileStructures.Count > 0;
+        if ((hasProjectileChildren && sourcePrefab == null) ||
+            (!hasProjectileChildren && childLaserStructure == null))
         {
             ProjectilePool.Release(gameObject);
             return;
@@ -409,6 +410,13 @@ public sealed class bullet : MonoBehaviour
             if (childLaserStructure != null)
             {
                 SpawnChildLaser(spawnPosition, direction, childLaserStructure);
+                continue;
+            }
+
+            BulletStructure childStructure =
+                Structure.GetSplitProjectileStructure(index);
+            if (childStructure == null)
+            {
                 continue;
             }
 
@@ -460,6 +468,7 @@ public sealed class bullet : MonoBehaviour
                 childSpawnEventCount >= Structure.MaximumChildSpawnEvents)
             {
                 splitTime = float.PositiveInfinity;
+                ProjectilePool.Release(gameObject);
                 return;
             }
 
