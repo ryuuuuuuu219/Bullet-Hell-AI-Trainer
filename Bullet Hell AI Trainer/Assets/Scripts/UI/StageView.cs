@@ -7,6 +7,7 @@ public static class StageView
 {
     private const string ButtonObjectName = "Next Generation Button";
     private const string LayerInfoScrollViewObjectName = "Scroll View";
+    private const string ViewModeButtonObjectName = "ViewMode Button";
 
     public static void Build()
     {
@@ -147,7 +148,70 @@ public static class StageView
             infoButton.onClick.AddListener(() =>
                 infoScrollView.gameObject.SetActive(
                     !infoScrollView.gameObject.activeSelf));
+
+            BuildViewModeButton(
+                infoButton,
+                infoScrollView,
+                contentRect,
+                layerCount);
         }
+    }
+
+    private static void BuildViewModeButton(
+        Button infoButton,
+        ScrollRect infoScrollView,
+        RectTransform contentRect,
+        int layerCount)
+    {
+        Button viewModeButton = FindButtonByObjectName(ViewModeButtonObjectName);
+        if (viewModeButton == null)
+        {
+            viewModeButton = UnityEngine.Object.Instantiate(
+                infoButton,
+                infoButton.transform.parent,
+                false);
+            viewModeButton.gameObject.name = ViewModeButtonObjectName;
+        }
+
+        const float buttonGap = 5f;
+        RectTransform scrollRect = infoScrollView.GetComponent<RectTransform>();
+        RectTransform infoRect = infoButton.GetComponent<RectTransform>();
+        RectTransform viewModeRect = viewModeButton.GetComponent<RectTransform>();
+        float buttonWidth = (scrollRect.rect.width - buttonGap) * 0.5f;
+        float horizontalOffset = (buttonWidth + buttonGap) * 0.5f;
+
+        infoRect.sizeDelta = new Vector2(buttonWidth, infoRect.sizeDelta.y);
+        infoRect.anchoredPosition = new Vector2(
+            scrollRect.anchoredPosition.x + horizontalOffset,
+            infoRect.anchoredPosition.y);
+        viewModeRect.sizeDelta = new Vector2(
+            buttonWidth,
+            viewModeRect.sizeDelta.y);
+        viewModeRect.anchoredPosition = new Vector2(
+            scrollRect.anchoredPosition.x - horizontalOffset,
+            infoRect.anchoredPosition.y);
+
+        TMP_Text label = viewModeButton.GetComponentInChildren<TMP_Text>(true);
+        if (label != null)
+        {
+            label.text = "viewmode";
+        }
+
+        bool showAllLayers = layerCount <= 1 ||
+                             LogicalLayerVisibility.IsVisible(1);
+        viewModeButton.onClick.RemoveAllListeners();
+        viewModeButton.onClick.AddListener(() =>
+        {
+            showAllLayers = !showAllLayers;
+            LogicalLayerVisibility.SetExclusiveVisibleLayer(-1);
+
+            foreach (LayerInfoPanelController controller in
+                     contentRect.GetComponentsInChildren<LayerInfoPanelController>(true))
+            {
+                controller.SetVisibility(
+                    controller.LogicalLayer == 0 || showAllLayers);
+            }
+        });
     }
 
     private static ScrollRect FindScrollRectByObjectName(string objectName)

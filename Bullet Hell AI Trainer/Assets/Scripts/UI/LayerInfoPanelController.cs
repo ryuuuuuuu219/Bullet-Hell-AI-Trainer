@@ -14,8 +14,11 @@ public sealed class LayerInfoPanelController : MonoBehaviour
     private StageSpawnManager stageSpawnManager;
     private TMP_Text playerNameText;
     private TMP_Text scoreText;
+    private Toggle visibilityToggle;
     private int logicalLayer;
     private float nextRefreshTime;
+
+    public int LogicalLayer => logicalLayer;
 
     public void Initialize(StageSpawnManager manager, int layer)
     {
@@ -25,7 +28,7 @@ public sealed class LayerInfoPanelController : MonoBehaviour
 
         ResolveTextFields();
 
-        Toggle visibilityToggle = GetComponentInChildren<Toggle>(true);
+        visibilityToggle = GetComponentInChildren<Toggle>(true);
         if (visibilityToggle != null)
         {
             visibilityToggle.onValueChanged.RemoveAllListeners();
@@ -38,6 +41,17 @@ public sealed class LayerInfoPanelController : MonoBehaviour
         }
 
         RefreshDisplay();
+    }
+
+    public void SetVisibility(bool visible)
+    {
+        if (visibilityToggle != null)
+        {
+            visibilityToggle.isOn = visible;
+            return;
+        }
+
+        LogicalLayerVisibility.SetVisible(logicalLayer, visible);
     }
 
     private void Update()

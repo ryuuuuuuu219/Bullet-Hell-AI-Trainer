@@ -95,8 +95,9 @@ public sealed class StageSpawnManager : MonoBehaviour
         PopulationSettingsData populationData = populationSetting.LoadData();
         bool hasManualRequest = populationData.pendingManualGenerationRequests > 0;
         bool shouldAdvanceAutomatically =
-            populationData.advanceWhenAllIndividualsAreHit &&
-            AreAllPlayersHit();
+            AreAllPlayersHit() &&
+            (Category == ChallengeCategory.Final ||
+             populationData.advanceWhenAllIndividualsAreHit);
 
         if (hasManualRequest || shouldAdvanceAutomatically)
         {
@@ -380,6 +381,14 @@ public sealed class StageSpawnManager : MonoBehaviour
             populationData);
         if (candidates.Count == 0)
         {
+            if (Category == ChallengeCategory.Final && AreAllPlayersHit())
+            {
+                Debug.Log(
+                    $"Restarting {Category} stage ID {StageId} " +
+                    "without advancing the generation.");
+                RestartStageAttempt(populationData, null);
+            }
+
             return;
         }
 
@@ -420,12 +429,21 @@ public sealed class StageSpawnManager : MonoBehaviour
             $"Advancing to generation {populationData.currentGeneration}. " +
             $"Saved layer: {savedCandidate?.LogicalLayer ?? -1}.");
 
+        RestartStageAttempt(populationData, nextGenomes);
+        StageView.RefreshGenerationLabel();
+    }
+
+    private void RestartStageAttempt(
+        PopulationSettingsData populationData,
+        IReadOnlyList<AiSaveData> genomes)
+    {
         bulletHellShooter.ClearEnemyAttacks();
         ClearPlayerBullets();
         SpawnBoss(GetSpawnedPlayerCount(populationData));
-        SpawnPlayerPopulation(populationData, nextGenomes);
+        SpawnPlayerPopulation(populationData, genomes);
         StartStagePattern();
-        StageView.RefreshGenerationLabel();
+        nextGenerationConditionCheckTime = Time.unscaledTime +
+            GenerationConditionCheckInterval;
     }
 
     private void CaptureTeacherNetwork()
