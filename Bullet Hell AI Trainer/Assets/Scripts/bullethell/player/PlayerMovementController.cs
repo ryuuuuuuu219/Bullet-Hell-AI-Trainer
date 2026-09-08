@@ -1,6 +1,11 @@
 using UnityEngine;
 using UnityEngine.InputSystem;
 
+public interface ITeacherTargetProvider
+{
+    bool TryGetTeacherTarget(out Vector2 targetMovement);
+}
+
 [DisallowMultipleComponent]
 [RequireComponent(typeof(Aidata))]
 public sealed class PlayerMovementController : MonoBehaviour
@@ -11,6 +16,7 @@ public sealed class PlayerMovementController : MonoBehaviour
     [SerializeField, Min(0f)] private float moveSpeed = 300f;
     [SerializeField] private bool teacherModeEnabled;
     [SerializeField] private bool teacherTrainingEnabled = true;
+    private MonoBehaviour scriptedTeacherTargetProvider;
 
     private Aidata aiData;
     private PlayerAgent playerAgent;
@@ -18,8 +24,12 @@ public sealed class PlayerMovementController : MonoBehaviour
     private Camera movementCamera;
 
     public bool IsManualControl { get; private set; }
-    public bool IsTeacherControlled =>
+    public bool IsManualTeacherControlled =>
         teacherModeEnabled && playerAgent != null && playerAgent.LogicalLayer == 0;
+    public bool HasScriptedTeacher =>
+        scriptedTeacherTargetProvider is ITeacherTargetProvider;
+    public bool IsTeacherControlled =>
+        IsManualTeacherControlled;
     public bool IsExcludedFromGeneticAlgorithm =>
         IsManualControl || IsTeacherControlled;
     public float MoveSpeed => moveSpeed;
@@ -39,11 +49,26 @@ public sealed class PlayerMovementController : MonoBehaviour
         teacherTrainingEnabled = enabled;
     }
 
+    public void SetScriptedTeacherTargetProvider(MonoBehaviour provider)
+    {
+        if (provider != null && !(provider is ITeacherTargetProvider))
+        {
+            Debug.LogError(
+                $"{provider.GetType().Name} must implement " +
+                $"{nameof(ITeacherTargetProvider)}.",
+                provider);
+            return;
+        }
+
+        scriptedTeacherTargetProvider = provider;
+    }
+
     private void Awake()
     {
         aiData = GetComponent<Aidata>();
         playerAgent = GetComponent<PlayerAgent>();
         body = GetComponent<Rigidbody2D>();
+        ResolveScriptedTeacherTargetProvider();
 
         if (body == null)
         {
@@ -55,9 +80,27 @@ public sealed class PlayerMovementController : MonoBehaviour
         body.interpolation = RigidbodyInterpolation2D.Interpolate;
     }
 
+    private void ResolveScriptedTeacherTargetProvider()
+    {
+        if (scriptedTeacherTargetProvider is ITeacherTargetProvider)
+        {
+            return;
+        }
+
+        MonoBehaviour[] components = GetComponents<MonoBehaviour>();
+        foreach (MonoBehaviour component in components)
+        {
+            if (component is ITeacherTargetProvider)
+            {
+                scriptedTeacherTargetProvider = component;
+                return;
+            }
+        }
+    }
+
     private void Start()
     {
-        if (IsManualControl || IsTeacherControlled)
+        if (IsManualControl || IsManualTeacherControlled)
         {
             WarpCursorToPlayerPosition();
         }
@@ -78,14 +121,35 @@ public sealed class PlayerMovementController : MonoBehaviour
         }
 
         Vector2 prediction = aiData.output();
-        bool useManualInput = IsManualControl || IsTeacherControlled;
-        Vector2 movementOutput = useManualInput
+        bool useManualInput = IsManualControl || IsManualTeacherControlled;
+        Vector2 manualMovement = useManualInput
             ? ReadManualMovement()
+            : Vector2.zero;
+        Vector2 scriptedTeacherTarget = Vector2.zero;
+        bool hasScriptedTeacherTarget =
+            teacherTrainingEnabled &&
+            ScriptedTeacherSettings.IsEnabled &&
+            !IsManualTeacherControlled &&
+            TryGetScriptedTeacherTarget(out scriptedTeacherTarget);
+
+        Vector2 movementOutput = useManualInput
+            ? manualMovement
             : prediction;
         movementOutput = Vector2.ClampMagnitude(movementOutput, 1f);
-        if (IsTeacherControlled && teacherTrainingEnabled)
+        if (teacherTrainingEnabled)
         {
-            aiData.RecordTeacherSample(movementOutput);
+            if (IsManualTeacherControlled)
+            {
+                aiData.RecordTeacherSample(
+                    manualMovement,
+                    TeacherTargetSource.ManualPointer);
+            }
+            else if (hasScriptedTeacherTarget)
+            {
+                aiData.RecordTeacherSample(
+                    scriptedTeacherTarget,
+                    TeacherTargetSource.ScriptedProvider);
+            }
         }
         Vector2 desiredVelocity = movementOutput * moveSpeed;
         Vector2 nextPosition = currentPosition +
@@ -93,6 +157,24 @@ public sealed class PlayerMovementController : MonoBehaviour
         Vector2 clampedNextPosition = ClampToCameraView(nextPosition);
         body.linearVelocity = (clampedNextPosition - currentPosition) /
             Time.fixedDeltaTime;
+    }
+
+    private bool TryGetScriptedTeacherTarget(out Vector2 targetMovement)
+    {
+        targetMovement = Vector2.zero;
+        if (!(scriptedTeacherTargetProvider is ITeacherTargetProvider provider))
+        {
+            return false;
+        }
+
+        if (!provider.TryGetTeacherTarget(out targetMovement))
+        {
+            targetMovement = Vector2.zero;
+            return false;
+        }
+
+        targetMovement = Vector2.ClampMagnitude(targetMovement, 1f);
+        return true;
     }
 
     private Vector2 ReadManualMovement()

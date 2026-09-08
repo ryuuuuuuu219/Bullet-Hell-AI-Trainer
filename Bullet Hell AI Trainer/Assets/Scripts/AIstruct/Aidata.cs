@@ -41,6 +41,13 @@ public sealed class TeacherSample
     public Vector2 targetMovement;
 }
 
+public enum TeacherTargetSource
+{
+    Unspecified,
+    ManualPointer,
+    ScriptedProvider,
+}
+
 public class Aidata : MonoBehaviour
 {
     public const int MovementOutputNodeCount = 2;
@@ -121,7 +128,9 @@ public class Aidata : MonoBehaviour
     [SerializeField] private float debugThreatTimeSignal = -1f;
     [SerializeField] private HistorySample debugCurrentSample;
     [SerializeField] private HistorySample debugPreviousSample;
-    [SerializeField] private Vector2 debugManualInput;
+    [FormerlySerializedAs("debugManualInput")]
+    [SerializeField] private Vector2 debugTeacherTarget;
+    [SerializeField] private TeacherTargetSource debugTeacherTargetSource;
     [SerializeField] private Vector2 debugPrediction;
     [SerializeField] private float debugTeacherLoss;
     [SerializeField] private int debugTeacherSampleCount;
@@ -551,8 +560,16 @@ public class Aidata : MonoBehaviour
 
     public void RecordTeacherSample(Vector2 targetMovement)
     {
+        RecordTeacherSample(targetMovement, TeacherTargetSource.Unspecified);
+    }
+
+    public void RecordTeacherSample(
+        Vector2 targetMovement,
+        TeacherTargetSource source)
+    {
         targetMovement = Vector2.ClampMagnitude(targetMovement, 1f);
-        debugManualInput = targetMovement;
+        debugTeacherTarget = targetMovement;
+        debugTeacherTargetSource = source;
 
         bool stationary = targetMovement.sqrMagnitude <= Mathf.Epsilon;
         float allowedTime = stationary
@@ -582,11 +599,14 @@ public class Aidata : MonoBehaviour
         }
 
         debugTeacherLoss = TrainOnSample(sample);
-        teacherSamplesSinceSave++;
-        if (teacherSamplesSinceSave >= TeacherSamplesPerSave)
+        if (source != TeacherTargetSource.ScriptedProvider)
         {
-            Save();
-            teacherSamplesSinceSave = 0;
+            teacherSamplesSinceSave++;
+            if (teacherSamplesSinceSave >= TeacherSamplesPerSave)
+            {
+                Save();
+                teacherSamplesSinceSave = 0;
+            }
         }
     }
 

@@ -3,7 +3,7 @@ using UnityEngine;
 
 public static class ProjectilePool
 {
-    private const float ViewportReleaseMargin = 0.1f;
+    private const float ViewportReleaseMargin = 0.2f;
 
     private static readonly Dictionary<GameObject, Stack<GameObject>> Pools =
         new Dictionary<GameObject, Stack<GameObject>>();

@@ -8,6 +8,8 @@ public sealed class StageSpawnManager : MonoBehaviour
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, -150f, 0f);
     private static readonly Vector3 BossSpawnPosition = new Vector3(0f, 150f, 0f);
 
+    public static Vector2 PlayerInitialPosition => PlayerSpawnPosition;
+
     [Header("Player population")]
     [SerializeField] private GameObject playerPrefab;
     [SerializeField] private GameObject playerBulletPrefab;
@@ -240,6 +242,16 @@ public sealed class StageSpawnManager : MonoBehaviour
         movement.SetManualControl(teacherControl);
         movement.SetTeacherMode(teacherControl);
         movement.SetTeacherTrainingEnabled(Category != ChallengeCategory.Final);
+        if (!teacherControl && Category != ChallengeCategory.Final && ScriptedTeacherSettings.IsEnabled)
+        {
+            ScriptedTeacher scriptedTeacher =
+                player.GetComponent<ScriptedTeacher>();
+            if (scriptedTeacher == null)
+            {
+                scriptedTeacher = player.AddComponent<ScriptedTeacher>();
+            }
+            movement.SetScriptedTeacherTargetProvider(scriptedTeacher);
+        }
 
         PlayerShooter playerShooter = player.GetComponent<PlayerShooter>();
         if (playerShooter == null)

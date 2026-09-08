@@ -1,5 +1,5 @@
 手動操作によるニューラルネットワーク教育方法
-確認日：2026-08-31
+確認日：2026-09-09
 
 
 ◇このメモの目的
@@ -84,6 +84,68 @@ FixedUpdateごとに次の順序で処理する。
 
 手を離した停止入力（0, 0）も正解として学習する。
 
+◇逆伝播用の正解XY入力経路
+
+逆伝播の正解XYは、次の2経路から入力できる。
+
+・手動教師：マウスカーソルへ向かう移動入力XY
+・スクリプト教師：ITeacherTargetProvider.TryGetTeacherTargetが返すXY
+
+どちらも同じRecordTeacherSampleへ入り、長さ1以内へ制限された後、
+そのFixedUpdateでNNが参照した85入力と組にして逆伝播へ使用される。
+
+ITeacherTargetProviderを実装したMonoBehaviourを自機へ追加すると、
+PlayerMovementControllerがAwake時に自動検出して常時有効にする。
+Settingシーンの入力スクロールビュー5項目目「補助用回避ベクトル指示器」で有効・無効を切り替える。
+既定はON。設定がまだ保存されていない場合もONとして扱う。
+
+実行中にProviderを差し替える必要がある場合だけ、
+PlayerMovementController.SetScriptedTeacherTargetProviderを使用する。
+
+スクリプト教師のXYは逆伝播の正解だけに使用する。
+自機の実移動には常にNN予測を使用し、スクリプト教師のXYを直接使用しない。
+スクリプト教師が付いたNN個体は専用教師個体とは扱わず、GA評価から除外しない。
+スクリプト教師サンプルでは50件ごとの共有保存を行わず、
+世代評価で選ばれたGA個体を従来の経路で保存する。
+
+既存の手動教師個体では手動入力を優先し、ScriptedTeacherを追加しない。
+ITeacherTargetProviderがfalseを返したFixedUpdateでは、
+スクリプト教師のサンプルを記録しない。
+
+
+◇スクリプト教師の初期実装
+
+専用のScripted Teacher個体は生成しない。
+通常課題で生成される各NN個体へScriptedTeacherを追加し、
+各個体自身の85入力に対する正解XYを逆伝播する。
+個体数と論理レイヤー割当は従来どおり。
+Settingシーンで「補助用回避ベクトル指示器」がONの場合だけ、
+通常課題の各NN個体へScriptedTeacherを追加する。
+OFFの場合はProviderが既に付いていてもスクリプト教師の正解XYを採取せず、
+NNの通常入力、NN出力による実移動、GA評価には影響を与えない。
+設定はPlayerPrefsの専用キーへ保存し、NN重みの世代保存とは分離する。
+Final課題にはScriptedTeacherを追加せず、既存AI評価とランキング経路を維持する。
+
+既定値
+
+・予測時間：2秒
+・候補方向：16方向と停止
+・候補時間：0秒、0.25秒、0.5秒、1秒
+・予測刻み：0.05秒
+・LOS角速度閾値：2deg/s未満
+・安全マージン：自機当たり判定半径
+・前回方向の維持率：0.3
+・画面端ペナルティ：なし
+
+候補目標座標をWorldToViewportPointで判定し、
+viewport XまたはYが0～1の範囲外なら、その候補は無効とする。
+画面端へクランプして評価対象へ戻すことはしない。
+
+脅威がない場合は、StageSpawnManagerの自機配置初期値までの
+ベクトルを正解XYとして返す。現在の初期値は(0, -150)。
+初期配置付近では1FixedUpdateの最大移動量を基準に減速し、
+目標座標を通り越しにくくする。
+
 
 ◇教師データの採取頻度
 
@@ -120,14 +182,19 @@ FixedUpdateごとに次の順序で処理する。
 ・Debug Threat Time Signal
 ・Debug Current Sample
 ・Debug Previous Sample
-・Debug Manual Input
+・Debug Teacher Target
+・Debug Teacher Target Source
 ・Debug Prediction
 ・Debug Teacher Loss
 ・Debug Teacher Sample Count
 
-Debug Manual Input
+Debug Teacher Target
 
-現在の人間操作。
+現在の逆伝播用正解XY。
+
+Debug Teacher Target Source
+
+正解XYの入力元。Manual Pointer、Scripted Provider、またはUnspecified。
 
 Debug Prediction
 
