@@ -739,6 +739,47 @@ public static class BulletHellStageAttackDefinitions
             maximumChildSpawnEvents: 1,
             splitProjectileStructures: d2TimedChildren);
 
+        const float d3PeriodSeconds = 6f;
+        const float d3AIntervalSeconds = 0.5f;
+        const int d3ABurstCount = 12;
+        BulletStructure d3VectorChild = Straight(200f, 1);
+        float[] d3AOffsets = new float[d3ABurstCount];
+        BulletStructure[] d3AStructures =
+            new BulletStructure[d3ABurstCount];
+        for (int index = 0; index < d3ABurstCount; index++)
+        {
+            float periodTime = index * d3AIntervalSeconds;
+            float wave = CalculateD3Wave(periodTime);
+            d3AOffsets[index] = wave * 15f;
+            d3AStructures[index] = new BulletStructure(
+                300f,
+                3,
+                BulletMotionType.ConstantTurn,
+                0f,
+                childSpawnFirstDelaySeconds: 0f,
+                splitProjectileCount: 1,
+                splitAimType: BulletSplitAimType.Forward,
+                childStructure: d3VectorChild,
+                angularAccelerationDegreesPerSecondSquared: wave * 75f,
+                angularAccelerationDurationSeconds: 30f,
+                childSpawnIntervalSeconds: 0.2f,
+                childFlightWarningEnabled: false);
+        }
+
+        const float d3BIntervalSeconds = 0.8f;
+        const int d3BBurstCount = 8;
+        float[] d3BOffsets = new float[d3BBurstCount];
+        int[] d3BProjectileCounts = new int[d3BBurstCount];
+        float[] d3BProjectileIntervals = new float[d3BBurstCount];
+        for (int index = 0; index < d3BBurstCount; index++)
+        {
+            float periodTime = index * d3BIntervalSeconds;
+            int projectileCount = Mathf.CeilToInt(periodTime / 3f) + 8;
+            d3BOffsets[index] = CalculateD3Wave(periodTime) * 15f;
+            d3BProjectileCounts[index] = projectileCount;
+            d3BProjectileIntervals[index] = 360f / projectileCount;
+        }
+
         return new[]
         {
             Stage(ChallengeCategory.Final, 0, "弾幕結界",
@@ -769,7 +810,35 @@ public static class BulletHellStageAttackDefinitions
                     {
                         90f, 130f, 170f, 210f, 170f, 130f, 90f,
                     }), 10f)),
+            Stage(ChallengeCategory.Final, 2, "多弾頭・光と波の境界",
+                "個体数1、教育モードの逆伝播停止、周期6秒\nT+0以降：自機狙い1way減衰曲率弾を0.5秒周期で発射。弾速300、偏差sin(T^1.1×180deg)×15deg、初期角速度0、角加速度sin(T^1.1×180deg)×75deg/s²を30秒\n第2段階は全第1段階弾から遅延0秒、0.2秒周期・無制限でベクトル基準0degの1way。親を残し、弾速200\nB：T+0以降0.8秒周期で全周Nway。N=ceil(T/3)+8、間隔360/N、弾速300、自機狙い＋同偏差\n線形加速度0、予告線なし、最大寿命30秒、最大脅威度3",
+                Pattern(Projectile(
+                    d3AStructures[0],
+                    d3PeriodSeconds,
+                    burstCount: d3ABurstCount,
+                    burstInterval: d3AIntervalSeconds,
+                    burstOffsets: d3AOffsets,
+                    burstStructures: d3AStructures,
+                    reaimDuringBurst: true), 0f),
+                Pattern(Projectile(
+                    300f,
+                    1,
+                    d3PeriodSeconds,
+                    8,
+                    45f,
+                    burstCount: d3BBurstCount,
+                    burstInterval: d3BIntervalSeconds,
+                    burstOffsets: d3BOffsets,
+                    reaimDuringBurst: true,
+                    burstProjectileCounts: d3BProjectileCounts,
+                    burstProjectileIntervals: d3BProjectileIntervals), 0f)),
         };
+    }
+
+    private static float CalculateD3Wave(float periodTimeSeconds)
+    {
+        return Mathf.Sin(
+            Mathf.Pow(periodTimeSeconds, 1.1f) * 180f * Mathf.Deg2Rad);
     }
 
     private static BulletHellStageDefinition Stage(

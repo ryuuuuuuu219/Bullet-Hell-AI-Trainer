@@ -36,7 +36,8 @@ public sealed class BulletStructure
         float[] splitAngleOffsetsDegrees = null,
         LaserStructure childLaserStructure = null,
         int maximumChildSpawnEvents = 0,
-        BulletStructure[] splitProjectileStructures = null)
+        BulletStructure[] splitProjectileStructures = null,
+        bool childFlightWarningEnabled = true)
     {
         Speed = UnityEngine.Mathf.Max(0f, speed);
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
@@ -77,6 +78,7 @@ public sealed class BulletStructure
             maximumChildSpawnEvents);
         SplitProjectileStructures = splitProjectileStructures ??
             System.Array.Empty<BulletStructure>();
+        ChildFlightWarningEnabled = childFlightWarningEnabled;
     }
 
     public float Speed { get; }
@@ -103,6 +105,7 @@ public sealed class BulletStructure
     public int MaximumChildSpawnEvents { get; }
     public System.Collections.Generic.IReadOnlyList<BulletStructure>
         SplitProjectileStructures { get; }
+    public bool ChildFlightWarningEnabled { get; }
     public bool HasSplit => SplitProjectileCount > 0 &&
                             (ChildStructure != null ||
                              SplitProjectileStructures.Count > 0 ||

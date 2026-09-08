@@ -450,6 +450,7 @@ public sealed class bullet : MonoBehaviour
                 logicalLayer,
                 target,
                 sourcePrefab,
+                Structure.ChildFlightWarningEnabled &&
                 !childStructure.HasSplit,
                 speedMultiplier);
             childObject.SetActive(true);
