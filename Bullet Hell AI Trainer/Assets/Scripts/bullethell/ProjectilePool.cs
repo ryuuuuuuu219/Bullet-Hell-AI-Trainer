@@ -10,6 +10,20 @@ public static class ProjectilePool
     private static Transform poolRoot;
     private static Camera mainCamera;
 
+    public static int StoredCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (Stack<GameObject> pool in Pools.Values)
+            {
+                count += pool.Count;
+            }
+
+            return count;
+        }
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetState()
     {

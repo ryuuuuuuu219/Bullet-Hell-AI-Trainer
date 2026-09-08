@@ -8,6 +8,9 @@ public static class LaserPool
         new Stack<LaserAttack>();
 
     private static Transform poolRoot;
+
+    public static int StoredCount => Pool.Count;
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetState()
     {

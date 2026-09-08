@@ -14,8 +14,29 @@ public sealed class BulletHellShooter : MonoBehaviour
     private readonly List<LaserAttack> activeLasers =
         new List<LaserAttack>();
     private readonly List<Coroutine> firingRoutines = new List<Coroutine>();
+    private GUIStyle poolCountStyle;
 
     public event Action<BulletHellShotDefinition> ShotFired;
+
+    private void OnGUI()
+    {
+        if (poolCountStyle == null)
+        {
+            poolCountStyle = new GUIStyle(GUI.skin.label)
+            {
+                alignment = TextAnchor.UpperCenter,
+                fontSize = 24,
+            };
+            poolCountStyle.normal.textColor = Color.black;
+        }
+
+        GUI.Label(
+            new Rect(0f, 10f, Screen.width, 60f),
+            $"\u5F3E\u30D7\u30FC\u30EB: {ProjectilePool.StoredCount}\n" +
+            $"\u30EC\u30FC\u30B6\u30FC\u30D7\u30FC\u30EB: {LaserPool.StoredCount}",
+            poolCountStyle);
+    }
+
 
     public void Configure(GameObject bulletPrefab)
     {

@@ -1,23 +1,8 @@
-1.要素抽出　一覧化　-終了
-2.ブレインストーミング　
-3.データ構造拡張
-4.下位3区分の数的バランス調整
-5.最終課題記述
+1.D区分の課題の充実
+2.E区分新設　D区分の順次実行の形式の予定
+3.オンラインランキング処理のE-1移行
 
-◇◇追加実装
 
-・曲率の減衰
-・複数回の拡散
-・・子弾生成スケジュール
-・・・childSpawnFirstDelaySeconds：最初の子弾生成までの秒数
-・・・childSpawnIntervalSeconds：+Infinityなら単発生成後に親弾消滅、それ以外なら指定秒ごとの周期生成で親弾維持
-・・・判定：isSingleSpawn = float.IsPositiveInfinity(childSpawnIntervalSeconds)、isPeriodicSpawn = !isSingleSpawn
-・・・NaNは第3状態に使わず、+Infinity（単発）として扱う
-・・拡散中の発射角度変化
-・・・弾自体のベクトル基準と対プレイヤーベクトル基準の選択
-・加減速
-
-・脅威度設定見直し
 
 ◇◇ステージ構成の移動先
 
