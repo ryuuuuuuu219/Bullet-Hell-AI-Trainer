@@ -17,6 +17,7 @@ public sealed class PopulationSettingsData
     public float mutationRate = 0.01f;
     public int eliteCount = 2;
     public float mutationStrength = 0.1f;
+    public float teacherLearningRate = 0.01f;
     public bool advanceWhenAllIndividualsAreHit = true;
     public int pendingManualGenerationRequests = 0;
 
@@ -63,6 +64,8 @@ public class populationSetting : MonoBehaviour
     public const int MinimumEliteCount = 1;
     public const int MaximumEliteCount = 2;
     public const float MaximumMutationStrength = 0.5f;
+    public const float MinimumTeacherLearningRate = 0.000001f;
+    public const float MaximumTeacherLearningRate = 0.1f;
 
     private const string PlayerPrefsKey = "BulletHellAITrainer.PopulationSettings.v1";
     private const string LegacyPopulationSizeKey = "PopulationSize";
@@ -74,6 +77,8 @@ public class populationSetting : MonoBehaviour
     [Range(0f, 1f)] public float mutationRate = 0.01f;
     [Range(MinimumEliteCount, MaximumEliteCount)] public int eliteCount = 2;
     [Range(0f, MaximumMutationStrength)] public float mutationStrength = 0.1f;
+    [Range(MinimumTeacherLearningRate, MaximumTeacherLearningRate)]
+    public float teacherLearningRate = 0.01f;
     public bool advanceWhenAllIndividualsAreHit = true;
     [Min(0)] public int pendingManualGenerationRequests;
 
@@ -149,6 +154,8 @@ public class populationSetting : MonoBehaviour
                     bool hasEliteCount = json.Contains("\"eliteCount\"");
                     bool hasMutationStrength =
                         json.Contains("\"mutationStrength\"");
+                    bool hasTeacherLearningRate =
+                        json.Contains("\"teacherLearningRate\"");
                     PopulationSettingsData loaded =
                         JsonUtility.FromJson<PopulationSettingsData>(json);
                     if (loaded != null)
@@ -162,6 +169,11 @@ public class populationSetting : MonoBehaviour
                         if (!hasMutationStrength)
                         {
                             data.mutationStrength = 0.1f;
+                        }
+
+                        if (!hasTeacherLearningRate)
+                        {
+                            data.teacherLearningRate = 0.01f;
                         }
                     }
                 }
@@ -210,6 +222,7 @@ public class populationSetting : MonoBehaviour
             mutationRate = mutationRate,
             eliteCount = eliteCount,
             mutationStrength = mutationStrength,
+            teacherLearningRate = teacherLearningRate,
             advanceWhenAllIndividualsAreHit = advanceWhenAllIndividualsAreHit,
             pendingManualGenerationRequests = pendingManualGenerationRequests,
             geneticSaveEvaluationAxis = geneticSaveEvaluationAxis,
@@ -228,6 +241,7 @@ public class populationSetting : MonoBehaviour
         mutationRate = data.mutationRate;
         eliteCount = data.eliteCount;
         mutationStrength = data.mutationStrength;
+        teacherLearningRate = data.teacherLearningRate;
         advanceWhenAllIndividualsAreHit = data.advanceWhenAllIndividualsAreHit;
         pendingManualGenerationRequests = data.pendingManualGenerationRequests;
         geneticSaveEvaluationAxis = data.geneticSaveEvaluationAxis;
@@ -254,6 +268,10 @@ public class populationSetting : MonoBehaviour
             mutationStrength,
             0f,
             MaximumMutationStrength);
+        teacherLearningRate = Mathf.Clamp(
+            teacherLearningRate,
+            MinimumTeacherLearningRate,
+            MaximumTeacherLearningRate);
         pendingManualGenerationRequests = Mathf.Max(0, pendingManualGenerationRequests);
         geneticSaveEvaluationAxis = NormalizeAxis(geneticSaveEvaluationAxis);
         damageWeight = Mathf.Clamp(damageWeight, 0f, 10f);
@@ -287,6 +305,10 @@ public class populationSetting : MonoBehaviour
             data.mutationStrength,
             0f,
             MaximumMutationStrength);
+        data.teacherLearningRate = Mathf.Clamp(
+            data.teacherLearningRate,
+            MinimumTeacherLearningRate,
+            MaximumTeacherLearningRate);
         data.pendingManualGenerationRequests = Mathf.Max(0, data.pendingManualGenerationRequests);
         data.geneticSaveEvaluationAxis = NormalizeAxis(data.geneticSaveEvaluationAxis);
         data.damageWeight = Mathf.Clamp(data.damageWeight, 0f, 10f);
@@ -314,6 +336,7 @@ public class populationSetting : MonoBehaviour
             mutationRate = legacy.mutationRate,
             eliteCount = 2,
             mutationStrength = 0.1f,
+            teacherLearningRate = 0.01f,
             advanceWhenAllIndividualsAreHit = legacy.advanceWhenAllIndividualsAreHit,
             pendingManualGenerationRequests = legacy.pendingManualGenerationRequests,
             geneticSaveEvaluationAxis = GeneticSaveEvaluationAxis.SurvivalTime,

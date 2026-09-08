@@ -124,6 +124,11 @@ public class Aidata : MonoBehaviour
     [SerializeField, Min(0.01f)] private float stationarySampleInterval = 0.5f;
     [SerializeField, Min(0.01f)] private float gradientClamp = 1f;
 
+    public void SetTeacherLearningRate(float value)
+    {
+        teacherLearningRate = Mathf.Max(0.000001f, value);
+    }
+
     [Header("NNデバッグ（実行時）")]
     [SerializeField] private float debugThreatTimeSignal = -1f;
     [SerializeField] private HistorySample debugCurrentSample;

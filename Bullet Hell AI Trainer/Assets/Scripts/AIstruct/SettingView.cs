@@ -6,6 +6,9 @@ using UnityEngine.UI;
 
 public static class SettingView
 {
+    private const float TeacherLearningRateSliderMinimum = 3f;
+    private const float TeacherLearningRateSliderMaximum = 18f;
+
     private static readonly string[] InputLabels =
     {
         "近接認識",
@@ -47,6 +50,7 @@ public static class SettingView
     public static float MutationRate { get; private set; } = 0.01f;
     public static int EliteCount { get; private set; } = 2;
     public static float MutationStrength { get; private set; } = 0.1f;
+    public static float TeacherLearningRate { get; private set; } = 0.01f;
     public static bool AdvanceWhenAllIndividualsAreHit { get; private set; } = true;
     public static int PendingManualGenerationRequests { get; private set; }
 
@@ -481,6 +485,21 @@ public static class SettingView
 
         CreateSettingItem(
             contentObject.transform,
+            "Teacher Learning Rate Item",
+            "逆伝播の学習率",
+            TeacherLearningRateSliderMinimum,
+            TeacherLearningRateSliderMaximum,
+            TeacherLearningRateToSliderValue(TeacherLearningRate),
+            false,
+            value =>
+            {
+                TeacherLearningRate = TeacherLearningRateFromSliderValue(value);
+            },
+            value => TeacherLearningRateFromSliderValue(value).ToString("0.000000"),
+            font);
+
+        CreateSettingItem(
+            contentObject.transform,
             "Generation Mode Item",
             "全滅時の世代更新",
             0f,
@@ -495,6 +514,27 @@ public static class SettingView
             font,
             preferredHeight: 62f);
 
+    }
+
+    private static float TeacherLearningRateFromSliderValue(float value)
+    {
+        float clampedValue = Mathf.Clamp(
+            value,
+            TeacherLearningRateSliderMinimum,
+            TeacherLearningRateSliderMaximum);
+        return Mathf.Pow(10f, -clampedValue / 3f);
+    }
+
+    private static float TeacherLearningRateToSliderValue(float learningRate)
+    {
+        float clampedRate = Mathf.Clamp(
+            learningRate,
+            populationSetting.MinimumTeacherLearningRate,
+            populationSetting.MaximumTeacherLearningRate);
+        return Mathf.Clamp(
+            -3f * Mathf.Log10(clampedRate),
+            TeacherLearningRateSliderMinimum,
+            TeacherLearningRateSliderMaximum);
     }
 
     private static ScrollRect FindScrollRect(string objectName)
@@ -648,6 +688,7 @@ public static class SettingView
         MutationRate = populationData.mutationRate;
         EliteCount = populationData.eliteCount;
         MutationStrength = populationData.mutationStrength;
+        TeacherLearningRate = populationData.teacherLearningRate;
         AdvanceWhenAllIndividualsAreHit = populationData.advanceWhenAllIndividualsAreHit;
         PendingManualGenerationRequests = populationData.pendingManualGenerationRequests;
         geneticSaveEvaluationAxis = populationData.geneticSaveEvaluationAxis;
@@ -688,6 +729,7 @@ public static class SettingView
         data.mutationRate = MutationRate;
         data.eliteCount = EliteCount;
         data.mutationStrength = MutationStrength;
+        data.teacherLearningRate = TeacherLearningRate;
         data.advanceWhenAllIndividualsAreHit = AdvanceWhenAllIndividualsAreHit;
         data.pendingManualGenerationRequests = PendingManualGenerationRequests;
         data.geneticSaveEvaluationAxis = geneticSaveEvaluationAxis;

@@ -3,7 +3,7 @@ using UnityEngine;
 
 public static class ProjectilePool
 {
-    private const float ViewportReleaseMargin = 0.2f;
+    private const float ReleaseDistanceMultiplier = 2f;
 
     private static readonly Dictionary<GameObject, Stack<GameObject>> Pools =
         new Dictionary<GameObject, Stack<GameObject>>();
@@ -147,11 +147,16 @@ public static class ProjectilePool
 
         Vector3 viewportPosition = camera.WorldToViewportPoint(
             instance.transform.position);
+        Vector2 viewportCenterOffset = new Vector2(
+            (viewportPosition.x - 0.5f) * camera.aspect,
+            viewportPosition.y - 0.5f);
+        float centerToCornerDistanceSqr =
+            0.25f * (camera.aspect * camera.aspect + 1f);
+        float releaseDistanceSqr =
+            centerToCornerDistanceSqr *
+            ReleaseDistanceMultiplier * ReleaseDistanceMultiplier;
         if (viewportPosition.z > 0f &&
-            viewportPosition.x >= -ViewportReleaseMargin &&
-            viewportPosition.x <= 1f + ViewportReleaseMargin &&
-            viewportPosition.y >= -ViewportReleaseMargin &&
-            viewportPosition.y <= 1f + ViewportReleaseMargin)
+            viewportCenterOffset.sqrMagnitude <= releaseDistanceSqr)
         {
             return false;
         }

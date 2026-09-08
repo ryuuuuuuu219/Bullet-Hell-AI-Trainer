@@ -279,6 +279,8 @@ public sealed class StageSpawnManager : MonoBehaviour
                     logicalLayer);
                 aiData.RandomizeNetwork(seed);
             }
+
+            aiData.SetTeacherLearningRate(populationData.teacherLearningRate);
         }
 
         PlayerEvaluationTracker tracker =
