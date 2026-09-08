@@ -7,6 +7,7 @@ public static class StageView
 {
     private const string ButtonObjectName = "Next Generation Button";
     private const string LayerInfoScrollViewObjectName = "Scroll View";
+    private const string PauseButtonObjectName = "Pause Button";
     private const string ViewModeButtonObjectName = "ViewMode Button";
 
     public static void Build()
@@ -17,13 +18,6 @@ public static class StageView
             return;
         }
 
-        Button existingButton = FindButtonByObjectName(ButtonObjectName);
-        if (existingButton != null)
-        {
-            RefreshGenerationLabel();
-            return;
-        }
-
         Button backButton = FindButton("back");
         if (backButton == null)
         {
@@ -31,14 +25,20 @@ public static class StageView
             return;
         }
 
-        Button nextGenerationButton = UnityEngine.Object.Instantiate(
-            backButton,
-            backButton.transform.parent,
-            false);
-        nextGenerationButton.gameObject.name = ButtonObjectName;
+        Time.timeScale = 1f;
+
+        Button nextGenerationButton = FindButtonByObjectName(ButtonObjectName);
+        if (nextGenerationButton == null)
+        {
+            nextGenerationButton = UnityEngine.Object.Instantiate(
+                backButton,
+                backButton.transform.parent,
+                false);
+            nextGenerationButton.gameObject.name = ButtonObjectName;
+        }
 
         RectTransform rect = nextGenerationButton.GetComponent<RectTransform>();
-        rect.anchoredPosition = new Vector2(-650f, 497f);
+        rect.anchoredPosition = new Vector2(-485f, 497f);
         rect.sizeDelta = new Vector2(240f, 40f);
 
         nextGenerationButton.onClick.RemoveAllListeners();
@@ -52,6 +52,7 @@ public static class StageView
 
         PopulationSettingsData savedData = populationSetting.LoadData();
         RefreshLabel(nextGenerationButton, savedData);
+        BuildPauseButton(backButton);
     }
 
     public static void RefreshGenerationLabel()
@@ -202,6 +203,7 @@ public static class StageView
         viewModeButton.onClick.RemoveAllListeners();
         viewModeButton.onClick.AddListener(() =>
         {
+            SetPaused(true);
             showAllLayers = !showAllLayers;
             LogicalLayerVisibility.SetExclusiveVisibleLayer(-1);
 
@@ -212,6 +214,51 @@ public static class StageView
                     controller.LogicalLayer == 0 || showAllLayers);
             }
         });
+    }
+
+    private static void BuildPauseButton(Button backButton)
+    {
+        Button pauseButton = FindButtonByObjectName(PauseButtonObjectName);
+        if (pauseButton == null)
+        {
+            pauseButton = UnityEngine.Object.Instantiate(
+                backButton,
+                backButton.transform.parent,
+                false);
+            pauseButton.gameObject.name = PauseButtonObjectName;
+        }
+
+        RectTransform pauseRect = pauseButton.GetComponent<RectTransform>();
+        pauseRect.anchoredPosition = new Vector2(-855f, 497f);
+        pauseRect.sizeDelta = new Vector2(160f, 30f);
+
+        RectTransform backRect = backButton.GetComponent<RectTransform>();
+        backRect.anchoredPosition = new Vector2(-690f, 497f);
+
+        pauseButton.onClick.RemoveAllListeners();
+        pauseButton.onClick.AddListener(() =>
+            SetPaused(Time.timeScale > 0f));
+        RefreshPauseLabel(pauseButton);
+    }
+
+    private static void SetPaused(bool paused)
+    {
+        Time.timeScale = paused ? 0f : 1f;
+
+        Button pauseButton = FindButtonByObjectName(PauseButtonObjectName);
+        if (pauseButton != null)
+        {
+            RefreshPauseLabel(pauseButton);
+        }
+    }
+
+    private static void RefreshPauseLabel(Button pauseButton)
+    {
+        TMP_Text label = pauseButton.GetComponentInChildren<TMP_Text>(true);
+        if (label != null)
+        {
+            label.text = Time.timeScale > 0f ? "pause" : "resume";
+        }
     }
 
     private static ScrollRect FindScrollRectByObjectName(string objectName)

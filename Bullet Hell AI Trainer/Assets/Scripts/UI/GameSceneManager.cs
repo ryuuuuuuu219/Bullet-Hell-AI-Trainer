@@ -44,6 +44,7 @@ public static class GameSceneManager
 
     public static void LoadStageSelect()
     {
+        Time.timeScale = 1f;
         SceneManager.LoadScene(StageSelectSceneName);
     }
 
