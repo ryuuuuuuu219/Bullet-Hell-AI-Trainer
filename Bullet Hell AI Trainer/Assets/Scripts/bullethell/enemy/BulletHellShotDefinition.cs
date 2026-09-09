@@ -810,7 +810,7 @@ public static class BulletHellStageAttackDefinitions
                     {
                         90f, 130f, 170f, 210f, 170f, 130f, 90f,
                     }), 10f)),
-            Stage(ChallengeCategory.Final, 2, "多弾頭・光と波の境界",
+            Stage(ChallengeCategory.Final, 2, "多弾頭曲率弾",
                 "個体数1、教育モードの逆伝播停止、周期6秒\nT+0以降：自機狙い1way減衰曲率弾を0.5秒周期で発射。弾速300、偏差sin(T^1.1×180deg)×15deg、初期角速度0、角加速度sin(T^1.1×180deg)×75deg/s²を30秒\n第2段階は全第1段階弾から遅延0秒、0.2秒周期・無制限でベクトル基準0degの1way。親を残し、弾速200\nB：T+0以降0.8秒周期で全周Nway。N=ceil(T/3)+8、間隔360/N、弾速300、自機狙い＋同偏差\n線形加速度0、予告線なし、最大寿命30秒、最大脅威度3",
                 Pattern(Projectile(
                     d3AStructures[0],
