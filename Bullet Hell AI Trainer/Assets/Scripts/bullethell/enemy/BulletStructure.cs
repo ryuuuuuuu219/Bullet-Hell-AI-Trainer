@@ -37,9 +37,13 @@ public sealed class BulletStructure
         LaserStructure childLaserStructure = null,
         int maximumChildSpawnEvents = 0,
         BulletStructure[] splitProjectileStructures = null,
-        bool childFlightWarningEnabled = true)
+        bool childFlightWarningEnabled = true,
+        float linearJerk = 0f,
+        float linearJerkDurationSeconds = 0f,
+        float cameraReleaseDistanceMultiplier =
+            ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
-        Speed = UnityEngine.Mathf.Max(0f, speed);
+        Speed = speed;
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
         MotionType = motionType;
         TurnRateDegreesPerSecond = turnRateDegreesPerSecond;
@@ -62,6 +66,10 @@ public sealed class BulletStructure
         LinearAccelerationDurationSeconds = UnityEngine.Mathf.Max(
             0f,
             linearAccelerationDurationSeconds);
+        LinearJerk = linearJerk;
+        LinearJerkDurationSeconds = UnityEngine.Mathf.Max(
+            0f,
+            linearJerkDurationSeconds);
         AngularAccelerationDegreesPerSecondSquared =
             angularAccelerationDegreesPerSecondSquared;
         AngularAccelerationDurationSeconds = UnityEngine.Mathf.Max(
@@ -79,6 +87,10 @@ public sealed class BulletStructure
         SplitProjectileStructures = splitProjectileStructures ??
             System.Array.Empty<BulletStructure>();
         ChildFlightWarningEnabled = childFlightWarningEnabled;
+        CameraReleaseDistanceMultiplier = float.IsNaN(
+            cameraReleaseDistanceMultiplier)
+            ? ProjectilePool.DefaultReleaseDistanceMultiplier
+            : UnityEngine.Mathf.Max(0f, cameraReleaseDistanceMultiplier);
     }
 
     public float Speed { get; }
@@ -96,6 +108,8 @@ public sealed class BulletStructure
     public float TotalTurnAngleDegrees { get; }
     public float LinearAcceleration { get; }
     public float LinearAccelerationDurationSeconds { get; }
+    public float LinearJerk { get; }
+    public float LinearJerkDurationSeconds { get; }
     public float AngularAccelerationDegreesPerSecondSquared { get; }
     public float AngularAccelerationDurationSeconds { get; }
     public float GuidanceCommandIntervalSeconds { get; }
@@ -106,6 +120,7 @@ public sealed class BulletStructure
     public System.Collections.Generic.IReadOnlyList<BulletStructure>
         SplitProjectileStructures { get; }
     public bool ChildFlightWarningEnabled { get; }
+    public float CameraReleaseDistanceMultiplier { get; }
     public bool HasSplit => SplitProjectileCount > 0 &&
                             (ChildStructure != null ||
                              SplitProjectileStructures.Count > 0 ||
@@ -131,8 +146,25 @@ public sealed class BulletStructure
             : ChildStructure;
     }
 
-    public static BulletStructure Straight(float speed, int threatLevel)
+    public static BulletStructure Straight(
+        float speed,
+        int threatLevel,
+        float linearAcceleration = 0f,
+        float linearAccelerationDurationSeconds = 0f,
+        float linearJerk = 0f,
+        float linearJerkDurationSeconds = 0f,
+        float cameraReleaseDistanceMultiplier =
+            ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
-        return new BulletStructure(speed, threatLevel);
+        return new BulletStructure(
+            speed,
+            threatLevel,
+            linearAcceleration: linearAcceleration,
+            linearAccelerationDurationSeconds:
+                linearAccelerationDurationSeconds,
+            linearJerk: linearJerk,
+            linearJerkDurationSeconds: linearJerkDurationSeconds,
+            cameraReleaseDistanceMultiplier:
+                cameraReleaseDistanceMultiplier);
     }
 }

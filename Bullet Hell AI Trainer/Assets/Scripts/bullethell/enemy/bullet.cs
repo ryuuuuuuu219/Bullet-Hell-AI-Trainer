@@ -26,6 +26,7 @@ public sealed class bullet : MonoBehaviour
     private float guidanceCommandElapsedSeconds;
     private float cachedGuidanceTurnRate;
     private float speedMultiplier = 1f;
+    private Vector2 motionDirection = Vector2.down;
     private int childSpawnEventCount;
     private LineRenderer flightWarningLine;
     private bool showFlightWarningLine;
@@ -58,7 +59,12 @@ public sealed class bullet : MonoBehaviour
             return;
         }
 
-        if (ProjectilePool.ReleaseIfOutsideCameraView(gameObject))
+        float releaseDistanceMultiplier = Structure != null
+            ? Structure.CameraReleaseDistanceMultiplier
+            : ProjectilePool.DefaultReleaseDistanceMultiplier;
+        if (ProjectilePool.ReleaseIfOutsideCameraView(
+                gameObject,
+                releaseDistanceMultiplier))
         {
             return;
         }
@@ -129,7 +135,8 @@ public sealed class bullet : MonoBehaviour
         Transform aimTarget,
         GameObject projectilePrefab,
         bool enableFlightWarningLine = false,
-        float projectileSpeedMultiplier = 1f)
+        float projectileSpeedMultiplier = 1f,
+        Vector2 launchDirection = default(Vector2))
     {
         bool refreshRegistration = isActiveAndEnabled &&
                                    logicalLayer != Mathf.Max(0, layer);
@@ -148,6 +155,21 @@ public sealed class bullet : MonoBehaviour
         target = aimTarget;
         sourcePrefab = projectilePrefab;
         speedMultiplier = Mathf.Max(0f, projectileSpeedMultiplier);
+        float initialSignedSpeed = Structure.Speed * speedMultiplier;
+        if (launchDirection.sqrMagnitude > Mathf.Epsilon)
+        {
+            motionDirection = launchDirection.normalized;
+        }
+        else if (movementVector.sqrMagnitude > Mathf.Epsilon)
+        {
+            motionDirection = initialSignedSpeed < 0f
+                ? -movementVector.normalized
+                : movementVector.normalized;
+        }
+        else
+        {
+            motionDirection = Vector2.down;
+        }
         releaseTime = Time.time + MaximumLifetimeSeconds;
         splitTime = Structure.HasSplit
             ? Time.time + Mathf.Max(
@@ -246,9 +268,9 @@ public sealed class bullet : MonoBehaviour
                 ApplyCurrentSpeed(currentSpeed);
                 break;
             case BulletMotionType.ConstantTurn:
-                body.linearVelocity = Rotate(
-                    body.linearVelocity,
-                    currentTurnRate * Time.fixedDeltaTime);
+                motionDirection = Rotate(
+                    motionDirection,
+                    currentTurnRate * Time.fixedDeltaTime).normalized;
                 ApplyCurrentSpeed(currentSpeed);
                 break;
             case BulletMotionType.Homing:
@@ -265,10 +287,14 @@ public sealed class bullet : MonoBehaviour
         float accelerationTime = Mathf.Min(
             motionElapsedSeconds,
             Structure.LinearAccelerationDurationSeconds);
-        return Mathf.Max(
-            0f,
-            (Structure.Speed + Structure.LinearAcceleration * accelerationTime) *
-            speedMultiplier);
+        float jerkTime = Mathf.Min(
+            accelerationTime,
+            Structure.LinearJerkDurationSeconds);
+        float jerkVelocityContribution = Structure.LinearJerk * jerkTime *
+            (accelerationTime - 0.5f * jerkTime);
+        return (Structure.Speed +
+                Structure.LinearAcceleration * accelerationTime +
+                jerkVelocityContribution) * speedMultiplier;
     }
 
     private float GetCurrentTurnRate()
@@ -283,35 +309,29 @@ public sealed class bullet : MonoBehaviour
 
     private void ApplyCurrentSpeed(float currentSpeed)
     {
-        if (body.linearVelocity.sqrMagnitude <= Mathf.Epsilon)
-        {
-            return;
-        }
-
-        body.linearVelocity = body.linearVelocity.normalized * currentSpeed;
+        body.linearVelocity = motionDirection * currentSpeed;
     }
 
     private void TurnTowardTarget(float maximumTurnRate, float currentSpeed)
     {
         Vector2 lineOfSight = GetLineOfSight();
         if (lineOfSight.sqrMagnitude <= Mathf.Epsilon ||
-            body.linearVelocity.sqrMagnitude <= Mathf.Epsilon)
+            motionDirection.sqrMagnitude <= Mathf.Epsilon)
         {
             return;
         }
 
         float currentAngle = Mathf.Atan2(
-            body.linearVelocity.y,
-            body.linearVelocity.x) * Mathf.Rad2Deg;
+            motionDirection.y,
+            motionDirection.x) * Mathf.Rad2Deg;
         float targetAngle = Mathf.Atan2(lineOfSight.y, lineOfSight.x) * Mathf.Rad2Deg;
         float requestedTurn = Mathf.Clamp(
             Mathf.DeltaAngle(currentAngle, targetAngle),
             -Mathf.Abs(maximumTurnRate) * Time.fixedDeltaTime,
             Mathf.Abs(maximumTurnRate) * Time.fixedDeltaTime);
         float appliedTurn = ApplyTurnAngleBudget(requestedTurn);
-        body.linearVelocity = Rotate(
-            body.linearVelocity,
-            appliedTurn).normalized * currentSpeed;
+        motionDirection = Rotate(motionDirection, appliedTurn).normalized;
+        ApplyCurrentSpeed(currentSpeed);
     }
 
     private void ApplyProportionalNavigation(
@@ -320,7 +340,7 @@ public sealed class bullet : MonoBehaviour
     {
         Vector2 lineOfSight = GetLineOfSight();
         if (lineOfSight.sqrMagnitude <= Mathf.Epsilon ||
-            body.linearVelocity.sqrMagnitude <= Mathf.Epsilon)
+            motionDirection.sqrMagnitude <= Mathf.Epsilon)
         {
             return;
         }
@@ -364,9 +384,8 @@ public sealed class bullet : MonoBehaviour
             Mathf.Abs(maximumTurnRate));
         float appliedTurn = ApplyTurnAngleBudget(
             commandedTurnRate * Time.fixedDeltaTime);
-        body.linearVelocity = Rotate(
-            body.linearVelocity,
-            appliedTurn).normalized * currentSpeed;
+        motionDirection = Rotate(motionDirection, appliedTurn).normalized;
+        ApplyCurrentSpeed(currentSpeed);
     }
 
     private float ApplyTurnAngleBudget(float requestedTurnDegrees)
@@ -452,7 +471,8 @@ public sealed class bullet : MonoBehaviour
                 sourcePrefab,
                 Structure.ChildFlightWarningEnabled &&
                 !childStructure.HasSplit,
-                speedMultiplier);
+                speedMultiplier,
+                direction);
             childObject.SetActive(true);
             childBody.position = spawnPosition;
             childBody.linearVelocity = childVelocity;

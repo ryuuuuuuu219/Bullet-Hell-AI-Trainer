@@ -3,7 +3,7 @@ using UnityEngine;
 
 public static class ProjectilePool
 {
-    private const float ReleaseDistanceMultiplier = 2f;
+    public const float DefaultReleaseDistanceMultiplier = 2f;
 
     private static readonly Dictionary<GameObject, Stack<GameObject>> Pools =
         new Dictionary<GameObject, Stack<GameObject>>();
@@ -146,7 +146,9 @@ public static class ProjectilePool
         return instance;
     }
 
-    public static bool ReleaseIfOutsideCameraView(GameObject instance)
+    public static bool ReleaseIfOutsideCameraView(
+        GameObject instance,
+        float releaseDistanceMultiplier = DefaultReleaseDistanceMultiplier)
     {
         if (instance == null)
         {
@@ -168,7 +170,7 @@ public static class ProjectilePool
             0.25f * (camera.aspect * camera.aspect + 1f);
         float releaseDistanceSqr =
             centerToCornerDistanceSqr *
-            ReleaseDistanceMultiplier * ReleaseDistanceMultiplier;
+            releaseDistanceMultiplier * releaseDistanceMultiplier;
         if (viewportPosition.z > 0f &&
             viewportCenterOffset.sqrMagnitude <= releaseDistanceSqr)
         {

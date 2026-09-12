@@ -977,13 +977,21 @@ public static class BulletHellStageAttackDefinitions
         float speed,
         int threat,
         float acceleration = 0f,
-        float accelerationDuration = 0f)
+        float accelerationDuration = 0f,
+        float jerk = 0f,
+        float jerkDuration = 0f,
+        float cameraReleaseDistanceMultiplier =
+            ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
         return new BulletStructure(
             speed,
             threat,
             linearAcceleration: acceleration,
-            linearAccelerationDurationSeconds: accelerationDuration);
+            linearAccelerationDurationSeconds: accelerationDuration,
+            linearJerk: jerk,
+            linearJerkDurationSeconds: jerkDuration,
+            cameraReleaseDistanceMultiplier:
+                cameraReleaseDistanceMultiplier);
     }
 
     private static BulletStructure Motion(
@@ -997,7 +1005,11 @@ public static class BulletHellStageAttackDefinitions
         float accelerationDuration = 0f,
         float angularAcceleration = 0f,
         float angularAccelerationDuration = 0f,
-        float guidanceCommandInterval = 0f)
+        float guidanceCommandInterval = 0f,
+        float jerk = 0f,
+        float jerkDuration = 0f,
+        float cameraReleaseDistanceMultiplier =
+            ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
         return new BulletStructure(
             speed,
@@ -1010,7 +1022,11 @@ public static class BulletHellStageAttackDefinitions
             linearAccelerationDurationSeconds: accelerationDuration,
             angularAccelerationDegreesPerSecondSquared: angularAcceleration,
             angularAccelerationDurationSeconds: angularAccelerationDuration,
-            guidanceCommandIntervalSeconds: guidanceCommandInterval);
+            guidanceCommandIntervalSeconds: guidanceCommandInterval,
+            linearJerk: jerk,
+            linearJerkDurationSeconds: jerkDuration,
+            cameraReleaseDistanceMultiplier:
+                cameraReleaseDistanceMultiplier);
     }
 
     private static BulletStructure Split(

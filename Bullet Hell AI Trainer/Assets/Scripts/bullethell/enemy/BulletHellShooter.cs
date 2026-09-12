@@ -420,7 +420,8 @@ public sealed class BulletHellShooter : MonoBehaviour
             aimTarget,
             enemyBulletPrefab,
             false,
-            speedMultiplier);
+            speedMultiplier,
+            direction);
         bulletObject.SetActive(true);
         body.position = position;
         body.linearVelocity = movementVector;
