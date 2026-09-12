@@ -13,6 +13,77 @@ public sealed class BulletManager : MonoBehaviour
     public static IReadOnlyList<bullet> ActiveBullets => ActiveBulletList;
     public static int ActiveBulletCount => ActiveBulletList.Count;
 
+    // Destination buffers belong to the observing AI and are reused between samples.
+    public static ProximityObservation Observe(
+        Vector2 position, Vector2 velocity, int logicalLayer,
+        IReadOnlyList<CircularSensor> sensors,
+        AttentionObservation[] attention, int[] circularCounts)
+    {
+        System.Array.Clear(attention, 0, attention.Length);
+        System.Array.Clear(circularCounts, 0, circularCounts.Length);
+        ProximityObservation nearest = default;
+        float nearestSquared = float.PositiveInfinity;
+        IReadOnlyList<bullet> bullets = logicalLayer >= 0
+            ? GetActiveBullets(logicalLayer) : ActiveBullets;
+        // Reverse traversal preserves the nearest-sensor's equal-distance tie rule.
+        for (int index = bullets.Count - 1; index >= 0; index--)
+        {
+            bullet candidate = bullets[index];
+            if (candidate == null || !candidate.isActiveAndEnabled) continue;
+            Vector3 worldPosition = candidate.transform.position;
+            Vector2 relative = (Vector2)worldPosition - position;
+            float squared = relative.sqrMagnitude;
+            float distance = Mathf.Sqrt(squared);
+            float threat = Mathf.Clamp01(candidate.ThreatLevel / 10f);
+            if (squared < nearestSquared)
+            {
+                nearestSquared = squared;
+                nearest = new ProximityObservation
+                {
+                    isValid = true,
+                    relativePosition = Vector2.ClampMagnitude(relative / ProximitySensor.DistanceReference, 1f),
+                    normalizedDistance = Mathf.Clamp01(distance / ProximitySensor.DistanceReference),
+                    approachDot = Vector2.Dot(candidate.Vector.normalized, -relative.normalized),
+                    normalizedThreat = threat,
+                };
+            }
+
+            Vector2 relativeVelocity = candidate.Vector - velocity;
+            float time = relativeVelocity.sqrMagnitude > Mathf.Epsilon
+                ? Mathf.Clamp(-Vector2.Dot(relative, relativeVelocity) /
+                    relativeVelocity.sqrMagnitude, 0f, AttentionSensor.PredictionTimeLimit)
+                : 0f;
+            float closest = (relative + relativeVelocity * time).magnitude;
+            AttentionObservation observation = new AttentionObservation
+            {
+                isValid = true,
+                relativePosition = Vector2.ClampMagnitude(relative / AttentionSensor.DistanceReference, 1f),
+                normalizedDistance = Mathf.Clamp01(distance / AttentionSensor.DistanceReference),
+                normalizedClosestDistance = Mathf.Clamp01(closest / AttentionSensor.DistanceReference),
+                normalizedClosestTime = Mathf.Clamp01(time / AttentionSensor.PredictionTimeLimit),
+                normalizedThreat = threat,
+                risk = threat * (1f - Mathf.Clamp01(closest / AttentionSensor.DistanceReference)) *
+                    (1f - Mathf.Clamp01(time / AttentionSensor.PredictionTimeLimit)),
+            };
+            // Keep only the best five; no candidate list or full sort.
+            int capacity = Mathf.Min(attention.Length, AttentionSensor.AttentionCapacity);
+            for (int slot = 0; slot < capacity; slot++)
+            {
+                if (attention[slot].isValid && attention[slot].risk >= observation.risk) continue;
+                for (int move = capacity - 1; move > slot; move--)
+                    attention[move] = attention[move - 1];
+                attention[slot] = observation;
+                break;
+            }
+            for (int sensorIndex = 0; sensorIndex < sensors.Count && sensorIndex < circularCounts.Length; sensorIndex++)
+            {
+                CircularSensor sensor = sensors[sensorIndex];
+                if (sensor != null && sensor.Contains(worldPosition)) circularCounts[sensorIndex]++;
+            }
+        }
+        return nearest;
+    }
+
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
     private static void ResetStaticState()
     {

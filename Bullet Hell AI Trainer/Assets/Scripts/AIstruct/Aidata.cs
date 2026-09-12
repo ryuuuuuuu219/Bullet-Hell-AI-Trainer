@@ -979,6 +979,16 @@ public class Aidata : MonoBehaviour
         return Mathf.Clamp(value, -limit, limit);
     }
 
+    private const float BulletObservationInterval = 0.1f;
+    private float nextBulletObservationTime = float.NegativeInfinity;
+    private int observedLogicalLayer = int.MinValue;
+    private ProximityObservation cachedProximity;
+
+    private void OnEnable()
+    {
+        nextBulletObservationTime = float.NegativeInfinity;
+    }
+
     private void BuildRuntimeInputs()
     {
         ResizePreserving(ref runtimeInputs, inputNodeCount);
@@ -991,6 +1001,14 @@ public class Aidata : MonoBehaviour
         Vector2 playerVelocity = TryGetComponent(out Rigidbody2D body)
             ? body.linearVelocity
             : Vector2.zero;
+
+        if (Time.fixedTime >= nextBulletObservationTime || observedLogicalLayer != logicalLayer)
+        {
+            cachedProximity = BulletManager.Observe(transform.position, playerVelocity,
+                logicalLayer, sensors, runtimeAttention, runtimeCircularCounts);
+            observedLogicalLayer = logicalLayer;
+            nextBulletObservationTime = Time.fixedTime + BulletObservationInterval;
+        }
 
         WriteProximityInputs(ref inputIndex, logicalLayer);
         WriteAttentionInputs(ref inputIndex, logicalLayer, playerVelocity);
@@ -1074,7 +1092,7 @@ public class Aidata : MonoBehaviour
         }
 
         ProximityObservation proximity = useProximityInput
-            ? ProximitySensor.Observe(worldPosition, logicalLayer)
+            ? cachedProximity
             : default;
         float proximityDistance = proximity.isValid
             ? proximity.normalizedDistance
@@ -1122,7 +1140,7 @@ public class Aidata : MonoBehaviour
     private void WriteProximityInputs(ref int inputIndex, int logicalLayer)
     {
         ProximityObservation observation = useProximityInput
-            ? ProximitySensor.Observe(transform.position, logicalLayer)
+            ? cachedProximity
             : default;
 
         WriteInput(ref inputIndex, observation.isValid ? 1f : 0f);
@@ -1138,18 +1156,9 @@ public class Aidata : MonoBehaviour
         int logicalLayer,
         Vector2 playerVelocity)
     {
-        Array.Clear(runtimeAttention, 0, runtimeAttention.Length);
-        if (useAttentionInput)
+        foreach (AttentionObservation cached in runtimeAttention)
         {
-            AttentionSensor.Select(
-                transform.position,
-                playerVelocity,
-                logicalLayer,
-                runtimeAttention);
-        }
-
-        foreach (AttentionObservation observation in runtimeAttention)
-        {
+            AttentionObservation observation = useAttentionInput ? cached : default;
             WriteInput(ref inputIndex, observation.isValid ? 1f : 0f);
             WriteInput(ref inputIndex, observation.relativePosition.x);
             WriteInput(ref inputIndex, observation.relativePosition.y);
@@ -1162,7 +1171,6 @@ public class Aidata : MonoBehaviour
 
     private void WriteCircularInputs(ref int inputIndex)
     {
-        Array.Clear(runtimeCircularCounts, 0, runtimeCircularCounts.Length);
         int detectedBulletCount = 0;
         float weightedDetectedBulletCount = 0f;
 
@@ -1174,13 +1182,12 @@ public class Aidata : MonoBehaviour
                 continue;
             }
 
-            int count = sensor.Sense();
             if (index >= runtimeCircularCounts.Length)
             {
                 continue;
             }
 
-            runtimeCircularCounts[index] = count;
+            int count = runtimeCircularCounts[index];
             detectedBulletCount += count;
             weightedDetectedBulletCount +=
                 count * Mathf.Max(0f, sensor.priority);

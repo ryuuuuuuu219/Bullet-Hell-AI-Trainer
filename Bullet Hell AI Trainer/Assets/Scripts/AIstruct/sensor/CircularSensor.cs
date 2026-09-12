@@ -121,6 +121,15 @@ public sealed class CircularSensor : MonoBehaviour
         return count;
     }
 
+    public bool Contains(Vector3 worldPosition)
+    {
+        Vector2 localPosition = transform.InverseTransformPoint(worldPosition);
+        float squared = localPosition.sqrMagnitude;
+        if (squared <= innerRadius * innerRadius || squared > radius * radius) return false;
+        float bulletAngle = Mathf.Atan2(localPosition.y, localPosition.x) * Mathf.Rad2Deg;
+        return Mathf.Abs(Mathf.DeltaAngle(centerAngle, bulletAngle)) <= angle * 0.5f;
+    }
+
     private void RemoveLegacyPhysicsComponents()
     {
         foreach (Collider2D sensorCollider in GetComponents<Collider2D>())
