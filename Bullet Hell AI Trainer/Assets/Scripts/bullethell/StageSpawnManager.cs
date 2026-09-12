@@ -33,13 +33,12 @@ public sealed class StageSpawnManager : MonoBehaviour
     private IReadOnlyList<float> activeThreatArrivalTimes = Array.Empty<float>();
     private float stageElapsedTime;
     private int nextThreatTimeIndex;
-    private bool finalChallengeScoreSubmittedForCurrentRun;
 
     public static float CurrentThreatTimeSignal { get; private set; } = -1f;
 
     public int StageId { get; private set; } = -1;
     public ChallengeCategory Category { get; private set; } =
-        ChallengeCategory.Basic;
+        ChallengeCategory.A;
 
     public event Action<BulletHellShotDefinition> SpawnRequested;
 
@@ -65,6 +64,16 @@ public sealed class StageSpawnManager : MonoBehaviour
         activePopulationData = populationData;
         LoadTeacherNetworkSnapshot();
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);
+        if (Category == ChallengeCategory.Ranking &&
+            ((teacherModeEnabled && teacherNetworkSnapshot == null) ||
+             (!teacherModeEnabled && initialGenomes.Count != 1)))
+        {
+            Debug.LogError(
+                "Challenge Ranking cannot start without exactly one saved " +
+                "trained network.");
+            return;
+        }
+
         int playerCount = GetSpawnedPlayerCount(populationData);
         SpawnBoss(playerCount);
         SpawnPlayerPopulation(populationData, initialGenomes);
@@ -85,8 +94,6 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
-        TrySubmitFinalChallengeScore();
-
         if (Time.unscaledTime < nextGenerationConditionCheckTime)
         {
             return;
@@ -94,12 +101,16 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         nextGenerationConditionCheckTime = Time.unscaledTime +
             GenerationConditionCheckInterval;
+        if (Category == ChallengeCategory.Ranking)
+        {
+            return;
+        }
+
         PopulationSettingsData populationData = populationSetting.LoadData();
         bool hasManualRequest = populationData.pendingManualGenerationRequests > 0;
         bool shouldAdvanceAutomatically =
             AreAllPlayersHit() &&
-            (Category == ChallengeCategory.Final ||
-             populationData.advanceWhenAllIndividualsAreHit);
+            populationData.advanceWhenAllIndividualsAreHit;
 
         if (hasManualRequest || shouldAdvanceAutomatically)
         {
@@ -130,7 +141,6 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void StartStagePattern()
     {
-        finalChallengeScoreSubmittedForCurrentRun = false;
         BulletHellStageDefinition stage =
             BulletHellStageAttackDefinitions.GetStage(Category, StageId);
         ResetThreatTimeSignal(stage);
@@ -145,33 +155,6 @@ public sealed class StageSpawnManager : MonoBehaviour
             stage,
             spawnedBoss?.transform,
             spawnedPlayers);
-    }
-
-    private void TrySubmitFinalChallengeScore()
-    {
-        if (finalChallengeScoreSubmittedForCurrentRun ||
-            Category != ChallengeCategory.Final ||
-            StageId != 0 ||
-            teacherModeEnabled)
-        {
-            return;
-        }
-
-        foreach (GameObject player in spawnedPlayers)
-        {
-            if (player == null ||
-                !player.TryGetComponent(out PlayerAgent playerAgent) ||
-                !playerAgent.IsHit ||
-                !player.TryGetComponent(out PlayerEvaluationTracker tracker))
-            {
-                continue;
-            }
-
-            finalChallengeScoreSubmittedForCurrentRun = true;
-            UnityroomFinalChallengeRanking.SubmitSurvivalTime(
-                tracker.SurvivalTime);
-            return;
-        }
     }
 
     private void ResetThreatTimeSignal(BulletHellStageDefinition stage)
@@ -241,8 +224,9 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         movement.SetManualControl(teacherControl);
         movement.SetTeacherMode(teacherControl);
-        movement.SetTeacherTrainingEnabled(Category != ChallengeCategory.Final);
-        if (!teacherControl && Category != ChallengeCategory.Final && ScriptedTeacherSettings.IsEnabled)
+        bool learningEnabled = Category != ChallengeCategory.Ranking;
+        movement.SetTeacherTrainingEnabled(learningEnabled);
+        if (!teacherControl && learningEnabled && ScriptedTeacherSettings.IsEnabled)
         {
             ScriptedTeacher scriptedTeacher =
                 player.GetComponent<ScriptedTeacher>();
@@ -264,6 +248,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         Aidata aiData = player.GetComponent<Aidata>();
         if (aiData != null)
         {
+            aiData.SetWeightUpdatesEnabled(learningEnabled);
             if (movement.IsTeacherControlled && teacherNetworkSnapshot != null)
             {
                 aiData.ApplySnapshot(teacherNetworkSnapshot);
@@ -302,7 +287,7 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private int GetGeneticPlayerCount(PopulationSettingsData populationData)
     {
-        return Category == ChallengeCategory.Final
+        return Category == ChallengeCategory.Ranking
             ? (teacherModeEnabled ? 0 : 1)
             : populationData.populationSize;
     }
@@ -346,12 +331,28 @@ public sealed class StageSpawnManager : MonoBehaviour
     private List<AiSaveData> BuildInitialPopulation(
         PopulationSettingsData populationData)
     {
+        AiSaveData savedGenome = Aidata.LoadData();
+        if (Category == ChallengeCategory.Ranking)
+        {
+            if (!Aidata.HasTrainableNetwork(savedGenome))
+            {
+                Debug.LogWarning(
+                    "Challenge Ranking requires a saved trained network. " +
+                    "No fallback network will be created.");
+                return new List<AiSaveData>();
+            }
+
+            return new List<AiSaveData>
+            {
+                Aidata.CloneData(savedGenome),
+            };
+        }
+
         if (populationData.currentGeneration <= 1)
         {
             return null;
         }
 
-        AiSaveData savedGenome = Aidata.LoadData();
         if (!Aidata.HasTrainableNetwork(savedGenome))
         {
             return null;
@@ -391,18 +392,17 @@ public sealed class StageSpawnManager : MonoBehaviour
         PopulationSettingsData populationData,
         bool consumeManualRequest)
     {
+        if (Category == ChallengeCategory.Ranking)
+        {
+            Debug.LogWarning(
+                "Generation updates are disabled in Challenge Ranking.");
+            return;
+        }
+
         List<GenerationCandidate> candidates = EvaluateCurrentGeneration(
             populationData);
         if (candidates.Count == 0)
         {
-            if (Category == ChallengeCategory.Final && AreAllPlayersHit())
-            {
-                Debug.Log(
-                    $"Restarting {Category} stage ID {StageId} " +
-                    "without advancing the generation.");
-                RestartStageAttempt(populationData, null);
-            }
-
             return;
         }
 

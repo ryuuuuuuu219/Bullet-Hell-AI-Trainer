@@ -337,14 +337,16 @@ public sealed class BulletHellStageDefinition
     {
         switch (category)
         {
-            case ChallengeCategory.Basic:
+            case ChallengeCategory.A:
                 return "A";
-            case ChallengeCategory.Applied:
+            case ChallengeCategory.B:
                 return "B";
-            case ChallengeCategory.Advanced:
+            case ChallengeCategory.C:
                 return "C";
-            case ChallengeCategory.Final:
+            case ChallengeCategory.D:
                 return "D";
+            case ChallengeCategory.Ranking:
+                return "Ranking";
             default:
                 return "?";
         }
@@ -368,19 +370,20 @@ public sealed class BulletHellStageDefinition
     }
 }
 
-public static class BulletHellStageAttackDefinitions
+public static partial class BulletHellStageAttackDefinitions
 {
     private const float LaserRange = float.PositiveInfinity;
-    // Final Challenge does not currently state the first spiral stage speed.
+    // Challenge D does not currently state the first spiral stage speed.
     // Keep the implementation fallback explicit so it can be replaced when
     // the memo gains a value.
-    private const float FinalBarrierSpiralSpeed = 150f;
+    private const float ChallengeDBarrierSpiralSpeed = 150f;
     private static readonly BulletHellStageDefinition[][] StageGroups =
     {
-        BuildBasicStages(),
-        BuildAppliedStages(),
-        BuildAdvancedStages(),
-        BuildFinalStages(),
+        BuildSynchronizedChallengeAStages(),
+        BuildSynchronizedChallengeBStages(),
+        BuildSynchronizedChallengeCStages(),
+        BuildChallengeDStages(),
+        Array.Empty<BulletHellStageDefinition>(),
     };
 
     public static IReadOnlyList<BulletHellStageDefinition> GetStages(
@@ -407,7 +410,7 @@ public static class BulletHellStageAttackDefinitions
             : null;
     }
 
-    private static BulletHellStageDefinition[] BuildBasicStages()
+    private static BulletHellStageDefinition[] BuildChallengeAStages()
     {
         BulletStructure[] changingConvergence = new BulletStructure[8];
         for (int index = 0; index < changingConvergence.Length; index++)
@@ -495,7 +498,7 @@ public static class BulletHellStageAttackDefinitions
         };
     }
 
-    private static BulletHellStageDefinition[] BuildAppliedStages()
+    private static BulletHellStageDefinition[] BuildChallengeBStages()
     {
         BuildXProjectiles(
             3,
@@ -508,39 +511,39 @@ public static class BulletHellStageAttackDefinitions
 
         return new[]
         {
-            Stage(ChallengeCategory.Applied, 0, "自機狙い奇数way・二重一斉発射",
+            Stage(ChallengeCategory.B, 0, "自機狙い奇数way・二重一斉発射",
                 "強化\n自機狙い9wayを2組同時発射\n第1群：間隔8deg、弾速250\n第2群：間隔12deg、弾速400\n発射周期：2秒\n脅威度：1",
                 Pattern(Projectile(250f, 1, 2f, 9, 8f)),
                 Pattern(Projectile(400f, 1, 2f, 9, 12f))),
-            Stage(ChallengeCategory.Applied, 1, "自機狙いway混成・三重一斉発射",
+            Stage(ChallengeCategory.B, 1, "自機狙いway混成・三重一斉発射",
                 "強化\n10way・9way・8wayを同時発射\n発射周期：2秒\n弾速：300・350・400\n脅威度：1",
                 Pattern(Projectile(300f, 1, 2f, 10, 8f)),
                 Pattern(Projectile(350f, 1, 2f, 9, 8f)),
                 Pattern(Projectile(400f, 1, 2f, 8, 8f))),
-            Stage(ChallengeCategory.Applied, 2, "X字収束弾",
+            Stage(ChallengeCategory.B, 2, "X字収束弾",
                 "組み合わせ\n9発×2列を全周囲3方向へ展開\n角度：±36deg、弾速：220～380\n発射周期：2秒\n脅威度：1",
                 Pattern(ProjectileExplicit(xStructures, xAngles, 2f))),
-            Stage(ChallengeCategory.Applied, 3, "減衰螺旋弾",
+            Stage(ChallengeCategory.B, 3, "減衰螺旋弾",
                 "強化\n自機狙いから全周囲16方向へ展開\n角速度150deg/s、角加速度-10deg/s²、15秒\n発射周期：2秒\n弾速：400\n脅威度：2",
                 Pattern(Projectile(Motion(400f, 2, BulletMotionType.ConstantTurn,
                     150f, angularAcceleration: -10f,
                     angularAccelerationDuration: 15f), 2f, 16, 22.5f))),
-            Stage(ChallengeCategory.Applied, 4, "0.5秒クロック比例航法誘導弾",
+            Stage(ChallengeCategory.B, 4, "0.5秒クロック比例航法誘導弾",
                 "強化\n全周囲6方向、N=3、誘導更新0.5秒\n角速度制限45deg/s、totalΔθ180deg\n発射周期：2秒\n弾速：200\n脅威度：3",
                 Pattern(Projectile(Motion(200f, 3,
                     BulletMotionType.ProportionalNavigation, 45f, 3f, 180f,
                     guidanceCommandInterval: 0.5f), 2f, 6, 60f))),
-            Stage(ChallengeCategory.Applied, 5, "比例航法誘導弾",
+            Stage(ChallengeCategory.B, 5, "比例航法誘導弾",
                 "強化\n全周囲6方向、継続N=3比例航法誘導\n角速度制限45deg/s、totalΔθ180deg\n発射周期：2秒\n弾速：400\n脅威度：3",
                 Pattern(Projectile(Motion(400f, 3,
                     BulletMotionType.ProportionalNavigation, 45f, 3f, 180f),
                     2f, 6, 60f))),
-            Stage(ChallengeCategory.Applied, 6, "連射",
+            Stage(ChallengeCategory.B, 6, "連射",
                 "組み合わせ\n自機狙い。射撃ごとに再照準\n8連射、間隔0.2秒、弾速200+30n\n発射周期：2秒\n脅威度：1",
                 Pattern(Projectile(Straight(200f, 1), 2f,
                     burstCount: 8, burstInterval: 0.2f,
                     burstStructures: burstSpeeds, reaimDuringBurst: true))),
-            Stage(ChallengeCategory.Applied, 7, "薙ぎ払い連射",
+            Stage(ChallengeCategory.B, 7, "薙ぎ払い連射",
                 "組み合わせ\n連射開始時の自機照準を固定\n8連射、間隔0.1秒、偏差角-18→+18\n弾速200+30n、発射周期2秒\n脅威度：1",
                 Pattern(Projectile(Straight(200f, 1), 2f,
                     burstCount: 8, burstInterval: 0.1f,
@@ -549,7 +552,7 @@ public static class BulletHellStageAttackDefinitions
         };
     }
 
-    private static BulletHellStageDefinition[] BuildAdvancedStages()
+    private static BulletHellStageDefinition[] BuildChallengeCStages()
     {
         BulletStructure c1Stage3 = Straight(220f, 1);
         BulletStructure c1Stage2 = Split(190f, 3, 1.6f, 3, 40f,
@@ -603,11 +606,11 @@ public static class BulletHellStageAttackDefinitions
 
         return new[]
         {
-            Stage(ChallengeCategory.Advanced, 0, "幾何的弾幕B",
+            Stage(ChallengeCategory.C, 0, "幾何的弾幕B",
                 "組み合わせ\n自機狙い2way→4way→3way\n間隔40→30→40deg、各段階1.6秒\n第3段階は0.5秒予告、弾速160→190→220\n発射周期5秒、脅威度4→3→1",
                 Pattern(Projectile(c1Stage1, 5f, 2, 40f,
                     randomize: true))),
-            Stage(ChallengeCategory.Advanced, 1, "奇数・偶数交互連射",
+            Stage(ChallengeCategory.C, 1, "奇数・偶数交互連射",
                 "組み合わせ\n9wayと10wayを0.8秒差で交互発射\n間隔20deg、各周期1.6秒、弾速300\n脅威度：1",
                 Pattern(Projectile(300f, 1, 1.6f, 9, 20f,
                     burstCount: 2, burstInterval: 0.8f,
@@ -615,42 +618,42 @@ public static class BulletHellStageAttackDefinitions
                     reaimDuringBurst: true,
                     burstProjectileCounts: new[] { 9, 10 },
                     burstProjectileIntervals: new[] { 20f, 20f }), 1.6f)),
-            Stage(ChallengeCategory.Advanced, 2, "X字加速弾",
+            Stage(ChallengeCategory.C, 2, "X字加速弾",
                 "組み合わせ\n全周囲6方向のX字弾幕\n弾速220～380、加速度20Unit/s²を10秒\n発射周期2秒、脅威度1",
                 Pattern(ProjectileExplicit(c3Structures, c3Angles, 2f, true))),
-            Stage(ChallengeCategory.Advanced, 3, "減速比例航法誘導弾",
+            Stage(ChallengeCategory.C, 3, "減速比例航法誘導弾",
                 "組み合わせ\nN=3、角速度制限45deg/s、totalΔθ180deg\n初速600、加速度-400Unit/s²を1秒\n発射周期3秒、脅威度3",
                 Pattern(Projectile(Motion(600f, 3,
                     BulletMotionType.ProportionalNavigation, 45f, 3f, 180f,
                     -400f, 1f), 3f, randomize: true))),
-            Stage(ChallengeCategory.Advanced, 4, "分裂比例航法誘導弾",
+            Stage(ChallengeCategory.C, 4, "分裂比例航法誘導弾",
                 "組み合わせ\nN=3誘導弾が1.8秒後に自機狙い3wayへ分裂\n間隔45deg、弾速300→250、発射周期3秒\n脅威度4→1",
                 Pattern(Projectile(c5, 3f, randomize: true))),
-            Stage(ChallengeCategory.Advanced, 5, "分裂連射弾",
+            Stage(ChallengeCategory.C, 5, "分裂連射弾",
                 "組み合わせ\n自機狙い4wayが親を残して0.2秒周期分裂\n子弾はベクトル基準±90deg、弾速300\n発射周期4秒、脅威度3→1",
                 Pattern(Projectile(c6, 4f, 4, 45f, randomize: true))),
-            Stage(ChallengeCategory.Advanced, 6, "2way挟み込みレーザー格子",
+            Stage(ChallengeCategory.C, 6, "2way挟み込みレーザー格子",
                 "組み合わせ\n自機狙い2wayが親を残して0.3秒周期で±90degレーザー\n弾速200、射程無限、幅3、予告1秒、照射2秒\n発射周期4秒、脅威度1・5",
                 Pattern(Projectile(c7, 4f, 2, 90f, randomize: true))),
-            Stage(ChallengeCategory.Advanced, 7, "多段階分裂弾",
+            Stage(ChallengeCategory.C, 7, "多段階分裂弾",
                 "組み合わせ\n2wayを4段階展開。各中間弾は親を残して1秒周期分裂\n間隔90deg、弾速130→100→60→100\n発射周期4秒、脅威度4→3→1",
                 Pattern(Projectile(c8Stage1, 4f, 2, 90f,
                     randomize: true))),
-            Stage(ChallengeCategory.Advanced, 8, "幾何的弾幕A",
+            Stage(ChallengeCategory.C, 8, "幾何的弾幕A",
                 "組み合わせ\n曲がる5wayを3段階展開後1way\n間隔72deg、角速度40deg/s、各段階1.6秒\n弾速160→190→220→220、発射周期8秒\n脅威度4→4→3→1",
                 Pattern(Projectile(c9Stage1, 8f, 5, 72f,
                     randomize: true))),
-            Stage(ChallengeCategory.Advanced, 9, "螺旋分裂連射弾",
+            Stage(ChallengeCategory.C, 9, "螺旋分裂連射弾",
                 "組み合わせ\n全周囲6方向の螺旋弾が1.5秒後から0.6秒周期分裂\n角速度180deg/s、角加速度-6deg/s²を30秒\n子弾角度+90/+70/+50/+30/+10、弾速400\n発射周期4秒、脅威度3→1",
                 Pattern(Projectile(c10, 4f, 6, 60f, randomize: true))),
         };
     }
 
-    private static BulletHellStageDefinition[] BuildFinalStages()
+    private static BulletHellStageDefinition[] BuildChallengeDStages()
     {
         BulletStructure acceleratedChild = Straight(150f, 1, 25f, 8f);
         BulletStructure barrierSpiral = new BulletStructure(
-            FinalBarrierSpiralSpeed,
+            ChallengeDBarrierSpiralSpeed,
             2,
             BulletMotionType.ConstantTurn,
             120f,
@@ -782,15 +785,15 @@ public static class BulletHellStageAttackDefinitions
 
         return new[]
         {
-            Stage(ChallengeCategory.Final, 0, "弾幕結界",
-                "個体数1、教育モードの逆伝播停止\n周期8-0.005n秒（6～8秒）\nT+2：8発×6way螺旋弾、角速度120deg/s\nT+4以降：各螺旋弾から3.2秒周期・無制限で±125/±150/±160degへ6発加速弾\nT+4：自機狙い4way拡散弾、弾速160\nT+4.8以降：弾速130の各拡散弾から0.3秒周期で±90degレーザー\nレーザー射程無限、幅4、最大脅威度7",
+            Stage(ChallengeCategory.D, 0, "弾幕結界",
+                "完成弾幕の個別学習\n周期8-0.005n秒（6～8秒）\nT+2：8発×6way螺旋弾、角速度120deg/s\nT+4以降：各螺旋弾から3.2秒周期・無制限で±125/±150/±160degへ6発加速弾\nT+4：自機狙い4way拡散弾、弾速160\nT+4.8以降：弾速130の各拡散弾から0.3秒周期で±90degレーザー\nレーザー射程無限、幅4、最大脅威度7",
                 Pattern(ProjectileRepeatedDirections(
                     barrierSpiral, 8f, 6, 60f, 8),
                     2f, 0.005f, 6f),
                 Pattern(Projectile(barrierSplit, 8f, 4, 90f),
                     4f, 0.005f, 6f)),
-            Stage(ChallengeCategory.Final, 1, "分裂・追尾複合弾幕",
-                "個体数1、教育モードの逆伝播停止、周期12秒\nT+0：自機狙い±135degの2way分裂弾。初速500、加速度-500Unit/s²を1秒\n第2段階は自機狙い6way（±12.5/±37.5/±62.5deg）を0.2秒周期で1秒間、初速250、加速度100Unit/s²を1秒\nT+0/3/6/9：純粋追尾3way（0/±25deg）、弾速300、角速度45deg/s、totalΔθ90deg\n第2段階はベクトル基準3way（-180/±165deg）を0.25秒周期で4秒間（16回）、初速300、加速度200Unit/s²を2秒\nT+5/10：自機狙い2wayを±45/65/85/105/85/65/45degの順に0.3秒周期で7連射。初速500、加速度-1000Unit/s²を0.5秒\n第2段階は自機狙い4way＋5wayを単発。4way初速500、5way初速350、加速度100Unit/s²を1秒",
+            Stage(ChallengeCategory.D, 1, "分裂・追尾複合弾幕",
+                "完成弾幕の個別学習、周期12秒\nT+0：自機狙い±135degの2way分裂弾。初速500、加速度-500Unit/s²を1秒\n第2段階は自機狙い6way（±12.5/±37.5/±62.5deg）を0.2秒周期で1秒間、初速250、加速度100Unit/s²を1秒\nT+0/3/6/9：純粋追尾3way（0/±25deg）、弾速300、角速度45deg/s、totalΔθ90deg\n第2段階はベクトル基準3way（-180/±165deg）を0.25秒周期で4秒間（16回）、初速300、加速度200Unit/s²を2秒\nT+5/10：自機狙い2wayを±45/65/85/105/85/65/45degの順に0.3秒周期で7連射。初速500、加速度-1000Unit/s²を0.5秒\n第2段階は自機狙い4way＋5wayを単発。4way初速500、5way初速350、加速度100Unit/s²を1秒",
                 Pattern(Projectile(d2OpeningSplit, 12f, 2,
                     projectileAngles: new[] { -135f, 135f }), 0f),
                 Pattern(Projectile(d2HomingSplit, 3f, 3, 25f), 0f),
@@ -810,8 +813,8 @@ public static class BulletHellStageAttackDefinitions
                     {
                         90f, 130f, 170f, 210f, 170f, 130f, 90f,
                     }), 10f)),
-            Stage(ChallengeCategory.Final, 2, "多弾頭曲率弾",
-                "個体数1、教育モードの逆伝播停止、周期6秒\nT+0以降：自機狙い1way減衰曲率弾を0.5秒周期で発射。弾速300、偏差sin(T^1.1×180deg)×15deg、初期角速度0、角加速度sin(T^1.1×180deg)×75deg/s²を30秒\n第2段階は全第1段階弾から遅延0秒、0.2秒周期・無制限でベクトル基準0degの1way。親を残し、弾速200\nB：T+0以降0.8秒周期で全周Nway。N=ceil(T/3)+8、間隔360/N、弾速300、自機狙い＋同偏差\n線形加速度0、予告線なし、最大寿命30秒、最大脅威度3",
+            Stage(ChallengeCategory.D, 2, "多弾頭・光と波の境界",
+                "完成弾幕の個別学習、周期6秒\nT+0以降：自機狙い1way減衰曲率弾を0.5秒周期で発射。弾速300、偏差sin(T^1.1×180deg)×15deg、初期角速度0、角加速度sin(T^1.1×180deg)×75deg/s²を30秒\n第2段階は全第1段階弾から遅延0秒、0.2秒周期・無制限でベクトル基準0degの1way。親を残し、弾速200\nB：T+0以降0.8秒周期で全周Nway。N=ceil(T/3)+8、間隔360/N、弾速300、自機狙い＋同偏差\n線形加速度0、予告線なし、最大寿命30秒、最大脅威度3",
                 Pattern(Projectile(
                     d3AStructures[0],
                     d3PeriodSeconds,
@@ -848,7 +851,7 @@ public static class BulletHellStageAttackDefinitions
         params BulletHellStagePattern[] patterns)
     {
         return new BulletHellStageDefinition(
-            ChallengeCategory.Basic,
+            ChallengeCategory.A,
             id,
             title,
             $"課題A-{id + 1}\n{title}\n{details}",
@@ -862,9 +865,10 @@ public static class BulletHellStageAttackDefinitions
         string details,
         params BulletHellStagePattern[] patterns)
     {
-        string prefix = category == ChallengeCategory.Applied ? "B" :
-            category == ChallengeCategory.Advanced ? "C" :
-            category == ChallengeCategory.Final ? "D" : "A";
+        string prefix = category == ChallengeCategory.B ? "B" :
+            category == ChallengeCategory.C ? "C" :
+            category == ChallengeCategory.D ? "D" :
+            category == ChallengeCategory.Ranking ? "Ranking" : "A";
         return new BulletHellStageDefinition(
             category,
             id,
@@ -1008,6 +1012,8 @@ public static class BulletHellStageAttackDefinitions
         float guidanceCommandInterval = 0f,
         float jerk = 0f,
         float jerkDuration = 0f,
+        float angularJerk = 0f,
+        float angularJerkDuration = 0f,
         float cameraReleaseDistanceMultiplier =
             ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
@@ -1025,6 +1031,8 @@ public static class BulletHellStageAttackDefinitions
             guidanceCommandIntervalSeconds: guidanceCommandInterval,
             linearJerk: jerk,
             linearJerkDurationSeconds: jerkDuration,
+            angularJerkDegreesPerSecondCubed: angularJerk,
+            angularJerkDurationSeconds: angularJerkDuration,
             cameraReleaseDistanceMultiplier:
                 cameraReleaseDistanceMultiplier);
     }
@@ -1044,7 +1052,8 @@ public static class BulletHellStageAttackDefinitions
         float[] childAngles = null,
         float angularAcceleration = 0f,
         float angularAccelerationDuration = 0f,
-        int maximumChildSpawnEvents = 0)
+        int maximumChildSpawnEvents = 0,
+        bool releaseParentAfterFinalChildSpawn = true)
     {
         return new BulletStructure(
             speed,
@@ -1062,7 +1071,9 @@ public static class BulletHellStageAttackDefinitions
             angularAccelerationDurationSeconds: angularAccelerationDuration,
             childSpawnIntervalSeconds: childSpawnInterval,
             splitAngleOffsetsDegrees: childAngles,
-            maximumChildSpawnEvents: maximumChildSpawnEvents);
+            maximumChildSpawnEvents: maximumChildSpawnEvents,
+            releaseParentAfterFinalChildSpawn:
+                releaseParentAfterFinalChildSpawn);
     }
 
     private static BulletStructure SplitLaser(

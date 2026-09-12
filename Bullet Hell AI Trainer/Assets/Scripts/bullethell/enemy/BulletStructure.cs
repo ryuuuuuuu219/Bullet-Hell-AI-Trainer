@@ -40,6 +40,9 @@ public sealed class BulletStructure
         bool childFlightWarningEnabled = true,
         float linearJerk = 0f,
         float linearJerkDurationSeconds = 0f,
+        float angularJerkDegreesPerSecondCubed = 0f,
+        float angularJerkDurationSeconds = 0f,
+        bool releaseParentAfterFinalChildSpawn = true,
         float cameraReleaseDistanceMultiplier =
             ProjectilePool.DefaultReleaseDistanceMultiplier)
     {
@@ -75,6 +78,13 @@ public sealed class BulletStructure
         AngularAccelerationDurationSeconds = UnityEngine.Mathf.Max(
             0f,
             angularAccelerationDurationSeconds);
+        AngularJerkDegreesPerSecondCubed =
+            angularJerkDegreesPerSecondCubed;
+        AngularJerkDurationSeconds = UnityEngine.Mathf.Max(
+            0f,
+            angularJerkDurationSeconds);
+        ReleaseParentAfterFinalChildSpawn =
+            releaseParentAfterFinalChildSpawn;
         GuidanceCommandIntervalSeconds = UnityEngine.Mathf.Max(
             0f,
             guidanceCommandIntervalSeconds);
@@ -112,6 +122,9 @@ public sealed class BulletStructure
     public float LinearJerkDurationSeconds { get; }
     public float AngularAccelerationDegreesPerSecondSquared { get; }
     public float AngularAccelerationDurationSeconds { get; }
+    public float AngularJerkDegreesPerSecondCubed { get; }
+    public float AngularJerkDurationSeconds { get; }
+    public bool ReleaseParentAfterFinalChildSpawn { get; }
     public float GuidanceCommandIntervalSeconds { get; }
     public System.Collections.Generic.IReadOnlyList<float>
         SplitAngleOffsetsDegrees { get; }

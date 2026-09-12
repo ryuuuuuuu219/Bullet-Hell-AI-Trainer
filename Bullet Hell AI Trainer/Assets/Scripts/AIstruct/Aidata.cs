@@ -76,6 +76,7 @@ public class Aidata : MonoBehaviour
     private const string PlayerPrefsKey = "BulletHellAITrainer.AiData.v1";
 
     private float[] runtimeInputs = Array.Empty<float>();
+    private bool weightUpdatesEnabled = true;
     private float[] runtimeLayer1 = Array.Empty<float>();
     private float[] runtimeLayer2 = Array.Empty<float>();
     private readonly AttentionObservation[] runtimeAttention =
@@ -149,8 +150,18 @@ public class Aidata : MonoBehaviour
 
     public void Save()
     {
+        if (!weightUpdatesEnabled)
+        {
+            return;
+        }
+
         EnsureNeuralNetworkShape();
         SaveData(CaptureData());
+    }
+
+    public void SetWeightUpdatesEnabled(bool enabled)
+    {
+        weightUpdatesEnabled = enabled;
     }
 
     public void Load()
@@ -572,6 +583,11 @@ public class Aidata : MonoBehaviour
         Vector2 targetMovement,
         TeacherTargetSource source)
     {
+        if (!weightUpdatesEnabled)
+        {
+            return;
+        }
+
         targetMovement = Vector2.ClampMagnitude(targetMovement, 1f);
         debugTeacherTarget = targetMovement;
         debugTeacherTargetSource = source;
@@ -617,7 +633,8 @@ public class Aidata : MonoBehaviour
 
     public float TrainOnSample(TeacherSample sample)
     {
-        if (sample == null ||
+        if (!weightUpdatesEnabled ||
+            sample == null ||
             sample.inputs == null ||
             sample.inputs.Length != NeuralInputNodeCount)
         {

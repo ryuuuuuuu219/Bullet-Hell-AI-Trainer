@@ -171,6 +171,7 @@ public sealed class BulletHellShooter : MonoBehaviour
                 definition.ReaimDuringBurst
                     ? null
                     : CaptureAimDirections(source, targets, definition);
+            float elapsedBurstDuration = 0f;
             for (int burstIndex = 0;
                  burstIndex < definition.BurstCount;
                  burstIndex++)
@@ -186,8 +187,15 @@ public sealed class BulletHellShooter : MonoBehaviour
                 if (burstIndex + 1 < definition.BurstCount &&
                     definition.BurstIntervalSeconds > 0f)
                 {
-                    yield return new WaitForSeconds(
-                        definition.BurstIntervalSeconds);
+                    float burstInterval = definition.BurstIntervalSeconds;
+                    if (definition.RandomizeSpeedAndInterval)
+                    {
+                        burstInterval *= UnityEngine.Random.Range(
+                            1f - AdvancedVariationRatio,
+                            1f + AdvancedVariationRatio);
+                    }
+                    elapsedBurstDuration += burstInterval;
+                    yield return new WaitForSeconds(burstInterval);
                 }
             }
 
@@ -196,8 +204,6 @@ public sealed class BulletHellShooter : MonoBehaviour
                 yield break;
             }
 
-            float burstDuration =
-                (definition.BurstCount - 1) * definition.BurstIntervalSeconds;
             float repeatInterval = pattern.GetRepeatInterval(cycleIndex);
             if (definition.RandomizeSpeedAndInterval)
             {
@@ -206,7 +212,7 @@ public sealed class BulletHellShooter : MonoBehaviour
                     1f + AdvancedVariationRatio);
             }
             float remainingInterval =
-                repeatInterval - burstDuration;
+                repeatInterval - elapsedBurstDuration;
             cycleIndex++;
             yield return remainingInterval > 0f
                 ? new WaitForSeconds(remainingInterval)

@@ -6,10 +6,11 @@ using UnityEngine.UI;
 
 public enum ChallengeCategory
 {
-    Basic,
-    Applied,
-    Advanced,
-    Final,
+    A,
+    B,
+    C,
+    D,
+    Ranking,
 }
 
 public static class GameSceneManager
@@ -21,7 +22,7 @@ public static class GameSceneManager
 
     public static int StageId { get; private set; }
     public static ChallengeCategory SelectedCategory { get; private set; } =
-        ChallengeCategory.Basic;
+        ChallengeCategory.A;
     public static bool TeacherModeEnabled { get; private set; }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.AfterSceneLoad)]
@@ -96,10 +97,11 @@ public static class GameSceneManager
         {
             case MainMenuSceneName:
                 BindButton("Setting", LoadSetting);
-                BindButton("Basic Challenge", LoadBasicChallengeSelect);
-                BindButton("Applied Challenge", LoadAppliedChallengeSelect);
-                BindButton("Advanced Challenge", LoadAdvancedChallengeSelect);
-                BindButton("Final Challenge", LoadFinalChallengeSelect);
+                BindButton("Challenge A", LoadChallengeASelect);
+                BindButton("Challenge B", LoadChallengeBSelect);
+                BindButton("Challenge C", LoadChallengeCSelect);
+                BindButton("Challenge D", LoadChallengeDSelect);
+                BindButton("Challenge Ranking", LoadChallengeRankingSelect);
                 break;
             case SettingSceneName:
                 BindButton("Back", LoadMainMenu);
@@ -204,23 +206,28 @@ public static class GameSceneManager
         return null;
     }
 
-    private static void LoadBasicChallengeSelect()
+    private static void LoadChallengeASelect()
     {
-        LoadStageSelect(ChallengeCategory.Basic);
+        LoadStageSelect(ChallengeCategory.A);
     }
 
-    private static void LoadAppliedChallengeSelect()
+    private static void LoadChallengeBSelect()
     {
-        LoadStageSelect(ChallengeCategory.Applied);
+        LoadStageSelect(ChallengeCategory.B);
     }
 
-    private static void LoadAdvancedChallengeSelect()
+    private static void LoadChallengeCSelect()
     {
-        LoadStageSelect(ChallengeCategory.Advanced);
+        LoadStageSelect(ChallengeCategory.C);
     }
 
-    private static void LoadFinalChallengeSelect()
+    private static void LoadChallengeDSelect()
     {
-        LoadStageSelect(ChallengeCategory.Final);
+        LoadStageSelect(ChallengeCategory.D);
+    }
+
+    private static void LoadChallengeRankingSelect()
+    {
+        LoadStageSelect(ChallengeCategory.Ranking);
     }
 }

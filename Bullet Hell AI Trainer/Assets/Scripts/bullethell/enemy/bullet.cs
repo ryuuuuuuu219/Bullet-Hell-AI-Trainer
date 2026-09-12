@@ -302,9 +302,16 @@ public sealed class bullet : MonoBehaviour
         float accelerationTime = Mathf.Min(
             motionElapsedSeconds,
             Structure.AngularAccelerationDurationSeconds);
+        float jerkTime = Mathf.Min(
+            accelerationTime,
+            Structure.AngularJerkDurationSeconds);
+        float jerkTurnRateContribution =
+            Structure.AngularJerkDegreesPerSecondCubed * jerkTime *
+            (accelerationTime - 0.5f * jerkTime);
         return Structure.TurnRateDegreesPerSecond +
                Structure.AngularAccelerationDegreesPerSecondSquared *
-               accelerationTime;
+               accelerationTime +
+               jerkTurnRateContribution;
     }
 
     private void ApplyCurrentSpeed(float currentSpeed)
@@ -489,7 +496,10 @@ public sealed class bullet : MonoBehaviour
                 childSpawnEventCount >= Structure.MaximumChildSpawnEvents)
             {
                 splitTime = float.PositiveInfinity;
-                ProjectilePool.Release(gameObject);
+                if (Structure.ReleaseParentAfterFinalChildSpawn)
+                {
+                    ProjectilePool.Release(gameObject);
+                }
                 return;
             }
 
@@ -498,7 +508,11 @@ public sealed class bullet : MonoBehaviour
             return;
         }
 
-        ProjectilePool.Release(gameObject);
+        splitTime = float.PositiveInfinity;
+        if (Structure.ReleaseParentAfterFinalChildSpawn)
+        {
+            ProjectilePool.Release(gameObject);
+        }
     }
 
     private void SpawnChildLaser(
