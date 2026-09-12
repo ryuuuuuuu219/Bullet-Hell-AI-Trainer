@@ -39,6 +39,7 @@ public sealed class TeacherSample
 {
     public float[] inputs = Array.Empty<float>();
     public Vector2 targetMovement;
+    public TeacherTargetSource source;
 }
 
 public enum TeacherTargetSource
@@ -70,10 +71,16 @@ public class Aidata : MonoBehaviour
     public const int FinalInputIndex = NeuralInputNodeCount - 1;
 
     private const float HistorySampleInterval = 0.2f;
-    private const int MaximumTeacherSampleCount = 2048;
-    private const int TeacherSamplesPerSave = 50;
+    private const int SharedTeacherSampleCapacity = 32;
+    private const float SharedTeacherSampleInterval = 0.5f;
+    private const float ManualTeacherSampleProbability = 0.5f;
+    private const float ScriptedTeacherSampleProbability = 0.1f;
 
     private const string PlayerPrefsKey = "BulletHellAITrainer.AiData.v1";
+
+    private static readonly TeacherSample[] sharedTeacherSamples =
+        new TeacherSample[SharedTeacherSampleCapacity];
+    private static int sharedTeacherSampleCount;
 
     private float[] runtimeInputs = Array.Empty<float>();
     private bool weightUpdatesEnabled = true;
@@ -85,16 +92,19 @@ public class Aidata : MonoBehaviour
         new LaserSensorObservation[WarningLineSensor.DetectionCapacity];
     private readonly int[] runtimeCircularCounts =
         new int[CircularSensorSlotCount];
-    private readonly List<TeacherSample> teacherSamples =
-        new List<TeacherSample>();
+    private float[] accumulatedInputToLayer1Gradients = Array.Empty<float>();
+    private float[] accumulatedLayer1BiasGradients = Array.Empty<float>();
+    private float[] accumulatedLayer1ToLayer2Gradients = Array.Empty<float>();
+    private float[] accumulatedLayer2BiasGradients = Array.Empty<float>();
+    private float[] accumulatedLayer2ToOutputGradients = Array.Empty<float>();
+    private float[] accumulatedOutputBiasGradients = Array.Empty<float>();
     private HistorySample currentSample;
     private HistorySample previousSample;
     private Vector2 lastHistoryWorldPosition;
     private float historySampleElapsedTime;
     private bool historyInitialized;
-    private float nextTeacherSampleTime;
-    private float nextStationaryTeacherSampleTime;
-    private int teacherSamplesSinceSave;
+    private float nextTeacherSampleRegistrationTime;
+    private float nextTeacherBatchTrainingTime;
 
     [Header("入力")]
     public bool useProximityInput = true;
@@ -121,8 +131,6 @@ public class Aidata : MonoBehaviour
 
     [Header("教師学習")]
     [SerializeField, Min(0.000001f)] private float teacherLearningRate = 0.01f;
-    [SerializeField, Min(0.01f)] private float teacherSampleInterval = 0.1f;
-    [SerializeField, Min(0.01f)] private float stationarySampleInterval = 0.5f;
     [SerializeField, Min(0.01f)] private float gradientClamp = 1f;
 
     public void SetTeacherLearningRate(float value)
@@ -592,11 +600,19 @@ public class Aidata : MonoBehaviour
         debugTeacherTarget = targetMovement;
         debugTeacherTargetSource = source;
 
-        bool stationary = targetMovement.sqrMagnitude <= Mathf.Epsilon;
-        float allowedTime = stationary
-            ? nextStationaryTeacherSampleTime
-            : nextTeacherSampleTime;
-        if (Time.time < allowedTime)
+        if (Time.time < nextTeacherSampleRegistrationTime)
+        {
+            return;
+        }
+
+        nextTeacherSampleRegistrationTime = Time.time +
+            SharedTeacherSampleInterval;
+        float registrationProbability = source == TeacherTargetSource.ManualPointer
+            ? ManualTeacherSampleProbability
+            : source == TeacherTargetSource.ScriptedProvider
+                ? ScriptedTeacherSampleProbability
+                : 1f;
+        if (UnityEngine.Random.value >= registrationProbability)
         {
             return;
         }
@@ -605,30 +621,74 @@ public class Aidata : MonoBehaviour
         {
             inputs = (float[])runtimeInputs.Clone(),
             targetMovement = targetMovement,
+            source = source,
         };
-        if (teacherSamples.Count >= MaximumTeacherSampleCount)
+        AddSharedTeacherSample(sample);
+        debugTeacherSampleCount = sharedTeacherSampleCount;
+    }
+
+    public void TrainOnSharedTeacherSamples()
+    {
+        if (!weightUpdatesEnabled || Time.time < nextTeacherBatchTrainingTime)
         {
-            teacherSamples.RemoveAt(0);
+            return;
         }
 
-        teacherSamples.Add(sample);
-        debugTeacherSampleCount = teacherSamples.Count;
-        nextTeacherSampleTime = Time.time + teacherSampleInterval;
-        if (stationary)
+        nextTeacherBatchTrainingTime = Time.time + SharedTeacherSampleInterval;
+        RemoveSharedTeacherSamplesWithWrongInputCount(inputNodeCount);
+        if (sharedTeacherSampleCount <= 0)
         {
-            nextStationaryTeacherSampleTime = Time.time + stationarySampleInterval;
+            debugTeacherSampleCount = 0;
+            return;
         }
 
-        debugTeacherLoss = TrainOnSample(sample);
-        if (source != TeacherTargetSource.ScriptedProvider)
+        debugTeacherLoss = TrainOnBatch(
+            sharedTeacherSamples,
+            sharedTeacherSampleCount);
+        debugTeacherSampleCount = sharedTeacherSampleCount;
+    }
+
+    private static void AddSharedTeacherSample(TeacherSample sample)
+    {
+        if (sample == null || sample.inputs == null)
         {
-            teacherSamplesSinceSave++;
-            if (teacherSamplesSinceSave >= TeacherSamplesPerSave)
+            return;
+        }
+
+        RemoveSharedTeacherSamplesWithWrongInputCount(sample.inputs.Length);
+        int index = sharedTeacherSampleCount < SharedTeacherSampleCapacity
+            ? sharedTeacherSampleCount++
+            : UnityEngine.Random.Range(0, SharedTeacherSampleCapacity);
+        sharedTeacherSamples[index] = sample;
+    }
+
+    private static void RemoveSharedTeacherSamplesWithWrongInputCount(
+        int expectedInputCount)
+    {
+        int writeIndex = 0;
+        for (int readIndex = 0;
+             readIndex < sharedTeacherSampleCount;
+             readIndex++)
+        {
+            TeacherSample sample = sharedTeacherSamples[readIndex];
+            if (sample == null ||
+                sample.inputs == null ||
+                sample.inputs.Length != expectedInputCount)
             {
-                Save();
-                teacherSamplesSinceSave = 0;
+                continue;
             }
+
+            sharedTeacherSamples[writeIndex++] = sample;
         }
+
+        for (int index = writeIndex;
+             index < sharedTeacherSampleCount;
+             index++)
+        {
+            sharedTeacherSamples[index] = null;
+        }
+
+        sharedTeacherSampleCount = writeIndex;
     }
 
     public float TrainOnSample(TeacherSample sample)
@@ -641,52 +701,88 @@ public class Aidata : MonoBehaviour
             return float.NaN;
         }
 
-        Vector2 prediction = Forward(sample.inputs);
-        Vector2 error = prediction - sample.targetMovement;
-        float loss = error.sqrMagnitude;
+        return TrainOnBatch(new[] { sample }, 1);
+    }
+
+    private float TrainOnBatch(TeacherSample[] samples, int sampleCount)
+    {
+        EnsureGradientAccumulatorShape();
+        ClearGradientAccumulators();
 
         float[] outputDelta = new float[MovementOutputNodeCount];
         float[] layer2Delta = new float[layer2NodeCount];
         float[] layer1Delta = new float[layer1NodeCount];
-        outputDelta[0] = SafeGradient(
-            2f * error.x * (1f - prediction.x * prediction.x));
-        outputDelta[1] = SafeGradient(
-            2f * error.y * (1f - prediction.y * prediction.y));
+        float totalLoss = 0f;
+        int validSampleCount = 0;
 
-        for (int source = 0; source < layer2NodeCount; source++)
+        for (int sampleIndex = 0; sampleIndex < sampleCount; sampleIndex++)
         {
-            float propagated = 0f;
-            for (int destination = 0;
-                 destination < MovementOutputNodeCount;
-                 destination++)
+            TeacherSample sample = samples[sampleIndex];
+            if (sample == null ||
+                sample.inputs == null ||
+                sample.inputs.Length != inputNodeCount)
             {
-                int weightIndex = source * MovementOutputNodeCount + destination;
-                propagated += outputDelta[destination] *
-                    layer2ToOutputWeights[weightIndex];
+                continue;
             }
 
-            layer2Delta[source] = SafeGradient(
-                propagated *
-                (1f - runtimeLayer2[source] * runtimeLayer2[source]));
-        }
+            Vector2 prediction = Forward(sample.inputs);
+            Vector2 error = prediction - sample.targetMovement;
+            totalLoss += error.sqrMagnitude;
+            validSampleCount++;
+            outputDelta[0] = SafeGradient(
+                2f * error.x * (1f - prediction.x * prediction.x));
+            outputDelta[1] = SafeGradient(
+                2f * error.y * (1f - prediction.y * prediction.y));
 
-        for (int source = 0; source < layer1NodeCount; source++)
-        {
-            float propagated = 0f;
-            for (int destination = 0; destination < layer2NodeCount; destination++)
+            for (int source = 0; source < layer2NodeCount; source++)
             {
-                int weightIndex = source * layer2NodeCount + destination;
-                propagated += layer2Delta[destination] *
-                    layer1ToLayer2Weights[weightIndex];
+                float propagated = 0f;
+                for (int destination = 0;
+                     destination < MovementOutputNodeCount;
+                     destination++)
+                {
+                    int weightIndex =
+                        source * MovementOutputNodeCount + destination;
+                    propagated += outputDelta[destination] *
+                        layer2ToOutputWeights[weightIndex];
+                }
+
+                layer2Delta[source] = SafeGradient(
+                    propagated *
+                    (1f - runtimeLayer2[source] * runtimeLayer2[source]));
             }
 
-            layer1Delta[source] = SafeGradient(
-                propagated *
-                (1f - runtimeLayer1[source] * runtimeLayer1[source]));
+            for (int source = 0; source < layer1NodeCount; source++)
+            {
+                float propagated = 0f;
+                for (int destination = 0;
+                     destination < layer2NodeCount;
+                     destination++)
+                {
+                    int weightIndex = source * layer2NodeCount + destination;
+                    propagated += layer2Delta[destination] *
+                        layer1ToLayer2Weights[weightIndex];
+                }
+
+                layer1Delta[source] = SafeGradient(
+                    propagated *
+                    (1f - runtimeLayer1[source] * runtimeLayer1[source]));
+            }
+
+            AccumulateGradients(
+                sample.inputs,
+                outputDelta,
+                layer2Delta,
+                layer1Delta);
         }
 
-        ApplyGradients(sample.inputs, outputDelta, layer2Delta, layer1Delta);
-        return loss;
+        if (validSampleCount <= 0)
+        {
+            return float.NaN;
+        }
+
+        ApplyAccumulatedGradients(validSampleCount);
+        return totalLoss / validSampleCount;
     }
 
     private Vector2 Forward(float[] inputs)
@@ -723,14 +819,12 @@ public class Aidata : MonoBehaviour
         return new Vector2(CalculateOutputNode(0), CalculateOutputNode(1));
     }
 
-    private void ApplyGradients(
+    private void AccumulateGradients(
         float[] inputs,
         float[] outputDelta,
         float[] layer2Delta,
         float[] layer1Delta)
     {
-        float learningRate = Mathf.Max(0.000001f, teacherLearningRate);
-
         for (int source = 0; source < layer2NodeCount; source++)
         {
             for (int destination = 0;
@@ -738,11 +832,8 @@ public class Aidata : MonoBehaviour
                  destination++)
             {
                 int index = source * MovementOutputNodeCount + destination;
-                ApplyParameterUpdate(
-                    layer2ToOutputWeights,
-                    index,
-                    runtimeLayer2[source] * outputDelta[destination],
-                    learningRate);
+                accumulatedLayer2ToOutputGradients[index] +=
+                    runtimeLayer2[source] * outputDelta[destination];
             }
         }
 
@@ -750,11 +841,8 @@ public class Aidata : MonoBehaviour
              destination < MovementOutputNodeCount;
              destination++)
         {
-            ApplyParameterUpdate(
-                outputBiases,
-                destination,
-                outputDelta[destination],
-                learningRate);
+            accumulatedOutputBiasGradients[destination] +=
+                outputDelta[destination];
         }
 
         for (int source = 0; source < layer1NodeCount; source++)
@@ -762,21 +850,15 @@ public class Aidata : MonoBehaviour
             for (int destination = 0; destination < layer2NodeCount; destination++)
             {
                 int index = source * layer2NodeCount + destination;
-                ApplyParameterUpdate(
-                    layer1ToLayer2Weights,
-                    index,
-                    runtimeLayer1[source] * layer2Delta[destination],
-                    learningRate);
+                accumulatedLayer1ToLayer2Gradients[index] +=
+                    runtimeLayer1[source] * layer2Delta[destination];
             }
         }
 
         for (int destination = 0; destination < layer2NodeCount; destination++)
         {
-            ApplyParameterUpdate(
-                layer2Biases,
-                destination,
-                layer2Delta[destination],
-                learningRate);
+            accumulatedLayer2BiasGradients[destination] +=
+                layer2Delta[destination];
         }
 
         for (int source = 0; source < inputNodeCount; source++)
@@ -784,20 +866,86 @@ public class Aidata : MonoBehaviour
             for (int destination = 0; destination < layer1NodeCount; destination++)
             {
                 int index = source * layer1NodeCount + destination;
-                ApplyParameterUpdate(
-                    inputToLayer1Weights,
-                    index,
-                    inputs[source] * layer1Delta[destination],
-                    learningRate);
+                accumulatedInputToLayer1Gradients[index] +=
+                    inputs[source] * layer1Delta[destination];
             }
         }
 
         for (int destination = 0; destination < layer1NodeCount; destination++)
         {
+            accumulatedLayer1BiasGradients[destination] +=
+                layer1Delta[destination];
+        }
+    }
+
+    private void EnsureGradientAccumulatorShape()
+    {
+        ResizePreserving(
+            ref accumulatedInputToLayer1Gradients,
+            inputToLayer1Weights.Length);
+        ResizePreserving(
+            ref accumulatedLayer1BiasGradients,
+            layer1Biases.Length);
+        ResizePreserving(
+            ref accumulatedLayer1ToLayer2Gradients,
+            layer1ToLayer2Weights.Length);
+        ResizePreserving(
+            ref accumulatedLayer2BiasGradients,
+            layer2Biases.Length);
+        ResizePreserving(
+            ref accumulatedLayer2ToOutputGradients,
+            layer2ToOutputWeights.Length);
+        ResizePreserving(
+            ref accumulatedOutputBiasGradients,
+            outputBiases.Length);
+    }
+
+    private void ClearGradientAccumulators()
+    {
+        Array.Clear(accumulatedInputToLayer1Gradients, 0,
+            accumulatedInputToLayer1Gradients.Length);
+        Array.Clear(accumulatedLayer1BiasGradients, 0,
+            accumulatedLayer1BiasGradients.Length);
+        Array.Clear(accumulatedLayer1ToLayer2Gradients, 0,
+            accumulatedLayer1ToLayer2Gradients.Length);
+        Array.Clear(accumulatedLayer2BiasGradients, 0,
+            accumulatedLayer2BiasGradients.Length);
+        Array.Clear(accumulatedLayer2ToOutputGradients, 0,
+            accumulatedLayer2ToOutputGradients.Length);
+        Array.Clear(accumulatedOutputBiasGradients, 0,
+            accumulatedOutputBiasGradients.Length);
+    }
+
+    private void ApplyAccumulatedGradients(int sampleCount)
+    {
+        float learningRate = Mathf.Max(0.000001f, teacherLearningRate);
+        float inverseSampleCount = 1f / sampleCount;
+        ApplyGradientArray(inputToLayer1Weights,
+            accumulatedInputToLayer1Gradients, inverseSampleCount, learningRate);
+        ApplyGradientArray(layer1Biases,
+            accumulatedLayer1BiasGradients, inverseSampleCount, learningRate);
+        ApplyGradientArray(layer1ToLayer2Weights,
+            accumulatedLayer1ToLayer2Gradients, inverseSampleCount, learningRate);
+        ApplyGradientArray(layer2Biases,
+            accumulatedLayer2BiasGradients, inverseSampleCount, learningRate);
+        ApplyGradientArray(layer2ToOutputWeights,
+            accumulatedLayer2ToOutputGradients, inverseSampleCount, learningRate);
+        ApplyGradientArray(outputBiases,
+            accumulatedOutputBiasGradients, inverseSampleCount, learningRate);
+    }
+
+    private void ApplyGradientArray(
+        float[] parameters,
+        float[] gradients,
+        float inverseSampleCount,
+        float learningRate)
+    {
+        for (int index = 0; index < parameters.Length; index++)
+        {
             ApplyParameterUpdate(
-                layer1Biases,
-                destination,
-                layer1Delta[destination],
+                parameters,
+                index,
+                gradients[index] * inverseSampleCount,
                 learningRate);
         }
     }
@@ -1117,10 +1265,6 @@ public class Aidata : MonoBehaviour
     private void OnValidate()
     {
         teacherLearningRate = Mathf.Max(0.000001f, teacherLearningRate);
-        teacherSampleInterval = Mathf.Max(0.01f, teacherSampleInterval);
-        stationarySampleInterval = Mathf.Max(
-            teacherSampleInterval,
-            stationarySampleInterval);
         gradientClamp = Mathf.Max(0.01f, gradientClamp);
         EnsureNeuralNetworkShape();
     }

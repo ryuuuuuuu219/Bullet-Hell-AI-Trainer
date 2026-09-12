@@ -415,8 +415,6 @@ public sealed class StageSpawnManager : MonoBehaviour
             Aidata.SaveData(Aidata.CloneData(savedCandidate.Genome));
         }
 
-        CaptureTeacherNetwork();
-
         int completedGeneration = populationData.currentGeneration;
         populationData.currentGeneration++;
         if (consumeManualRequest)
@@ -458,24 +456,6 @@ public sealed class StageSpawnManager : MonoBehaviour
         StartStagePattern();
         nextGenerationConditionCheckTime = Time.unscaledTime +
             GenerationConditionCheckInterval;
-    }
-
-    private void CaptureTeacherNetwork()
-    {
-        foreach (GameObject player in spawnedPlayers)
-        {
-            if (player == null ||
-                !player.TryGetComponent(out PlayerMovementController movement) ||
-                !movement.IsTeacherControlled ||
-                !player.TryGetComponent(out Aidata aiData))
-            {
-                continue;
-            }
-
-            teacherNetworkSnapshot = aiData.CreateSnapshot();
-            Aidata.SaveData(Aidata.CloneData(teacherNetworkSnapshot));
-            return;
-        }
     }
 
     public bool TryGetLayerInfo(

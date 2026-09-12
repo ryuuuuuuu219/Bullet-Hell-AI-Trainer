@@ -150,6 +150,11 @@ public sealed class PlayerMovementController : MonoBehaviour
                     scriptedTeacherTarget,
                     TeacherTargetSource.ScriptedProvider);
             }
+
+            if (!IsExcludedFromGeneticAlgorithm)
+            {
+                aiData.TrainOnSharedTeacherSamples();
+            }
         }
         Vector2 desiredVelocity = movementOutput * moveSpeed;
         Vector2 nextPosition = currentPosition +
