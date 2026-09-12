@@ -1,7 +1,6 @@
 using UnityEngine;
 
 [DisallowMultipleComponent]
-[RequireComponent(typeof(LineRenderer))]
 [RequireComponent(typeof(PlayerAgent))]
 public sealed class PlayerTriangleRenderer : MonoBehaviour
 {
@@ -11,6 +10,7 @@ public sealed class PlayerTriangleRenderer : MonoBehaviour
     [SerializeField] private Color hitColor = new Color(0.2f, 0.9f, 1f, 1f);
 
     private LineRenderer lineRenderer;
+    private SpriteRenderer spriteRenderer;
     private PlayerAgent playerAgent;
 
     private void Awake()
@@ -55,6 +55,17 @@ public sealed class PlayerTriangleRenderer : MonoBehaviour
 
     private void ApplyShape()
     {
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
+
+        if (spriteRenderer != null)
+        {
+            ApplyColor(color);
+            return;
+        }
+
         if (lineRenderer == null)
         {
             lineRenderer = GetComponent<LineRenderer>();
@@ -90,6 +101,17 @@ public sealed class PlayerTriangleRenderer : MonoBehaviour
 
     private void ApplyColor(Color targetColor)
     {
+        if (spriteRenderer == null)
+        {
+            spriteRenderer = GetComponent<SpriteRenderer>();
+        }
+
+        if (spriteRenderer != null)
+        {
+            spriteRenderer.color = targetColor;
+            return;
+        }
+
         if (lineRenderer == null)
         {
             lineRenderer = GetComponent<LineRenderer>();

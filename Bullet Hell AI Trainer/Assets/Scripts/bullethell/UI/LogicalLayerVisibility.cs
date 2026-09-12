@@ -39,6 +39,19 @@ public static class LogicalLayerVisibility
         RefreshSceneObjects(logicalLayer);
     }
 
+    public static void SetDefaultVisibleLayer(int logicalLayer, int layerCount)
+    {
+        exclusiveVisibleLayer = -1;
+        VisibilityByLayer.Clear();
+        int safeLayerCount = Mathf.Max(0, layerCount);
+        for (int index = 0; index < safeLayerCount; index++)
+        {
+            VisibilityByLayer[index] = index == logicalLayer;
+        }
+
+        RefreshAllSceneObjects();
+    }
+
     private static void RefreshAllSceneObjects()
     {
         foreach (PlayerAgent player in
@@ -112,10 +125,18 @@ public static class LogicalLayerVisibility
         }
 
         bool visible = IsVisible(logicalLayer);
+        SpriteRenderer spriteRenderer = target.GetComponent<SpriteRenderer>();
+        bool hasReplacedShapeRenderer =
+            target.GetComponent<RegularPolygonLineRenderer>() != null ||
+            target.GetComponent<PlayerTriangleRenderer>() != null;
         foreach (Renderer targetRenderer in
                  target.GetComponentsInChildren<Renderer>(true))
         {
-            targetRenderer.enabled = visible;
+            bool isReplacedShapeLine = spriteRenderer != null &&
+                targetRenderer.gameObject == target &&
+                targetRenderer is LineRenderer &&
+                hasReplacedShapeRenderer;
+            targetRenderer.enabled = visible && !isReplacedShapeLine;
         }
     }
 }

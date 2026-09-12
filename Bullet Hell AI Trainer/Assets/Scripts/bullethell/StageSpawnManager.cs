@@ -58,9 +58,10 @@ public sealed class StageSpawnManager : MonoBehaviour
         Category = category;
         StageId = stageId;
         teacherModeEnabled = shouldEnableTeacherMode;
-        LogicalLayerVisibility.SetExclusiveVisibleLayer(
-            teacherModeEnabled ? 0 : -1);
         PopulationSettingsData populationData = populationSetting.LoadData();
+        int layerCount = GetGeneticPlayerCount(populationData) +
+                         (teacherModeEnabled ? 1 : 0);
+        LogicalLayerVisibility.SetDefaultVisibleLayer(0, layerCount);
         activePopulationData = populationData;
         LoadTeacherNetworkSnapshot();
         List<AiSaveData> initialGenomes = BuildInitialPopulation(populationData);

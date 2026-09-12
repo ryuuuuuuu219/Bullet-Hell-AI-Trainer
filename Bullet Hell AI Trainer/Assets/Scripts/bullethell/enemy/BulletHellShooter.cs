@@ -7,7 +7,7 @@ using UnityEngine;
 public sealed class BulletHellShooter : MonoBehaviour
 {
     private const float AdvancedVariationRatio = 0.15f;
-    private const int EnemyBulletInitialPoolSize = 50000;
+    private const int EnemyBulletInitialPoolSize = 6000;
     private const int LaserInitialPoolSize = 1000;
     [SerializeField] private GameObject enemyBulletPrefab;
 
