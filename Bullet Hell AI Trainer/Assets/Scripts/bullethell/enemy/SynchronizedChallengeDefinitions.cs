@@ -59,91 +59,95 @@ public static partial class BulletHellStageAttackDefinitions
         return new[]
         {
             Stage(0, "自機狙い奇数way",
-                "単独認識\n自機狙い5way、12deg間隔\n発射周期2秒、初速400Unit/s、脅威度1",
+                "中央に自機を直接狙う弾を含む、奇数本の扇状弾を学習しよう。",
                 Pattern(Projectile(400f, 1, 2f, 5, 12f), 0f)),
             Stage(1, "自機狙い偶数way",
-                "単独認識\n自機狙い2way、12deg間隔\n発射周期2秒、初速400Unit/s、脅威度1",
+                "中央に自機を直接狙う弾を含まない、偶数本の扇状弾を学習しよう。\n" +
+                "自機を挟み込むように展開されるため、動かないのも有効。",
                 Pattern(Projectile(400f, 1, 2f, 2, 12f), 0f)),
             Stage(2, "全周",
-                "単独認識\n全周8way、45deg間隔\n発射周期0.5秒、初速100Unit/s、脅威度1",
+                "Bossを中心として全方向へ発射される8way弾を学習しよう。",
                 Pattern(Projectile(100f, 1, 0.5f, 8, 45f), 0f)),
             Stage(3, "編隊（矩形補正一字）",
-                "単独認識\n9発、sx=5・sy=0、基準初速300Unit/s\n発射周期2秒",
+                "同一点から横一列へ広がる一字編隊を学習しよう。",
                 Pattern(formationLine, 0f)),
             Stage(4, "編隊（矩形補正I字）",
-                "単独認識\n9発、sx=0・sy=5、基準初速300Unit/s\n発射周期2秒",
+                "同一点から進行方向の縦一列へ広がるI字編隊を学習しよう。",
                 Pattern(formationColumn, 0f)),
             Stage(5, "編隊（矩形補正V字）",
-                "単独認識\n9発、x=i・y=-abs(i)、sx=5・sy=5\n発射周期2秒",
+                "同一点からV字へ広がる編隊を学習しよう。",
                 Pattern(formationV, 0f)),
             Stage(6, "編隊（矩形補正逆V字）",
-                "単独認識\n9発、x=i・y=abs(i)、sx=5・sy=5\n発射周期2秒",
+                "同一点から逆V字へ広がる編隊を学習しよう。\n" +
+                "V字編隊とは違い、両翼が早く到達してくるのに注意。",
                 Pattern(formationInverseV, 0f)),
             Stage(7, "編隊（矩形補正X字）",
-                "単独認識\n9発×2枝、x=i・y=±i、sx=5・sy=5\n発射周期2秒",
+                "同一点から二つの枝に分かれ、X字へ広がる編隊を学習しよう。",
                 Pattern(formationX, 0f)),
             Stage(8, "角速度",
-                "単独認識\n自機狙い1way、角速度30deg/s\n発射周期2秒、初速400Unit/s、脅威度2",
+                "一定の角速度で軌道が曲がる弾を学習しよう。",
                 Pattern(Projectile(Motion(400f, 2,
                     BulletMotionType.ConstantTurn, 30f), 2f), 0f)),
             Stage(9, "減速",
-                "単独認識\n初速500Unit/s、加速度-250Unit/s²を1.5秒\n発射周期2秒、脅威度1",
+                "高速で接近したあとに減速する弾を学習しよう。",
                 Pattern(Projectile(Straight(500f, 1, -250f, 1.5f), 2f), 0f)),
             Stage(10, "加速",
-                "単独認識\n初速150Unit/s、加速度+200Unit/s²を2秒\n発射周期2秒、脅威度1",
+                "低速で発射されたあとに加速する弾を学習しよう。",
                 Pattern(Projectile(Straight(150f, 1, 200f, 2f), 2f), 0f)),
             Stage(11, "加速度分布",
-                "単独認識\n同一射線5発、初速50Unit/s\n加速度0/100/200/300/400Unit/s²を2秒",
+                "同じ方向へ発射された弾が、加速度の差によって前後へ分かれる動きを学習しよう。",
                 Pattern(Projectile(
                     accelerationDistribution[0],
                     2f,
                     5,
                     projectileStructures: accelerationDistribution), 0f)),
             Stage(12, "躍度",
-                "単独認識\n同一射線5発、初速-500Unit/s、初期加速度+300Unit/s²\n線形躍度-55Unit/s³を最大寿命まで、距離倍率5",
+                "加速度が時間変化し、進行方向を二度反転する直進弾を学習しよう。\n" +
+                "高速で戻ってくる動きに注意。",
                 Pattern(Projectile(
                     jerkProjectiles[0],
                     2f,
                     5,
                     projectileStructures: jerkProjectiles), 0f)),
             Stage(13, "純粋追尾誘導弾",
-                "単独認識\n純粋追尾3way、0/±25deg\n初速300Unit/s、角速度制限45deg/s、totalΔθ90deg",
+                "自機の現在位置を追い続ける誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(300f, 3,
                     BulletMotionType.Homing, 45f,
                     totalTurnAngle: 90f), 3f, 3, 25f), 0f)),
             Stage(14, "N=1比例航法誘導弾",
-                "単独認識\nN=1、角速度制限12deg/s、totalΔθ90deg\n発射周期2秒、初速500Unit/s",
+                "航法定数N=1の比例航法で自機を追う誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(500f, 3,
                     BulletMotionType.ProportionalNavigation,
                     12f, 1f, 90f), 2f), 0f)),
             Stage(15, "N=3比例航法誘導弾",
-                "単独認識\nN=3、角速度制限18deg/s、totalΔθ120deg\n発射周期2秒、初速400Unit/s",
+                "航法定数N=3の比例航法で自機を追う誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(400f, 3,
                     BulletMotionType.ProportionalNavigation,
                     18f, 3f, 120f), 2f), 0f)),
             Stage(16, "クロック式N=3比例航法誘導弾",
-                "単独認識\n自機狙い1way、誘導更新0.5秒\n初速200Unit/s、角速度制限45deg/s、totalΔθ180deg",
+                "一定周期で誘導方向を更新する、N=3の比例航法誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(200f, 3,
                     BulletMotionType.ProportionalNavigation,
                     45f, 3f, 180f,
                     guidanceCommandInterval: 0.5f), 2f), 0f)),
             Stage(17, "連射",
-                "単独認識\n連射開始時の自機照準を固定\n5連射、間隔0.2秒、発射周期2秒、初速400Unit/s",
+                "連射開始時の照準方向を固定した連続射撃を学習しよう。",
                 Pattern(Projectile(400f, 1, 2f,
                     burstCount: 5, burstInterval: 0.2f), 0f)),
             Stage(18, "予告線付き弾",
-                "単独認識\n予告0.5秒の高速直進弾\n発射周期2秒、初速800Unit/s、脅威度4",
+                "発射前に予告線が表示される高速弾を学習しよう。\n" +
+                "常に動いておく、という戦術も有効。",
                 Pattern(Projectile(800f, 4, 2f, warning: 0.5f), 0f)),
             Stage(19, "レーザー",
-                "単独認識\n自機狙いレーザー、予告1秒、照射2秒、射程無限\n発射周期2秒、脅威度5",
+                "予告後に一定時間照射されるレーザーを学習しよう。",
                 Pattern(BulletHellShotDefinition.CreateLaser(
                     new LaserStructure(5, 1f, 2f, LaserRange, 3f, 3f),
                     2f), 0f)),
             Stage(20, "分裂（自機狙い）",
-                "単独認識\n親弾初速200Unit/s、1.2秒後に自機狙い3wayへ1回分裂\n子弾8deg間隔、初速250Unit/s",
+                "親弾が途中で一度分裂し、分裂地点から自機を狙う子弾を学習しよう。",
                 Pattern(Projectile(playerAimedSplit, 2f), 0f)),
             Stage(21, "反復分裂（ベクトル基準）",
-                "単独認識\n親弾1way、初速300Unit/s\n0.2秒後から0.2秒周期でベクトル基準±90degへ反復分裂",
+                "親弾を残したまま、親弾の進行方向を基準とする子弾を繰り返し生成する弾を学習しよう。",
                 Pattern(Projectile(repeatedVectorSplit, 4f), 0f)),
         };
     }
@@ -217,81 +221,96 @@ public static partial class BulletHellStageAttackDefinitions
         {
             Stage(ChallengeCategory.B, 0,
                 "弾速分布(n>m)(n>1)(m>1)（5*2way）",
-                "組み合わせ\n自機狙い5way・2way、各5deg間隔\n5way初速400、2way初速300Unit/s、発射周期2秒",
+                "要素：自機狙い奇数way・自機狙い偶数way\n" +
+                "自機狙い5wayと2wayを、異なる弾速で同時に発射する弾幕を学習しよう。",
                 Pattern(Projectile(400f, 1, 2f, 5, 5f), 0f),
                 Pattern(Projectile(300f, 1, 2f, 2, 5f), 0f)),
             Stage(ChallengeCategory.B, 1, "弾速分布(2n+1)*m",
-                "組み合わせ\n自機狙い9wayを2群同時発射\n8deg・250Unit/sと12deg・400Unit/s、発射周期2秒",
+                "要素：自機狙い奇数way・弾速分布\n" +
+                "同じ奇数wayを、異なる弾速の複数群として同時に発射する弾幕を学習しよう。",
                 Pattern(Projectile(250f, 1, 2f, 9, 8f), 0f),
                 Pattern(Projectile(400f, 1, 2f, 9, 12f), 0f)),
             Stage(ChallengeCategory.B, 2, "角加速度",
-                "強化\n自機狙い1way、初期角速度0deg/s\n角加速度+5deg/s²を15秒、初速400Unit/s、発射周期2秒",
+                "要素：角加速度\n" +
+                "角加速度によって角速度が時間変化する弾を学習しよう。",
                 Pattern(Projectile(Motion(400f, 2,
                     BulletMotionType.ConstantTurn, 0f,
                     angularAcceleration: 5f,
                     angularAccelerationDuration: 15f), 2f), 0f)),
             Stage(ChallengeCategory.B, 3,
                 "特異点のある角加速度弾（減衰螺旋弾）",
-                "強化\n全周16way、22.5deg間隔\n初速400Unit/s、角速度150deg/s、角加速度-10deg/s²を15秒",
+                "要素：特異点のある角加速度弾\n" +
+                "曲率が変化しながら一点付近へ滞留する、減衰螺旋弾を学習しよう。",
                 Pattern(Projectile(Motion(400f, 2,
                     BulletMotionType.ConstantTurn, 150f,
                     angularAcceleration: -10f,
                     angularAccelerationDuration: 15f),
                     2f, 16, 22.5f), 0f)),
             Stage(ChallengeCategory.B, 4, "角躍度",
-                "強化\n対自機ベクトル基準、初期偏差-60deg、初速50Unit/s\n初期角速度+110deg/s、初期角加速度-120deg/s²、角躍度+60deg/s³を最大寿命まで",
+                "要素：特異点・角加速度・角躍度\n" +
+                "角躍度によって曲がり方が連続変化し、発射時の対自機ベクトルを3回横切る弾を学習しよう。",
                 Pattern(Projectile(angularJerk, 2f, aimOffset: -60f), 0f)),
             Stage(ChallengeCategory.B, 5, "偏差の周期変化",
-                "組み合わせ\n0.5秒周期、自機狙い+sin(T^1.1×180deg)×15deg\n初速300Unit/s、角加速度と反復分裂は除外",
+                "要素：時間に伴う偏差変化・周期変化\n" +
+                "時間に応じて、自機狙い方向からの偏差角が周期的に変化する射撃を学習しよう。",
                 Pattern(Projectile(300f, 1, 2f,
                     burstCount: periodicShotCount,
                     burstInterval: 0.5f,
                     burstOffsets: periodicOffsets,
                     reaimDuringBurst: true), 0f)),
             Stage(ChallengeCategory.B, 6, "速度変化連射",
-                "組み合わせ\n自機狙いを各射撃で更新、8連射、間隔0.2秒\n初速200+30n Unit/s、発射周期2秒",
+                "要素：連射・時間に伴う初速変化\n" +
+                "射撃ごとに自機を再照準し、後の弾ほど初速が増える連射を学習しよう。",
                 Pattern(Projectile(Straight(200f, 1), 2f,
                     burstCount: 8,
                     burstInterval: 0.2f,
                     burstStructures: speedBurst,
                     reaimDuringBurst: true), 0f)),
             Stage(ChallengeCategory.B, 7, "薙ぎ払い連射",
-                "組み合わせ\n連射開始時の照準を固定、偏差-18→+18deg\n8連射、間隔0.1秒、初速200+30n Unit/s、発射周期2秒",
+                "要素：連射・時間に伴う偏差変化\n" +
+                "固定した自機照準を基準に、偏差角を片側から反対側へ動かす連射を学習しよう。",
                 Pattern(Projectile(Straight(200f, 1), 2f,
                     burstCount: 8,
                     burstInterval: 0.1f,
                     burstOffsets: Sweep(8, -18f, 18f),
                     burstStructures: speedBurst), 0f)),
             Stage(ChallengeCategory.B, 8, "角加速度分布＋編隊",
-                "組み合わせ\n同一射線8発、初速400Unit/s\n角速度-30～+30deg/s、角加速度-4～+4deg/s²を15秒",
+                "要素：角加速度分布・編隊\n" +
+                "同じ射線から出た複数の弾が、角速度と角加速度の差によって別々の軌道へ広がる弾幕を学習しよう。",
                 Pattern(Projectile(
                     angularDistribution[0],
                     2f,
                     8,
                     projectileStructures: angularDistribution), 0f)),
             Stage(ChallengeCategory.B, 9, "奇数way誘導弾",
-                "組み合わせ\n純粋追尾3way、0/±25deg\n初速300Unit/s、角速度制限45deg/s、totalΔθ90deg、発射周期3秒",
+                "要素：自機狙い奇数way・純粋追尾誘導弾\n" +
+                "3wayで発射され、それぞれが自機を追い続ける純粋追尾弾を学習しよう。",
                 Pattern(Projectile(Motion(300f, 3,
                     BulletMotionType.Homing, 45f,
                     totalTurnAngle: 90f), 3f, 3, 25f), 0f)),
             Stage(ChallengeCategory.B, 10, "加速誘導弾",
-                "組み合わせ\nN=3比例航法、初速300Unit/s、加速度+400Unit/s²を1秒\n角速度制限45deg/s、totalΔθ180deg、発射周期3秒",
+                "要素：加速・N=3比例航法誘導弾\n" +
+                "加速しながら比例航法で自機を追う誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(300f, 3,
                     BulletMotionType.ProportionalNavigation,
                     45f, 3f, 180f, 400f, 1f), 3f), 0f)),
             Stage(ChallengeCategory.B, 11, "減速誘導弾",
-                "組み合わせ\nN=3比例航法、初速600Unit/s、加速度-400Unit/s²を1秒\n角速度制限45deg/s、totalΔθ180deg、発射周期3秒",
+                "要素：減速・N=3比例航法誘導弾\n" +
+                "減速しながら比例航法で自機を追う誘導弾を学習しよう。",
                 Pattern(Projectile(Motion(600f, 3,
                     BulletMotionType.ProportionalNavigation,
                     45f, 3f, 180f, -400f, 1f), 3f), 0f)),
             Stage(ChallengeCategory.B, 12, "炸裂誘導弾",
-                "組み合わせ\nN=3比例航法の親弾が1.5秒後に自機狙い3wayへ分裂\n親弾初速300、子弾初速250Unit/s、45deg間隔、発射周期3秒",
+                "要素：N=3比例航法誘導弾・分裂（自機狙い）\n" +
+                "比例航法で追尾する親弾が、途中で自機狙い3wayへ分裂する弾幕を学習しよう。",
                 Pattern(Projectile(explodingGuidance, 3f), 0f)),
             Stage(ChallengeCategory.B, 13, "分裂（ベクトル基準3way）",
-                "組み合わせ\n親弾初速450Unit/s、1秒後に進行ベクトル基準3wayへ1回分裂\n子弾45deg間隔、初速250Unit/s、親弾を残す",
+                "要素：分裂（ベクトル基準3way）\n" +
+                "親弾の進行方向を基準として3wayへ分裂する弾を学習しよう。",
                 Pattern(Projectile(forwardSplit, 2f), 0f)),
             Stage(ChallengeCategory.B, 14, "反復分裂（自機狙い3way）",
-                "組み合わせ\n親弾初速250Unit/s、1秒後から1秒周期で自機狙い3wayを反復生成\n子弾45deg間隔、初速250Unit/s、親弾を残す",
+                "要素：反復分裂（自機狙い3way）\n" +
+                "親弾を残し、分裂地点から自機を狙う3wayを繰り返し生成する弾を学習しよう。",
                 Pattern(Projectile(repeatedPlayerSplit, 2f), 0f)),
         };
     }
@@ -332,7 +351,8 @@ public static partial class BulletHellStageAttackDefinitions
         return new[]
         {
             Stage(ChallengeCategory.C, 0, "角速度分布",
-                "組み合わせ\n同一射線8発、角速度-30～+30deg/s、角加速度0\n初速400Unit/s、発射周期2秒、弾速・周期±15%",
+                "要素：角速度分布\n" +
+                "同じ射線から発射された8発が、それぞれ異なる角速度で左右へ曲がる弾幕を学習しよう。",
                 Pattern(Projectile(
                     angularVelocityDistribution[0],
                     2f,
@@ -340,7 +360,8 @@ public static partial class BulletHellStageAttackDefinitions
                     projectileStructures: angularVelocityDistribution,
                     randomize: true), 0f)),
             Stage(ChallengeCategory.C, 1, "角加速度分布",
-                "組み合わせ\n同一射線8発、初期角速度0、角加速度-4～+4deg/s²を15秒\n初速400Unit/s、発射周期2秒、弾速・周期±15%",
+                "要素：角加速度分布\n" +
+                "同じ射線から発射された8発が、それぞれ異なる角加速度で軌道を変える弾幕を学習しよう。",
                 Pattern(Projectile(
                     angularAccelerationDistribution[0],
                     2f,
@@ -348,13 +369,16 @@ public static partial class BulletHellStageAttackDefinitions
                     projectileStructures: angularAccelerationDistribution,
                     randomize: true), 0f)),
             Stage(ChallengeCategory.C, 2, "弾速分布(n+m)",
-                "組み合わせ\n自機狙い10way・9way、各8deg間隔\n初速300・350Unit/s、発射周期2秒、弾速・周期±15%",
+                "要素：自機狙い偶数way・自機狙い奇数way・弾速分布\n" +
+                "自機狙い10wayと9wayを、異なる弾速で同時に発射する弾幕を学習しよう。",
                 Pattern(twoGroupDistribution, 0f)),
             Stage(ChallengeCategory.C, 3, "弾速分布(n+m+l)",
-                "組み合わせ\n自機狙い10way・9way・8way、各8deg間隔\n初速300・350・400Unit/s、発射周期2秒、弾速・周期±15%",
+                "要素：自機狙い偶数way・自機狙い奇数way・弾速分布\n" +
+                "way数と弾速が異なる3群を、同時に発射する弾幕を学習しよう。",
                 Pattern(threeGroupDistribution, 0f)),
             Stage(ChallengeCategory.C, 4, "連射(2n+1)(2n)",
-                "組み合わせ\n9wayと10wayを0.8秒差で交互連射、各20deg間隔\n初速300Unit/s、周期1.6秒、弾速・周期±15%",
+                "要素：連射・自機狙い偶数way・自機狙い奇数way\n" +
+                "奇数wayと偶数wayを、時間差で交互に連射する弾幕を学習しよう。",
                 Pattern(Projectile(
                     300f,
                     1,
@@ -368,7 +392,8 @@ public static partial class BulletHellStageAttackDefinitions
                     burstProjectileCounts: new[] { 9, 10 },
                     burstProjectileIntervals: new[] { 20f, 20f }), 0f)),
             Stage(ChallengeCategory.C, 5, "動的Nway",
-                "組み合わせ\n0.8秒周期、N=ceil(T/3)+8、全周360/N deg間隔\n偏差sin(T^1.1×180deg)×15deg、初速300Unit/s、弾速・周期±15%",
+                "要素：動的Nway・自機狙い奇数way・自機狙い偶数way\n" +
+                "時間経過に伴って弾数が増え、発射方向も周期的に変化する全周Nway弾を学習しよう。",
                 Pattern(Projectile(
                     300f,
                     1,
@@ -382,6 +407,18 @@ public static partial class BulletHellStageAttackDefinitions
                     randomize: true,
                     burstProjectileCounts: dynamicCounts,
                     burstProjectileIntervals: dynamicIntervals), 0f)),
+        };
+    }
+
+    private static BulletHellStageDefinition[] BuildChallengeRankingStages()
+    {
+        return new[]
+        {
+            Stage(ChallengeCategory.Ranking, 0, "順次",
+                "要素：D-1 弾幕結界・D-2 分裂・追尾複合弾幕・" +
+                "D-3 多弾頭・特異点のある角加速度弾\n" +
+                "Challenge Dの完成弾幕へ、8秒ごとに定められた順序で挑戦しよう。\n" +
+                "Bossへ与えた累積ダメージ量でハイスコアを目指そう。"),
         };
     }
 

@@ -331,7 +331,8 @@ public sealed class BulletHellStageDefinition
     public float[] threatArrivalTimes { get; }
     public IReadOnlyList<float> ThreatArrivalTimes => threatArrivalTimes;
     public IReadOnlyList<BulletHellStagePattern> Patterns { get; }
-    public bool IsPlayable => Patterns.Count > 0;
+    public bool IsPlayable => Patterns.Count > 0 ||
+        (Category == ChallengeCategory.Ranking && Id == 0);
 
     private static string GetCategoryPrefix(ChallengeCategory category)
     {
@@ -346,7 +347,7 @@ public sealed class BulletHellStageDefinition
             case ChallengeCategory.D:
                 return "D";
             case ChallengeCategory.Ranking:
-                return "Ranking";
+                return "E";
             default:
                 return "?";
         }
@@ -383,7 +384,7 @@ public static partial class BulletHellStageAttackDefinitions
         BuildSynchronizedChallengeBStages(),
         BuildSynchronizedChallengeCStages(),
         BuildChallengeDStages(),
-        Array.Empty<BulletHellStageDefinition>(),
+        BuildChallengeRankingStages(),
     };
 
     public static IReadOnlyList<BulletHellStageDefinition> GetStages(
@@ -786,14 +787,21 @@ public static partial class BulletHellStageAttackDefinitions
         return new[]
         {
             Stage(ChallengeCategory.D, 0, "弾幕結界",
-                "完成弾幕の個別学習\n周期8-0.005n秒（6～8秒）\nT+2：8発×6way螺旋弾、角速度120deg/s\nT+4以降：各螺旋弾から3.2秒周期・無制限で±125/±150/±160degへ6発加速弾\nT+4：自機狙い4way拡散弾、弾速160\nT+4.8以降：弾速130の各拡散弾から0.3秒周期で±90degレーザー\nレーザー射程無限、幅4、最大脅威度7",
+                "要素：全周・角速度・反復分裂・自機狙い偶数way・" +
+                "反復分裂（ベクトル基準）・レーザー\n" +
+                "回転する全周弾からの反復分裂と、偶数way弾から分裂する" +
+                "レーザーを組み合わせた完成弾幕に対応しよう。",
                 Pattern(ProjectileRepeatedDirections(
                     barrierSpiral, 8f, 6, 60f, 8),
                     2f, 0.005f, 6f),
                 Pattern(Projectile(barrierSplit, 8f, 4, 90f),
                     4f, 0.005f, 6f)),
             Stage(ChallengeCategory.D, 1, "分裂・追尾複合弾幕",
-                "完成弾幕の個別学習、周期12秒\nT+0：自機狙い±135degの2way分裂弾。初速500、加速度-500Unit/s²を1秒\n第2段階は自機狙い6way（±12.5/±37.5/±62.5deg）を0.2秒周期で1秒間、初速250、加速度100Unit/s²を1秒\nT+0/3/6/9：純粋追尾3way（0/±25deg）、弾速300、角速度45deg/s、totalΔθ90deg\n第2段階はベクトル基準3way（-180/±165deg）を0.25秒周期で4秒間（16回）、初速300、加速度200Unit/s²を2秒\nT+5/10：自機狙い2wayを±45/65/85/105/85/65/45degの順に0.3秒周期で7連射。初速500、加速度-1000Unit/s²を0.5秒\n第2段階は自機狙い4way＋5wayを単発。4way初速500、5way初速350、加速度100Unit/s²を1秒",
+                "要素：自機狙い偶数way・反復分裂（自機狙い）・連射・" +
+                "自機狙い奇数way・純粋追尾誘導弾・" +
+                "反復分裂（ベクトル基準）\n" +
+                "減速する親弾からの自機狙い反復分裂、追尾弾からの反復分裂、" +
+                "連射後の多way分裂を組み合わせた完成弾幕に対応しよう。",
                 Pattern(Projectile(d2OpeningSplit, 12f, 2,
                     projectileAngles: new[] { -135f, 135f }), 0f),
                 Pattern(Projectile(d2HomingSplit, 3f, 3, 25f), 0f),
@@ -813,8 +821,13 @@ public static partial class BulletHellStageAttackDefinitions
                     {
                         90f, 130f, 170f, 210f, 170f, 130f, 90f,
                     }), 10f)),
-            Stage(ChallengeCategory.D, 2, "多弾頭・光と波の境界",
-                "完成弾幕の個別学習、周期6秒\nT+0以降：自機狙い1way減衰曲率弾を0.5秒周期で発射。弾速300、偏差sin(T^1.1×180deg)×15deg、初期角速度0、角加速度sin(T^1.1×180deg)×75deg/s²を30秒\n第2段階は全第1段階弾から遅延0秒、0.2秒周期・無制限でベクトル基準0degの1way。親を残し、弾速200\nB：T+0以降0.8秒周期で全周Nway。N=ceil(T/3)+8、間隔360/N、弾速300、自機狙い＋同偏差\n線形加速度0、予告線なし、最大寿命30秒、最大脅威度3",
+            Stage(ChallengeCategory.D, 2, "多弾頭・特異点のある角加速度弾",
+                "要素：偏差の周期変化・角加速度の周期変化・" +
+                "特異点のある角加速度弾・反復分裂（ベクトル基準）・" +
+                "動的Nway\n" +
+                "周期的に変化する発射偏差と角加速度、反復分裂、" +
+                "時間とともに弾数が増える動的Nwayを組み合わせた" +
+                "完成弾幕に対応しよう。",
                 Pattern(Projectile(
                     d3AStructures[0],
                     d3PeriodSeconds,
@@ -868,7 +881,7 @@ public static partial class BulletHellStageAttackDefinitions
         string prefix = category == ChallengeCategory.B ? "B" :
             category == ChallengeCategory.C ? "C" :
             category == ChallengeCategory.D ? "D" :
-            category == ChallengeCategory.Ranking ? "Ranking" : "A";
+            category == ChallengeCategory.Ranking ? "E" : "A";
         return new BulletHellStageDefinition(
             category,
             id,

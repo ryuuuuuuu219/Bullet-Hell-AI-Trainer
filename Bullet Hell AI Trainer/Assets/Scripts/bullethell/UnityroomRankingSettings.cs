@@ -17,11 +17,11 @@ public sealed class UnityroomRankingSettings : ScriptableObject
     [SerializeField, Tooltip("unityroomのAPIキー画面にあるHMAC認証用キー")]
     private string hmacKey = string.Empty;
 
-    [SerializeField, Min(1), Tooltip("FinalChallenge生存時間用スコアボードのID")]
+    [SerializeField, Min(1), Tooltip("Challenge Ranking E-1 ダメージ量用スコアボードのID")]
     private int finalChallengeScoreboardId = 1;
 
     public string HmacKey => hmacKey?.Trim();
-    public int FinalChallengeScoreboardId => finalChallengeScoreboardId;
+    public int ChallengeRankingScoreboardId => finalChallengeScoreboardId;
 
     public static UnityroomRankingSettings Load()
     {

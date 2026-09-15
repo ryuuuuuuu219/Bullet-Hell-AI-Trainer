@@ -11,16 +11,15 @@ public static class UnityroomFinalChallengeRanking
     private static RankingSender sender;
 #endif
 
-    public static void SubmitSurvivalTime(float survivalTimeSeconds)
+    public static void SubmitDamage(float damage)
     {
-        float score = Mathf.Round(
-            Mathf.Max(0f, survivalTimeSeconds) * 1000f) / 1000f;
+        float score = Mathf.Max(0f, damage);
 
 #if UNITY_WEBGL && !UNITY_EDITOR
         EnsureSender().QueueScore(score);
 #else
         Debug.Log(
-            $"[unityroomランキング] FinalChallenge生存時間 {score:F3}秒。" +
+            $"[unityroomランキング] Challenge Ranking E-1 ダメージ量 {score:F0}。" +
             "送信はunityroom上のWebGLビルドでのみ実行されます。");
 #endif
     }
@@ -34,7 +33,7 @@ public static class UnityroomFinalChallengeRanking
         }
 
         GameObject senderObject = new GameObject(
-            "Unityroom FinalChallenge Ranking Sender");
+            "Unityroom Challenge Ranking Sender");
         UnityEngine.Object.DontDestroyOnLoad(senderObject);
         sender = senderObject.AddComponent<RankingSender>();
         return sender;
@@ -78,18 +77,18 @@ public static class UnityroomFinalChallengeRanking
                         await client.Scoreboards.SendAsync(new SendScoreRequest
                         {
                             ScoreboardId =
-                                settings.FinalChallengeScoreboardId,
+                                settings.ChallengeRankingScoreboardId,
                             Score = score,
                         });
                     Debug.Log(
                         response.ScoreUpdated
-                            ? $"[unityroomランキング] 生存時間 {score:F3}秒を登録しました。"
-                            : $"[unityroomランキング] 生存時間 {score:F3}秒は自己ベストを更新しませんでした。");
+                            ? $"[unityroomランキング] ダメージ量 {score:F0}を登録しました。"
+                            : $"[unityroomランキング] ダメージ量 {score:F0}は自己ベストを更新しませんでした。");
                 }
                 catch (Exception exception)
                 {
                     Debug.LogWarning(
-                        $"[unityroomランキング] 生存時間 {score:F3}秒の送信に失敗しました: " +
+                        $"[unityroomランキング] ダメージ量 {score:F0}の送信に失敗しました: " +
                         exception.Message);
                 }
             }

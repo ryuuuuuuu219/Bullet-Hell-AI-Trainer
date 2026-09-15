@@ -5,6 +5,7 @@ using UnityEngine;
 public sealed class StageSpawnManager : MonoBehaviour
 {
     private const float GenerationConditionCheckInterval = 0.1f;
+    private const float RankingSequentialStageDurationSeconds = 8f;
     private static readonly Vector3 PlayerSpawnPosition = new Vector3(0f, -150f, 0f);
     private static readonly Vector3 BossSpawnPosition = new Vector3(0f, 150f, 0f);
 
@@ -33,6 +34,8 @@ public sealed class StageSpawnManager : MonoBehaviour
     private IReadOnlyList<float> activeThreatArrivalTimes = Array.Empty<float>();
     private float stageElapsedTime;
     private int nextThreatTimeIndex;
+    private int rankingSequenceIndex;
+    private bool rankingScoreSubmittedForCurrentRun;
 
     public static float CurrentThreatTimeSignal { get; private set; } = -1f;
 
@@ -58,6 +61,8 @@ public sealed class StageSpawnManager : MonoBehaviour
         Category = category;
         StageId = stageId;
         teacherModeEnabled = shouldEnableTeacherMode;
+        rankingSequenceIndex = 0;
+        rankingScoreSubmittedForCurrentRun = false;
         PopulationSettingsData populationData = populationSetting.LoadData();
         int layerCount = GetGeneticPlayerCount(populationData) +
                          (teacherModeEnabled ? 1 : 0);
@@ -95,6 +100,8 @@ public sealed class StageSpawnManager : MonoBehaviour
             return;
         }
 
+        TrySubmitRankingDamageScore();
+
         if (Time.unscaledTime < nextGenerationConditionCheckTime)
         {
             return;
@@ -127,6 +134,13 @@ public sealed class StageSpawnManager : MonoBehaviour
         }
 
         stageElapsedTime += Time.fixedDeltaTime;
+        if (IsSequentialRankingStage &&
+            !rankingScoreSubmittedForCurrentRun &&
+            stageElapsedTime >= RankingSequentialStageDurationSeconds)
+        {
+            AdvanceRankingSequenceStage();
+        }
+
         CurrentThreatTimeSignal = Mathf.MoveTowards(
             CurrentThreatTimeSignal,
             -1f,
@@ -142,6 +156,13 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private void StartStagePattern()
     {
+        if (IsSequentialRankingStage)
+        {
+            rankingSequenceIndex = 0;
+            StartRankingSequenceStage();
+            return;
+        }
+
         BulletHellStageDefinition stage =
             BulletHellStageAttackDefinitions.GetStage(Category, StageId);
         ResetThreatTimeSignal(stage);
@@ -156,6 +177,80 @@ public sealed class StageSpawnManager : MonoBehaviour
             stage,
             spawnedBoss?.transform,
             spawnedPlayers);
+    }
+
+    private bool IsSequentialRankingStage =>
+        Category == ChallengeCategory.Ranking && StageId == 0;
+
+    private void AdvanceRankingSequenceStage()
+    {
+        IReadOnlyList<BulletHellStageDefinition> challengeDStages =
+            BulletHellStageAttackDefinitions.GetStages(ChallengeCategory.D);
+        if (challengeDStages.Count == 0)
+        {
+            return;
+        }
+
+        bulletHellShooter.ClearEnemyAttacks();
+        rankingSequenceIndex =
+            (rankingSequenceIndex + 1) % challengeDStages.Count;
+        StartRankingSequenceStage();
+    }
+
+    private void StartRankingSequenceStage()
+    {
+        IReadOnlyList<BulletHellStageDefinition> challengeDStages =
+            BulletHellStageAttackDefinitions.GetStages(ChallengeCategory.D);
+        if (challengeDStages.Count == 0)
+        {
+            ResetThreatTimeSignal(null);
+            Debug.LogWarning(
+                "Challenge Ranking E-1 requires Challenge D stages.");
+            return;
+        }
+
+        rankingSequenceIndex = Mathf.Clamp(
+            rankingSequenceIndex,
+            0,
+            challengeDStages.Count - 1);
+        BulletHellStageDefinition stage =
+            challengeDStages[rankingSequenceIndex];
+        ResetThreatTimeSignal(stage);
+        bulletHellShooter.StartFiring(
+            stage,
+            spawnedBoss?.transform,
+            spawnedPlayers);
+        Debug.Log(
+            $"Challenge Ranking E-1: started {stage.ChallengeCode} " +
+            $"for {RankingSequentialStageDurationSeconds:F0} seconds.");
+    }
+
+    private void TrySubmitRankingDamageScore()
+    {
+        if (rankingScoreSubmittedForCurrentRun ||
+            !IsSequentialRankingStage ||
+            teacherModeEnabled)
+        {
+            return;
+        }
+
+        foreach (GameObject player in spawnedPlayers)
+        {
+            if (player == null ||
+                !player.TryGetComponent(out PlayerAgent playerAgent) ||
+                !playerAgent.IsHit)
+            {
+                continue;
+            }
+
+            float damage = spawnedBossData != null
+                ? spawnedBossData.GetDamage(playerAgent.LogicalLayer)
+                : 0f;
+            rankingScoreSubmittedForCurrentRun = true;
+            bulletHellShooter.ClearEnemyAttacks();
+            UnityroomFinalChallengeRanking.SubmitDamage(damage);
+            return;
+        }
     }
 
     private void ResetThreatTimeSignal(BulletHellStageDefinition stage)
@@ -480,11 +575,13 @@ public sealed class StageSpawnManager : MonoBehaviour
             PopulationSettingsData settings = activePopulationData ??
                 populationSetting.LoadData();
             playerName = player.name;
-            score = settings.CalculateGenerationScore(
-                damage,
-                tracker.SurvivalTime,
-                tracker.EdgeCollisionCumulativeTime,
-                tracker.CenterDistanceSampledSum);
+            score = Category == ChallengeCategory.Ranking
+                ? damage
+                : settings.CalculateGenerationScore(
+                    damage,
+                    tracker.SurvivalTime,
+                    tracker.EdgeCollisionCumulativeTime,
+                    tracker.CenterDistanceSampledSum);
             return true;
         }
 
