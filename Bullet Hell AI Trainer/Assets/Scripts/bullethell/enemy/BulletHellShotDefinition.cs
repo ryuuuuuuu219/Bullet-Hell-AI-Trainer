@@ -699,7 +699,13 @@ public static partial class BulletHellStageAttackDefinitions
             childSpawnIntervalSeconds: 0.2f,
             maximumChildSpawnEvents: 5);
 
-        BulletStructure d2HomingChild = Straight(300f, 1, 200f, 2f);
+        BulletStructure d2HomingChild = Straight(
+            100f,
+            1,
+            0f,
+            float.PositiveInfinity,
+            -30f,
+            10f);
         BulletStructure d2HomingSplit = new BulletStructure(
             300f,
             3,
@@ -799,12 +805,12 @@ public static partial class BulletHellStageAttackDefinitions
             Stage(ChallengeCategory.D, 1, "分裂・追尾複合弾幕",
                 "要素：自機狙い偶数way・反復分裂（自機狙い）・連射・" +
                 "自機狙い奇数way・純粋追尾誘導弾・" +
-                "反復分裂（ベクトル基準）\n" +
-                "減速する親弾からの自機狙い反復分裂、追尾弾からの反復分裂、" +
+                "反復分裂（ベクトル基準）・躍度\n" +
+                "減速する親弾からの自機狙い反復分裂、速度反転する追尾弾からの反復分裂、" +
                 "連射後の多way分裂を組み合わせた完成弾幕に対応しよう。",
                 Pattern(Projectile(d2OpeningSplit, 12f, 2,
                     projectileAngles: new[] { -135f, 135f }), 0f),
-                Pattern(Projectile(d2HomingSplit, 3f, 3, 25f), 0f),
+                Pattern(Projectile(d2HomingSplit, 6f, 3, 25f), 0f),
                 Pattern(Projectile(d2TimedSplit, 12f, 2,
                     burstCount: 7,
                     burstInterval: 0.3f,

@@ -320,9 +320,12 @@ public sealed class StageSpawnManager : MonoBehaviour
 
         movement.SetManualControl(teacherControl);
         movement.SetTeacherMode(teacherControl);
-        bool learningEnabled = Category != ChallengeCategory.Ranking;
-        movement.SetTeacherTrainingEnabled(learningEnabled);
-        if (!teacherControl && learningEnabled && ScriptedTeacherSettings.IsEnabled)
+        bool backpropagationEnabled =
+            Category != ChallengeCategory.Ranking;
+        movement.SetTeacherTrainingEnabled(backpropagationEnabled);
+        if (!teacherControl &&
+            backpropagationEnabled &&
+            ScriptedTeacherSettings.IsEnabled)
         {
             ScriptedTeacher scriptedTeacher =
                 player.GetComponent<ScriptedTeacher>();
@@ -344,7 +347,7 @@ public sealed class StageSpawnManager : MonoBehaviour
         Aidata aiData = player.GetComponent<Aidata>();
         if (aiData != null)
         {
-            aiData.SetWeightUpdatesEnabled(learningEnabled);
+            aiData.SetWeightUpdatesEnabled(backpropagationEnabled);
             if (movement.IsTeacherControlled && teacherNetworkSnapshot != null)
             {
                 aiData.ApplySnapshot(teacherNetworkSnapshot);
@@ -383,8 +386,13 @@ public sealed class StageSpawnManager : MonoBehaviour
 
     private int GetGeneticPlayerCount(PopulationSettingsData populationData)
     {
-        return Category == ChallengeCategory.Ranking
-            ? (teacherModeEnabled ? 0 : 1)
+        if (Category == ChallengeCategory.Ranking)
+        {
+            return teacherModeEnabled ? 0 : 1;
+        }
+
+        return Category == ChallengeCategory.D
+            ? 1
             : populationData.populationSize;
     }
 
