@@ -854,6 +854,7 @@ public static partial class BulletHellStageAttackDefinitions
                     reaimDuringBurst: true,
                     burstProjectileCounts: d3BProjectileCounts,
                     burstProjectileIntervals: d3BProjectileIntervals), 0f)),
+            BuildChallengeD4Stage(),
         };
     }
 

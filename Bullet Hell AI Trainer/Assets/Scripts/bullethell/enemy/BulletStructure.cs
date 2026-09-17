@@ -44,9 +44,11 @@ public sealed class BulletStructure
         float angularJerkDurationSeconds = 0f,
         bool releaseParentAfterFinalChildSpawn = true,
         float cameraReleaseDistanceMultiplier =
-            ProjectilePool.DefaultReleaseDistanceMultiplier)
+            ProjectilePool.DefaultReleaseDistanceMultiplier,
+        bool useTimeTimeForMotion = false)
     {
         Speed = speed;
+        UseTimeTimeForMotion = useTimeTimeForMotion;
         ThreatLevel = UnityEngine.Mathf.Max(0, threatLevel);
         MotionType = motionType;
         TurnRateDegreesPerSecond = turnRateDegreesPerSecond;
@@ -104,6 +106,7 @@ public sealed class BulletStructure
     }
 
     public float Speed { get; }
+    public bool UseTimeTimeForMotion { get; }
     public int ThreatLevel { get; }
     public BulletMotionType MotionType { get; }
     public float TurnRateDegreesPerSecond { get; }

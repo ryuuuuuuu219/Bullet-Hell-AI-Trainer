@@ -23,6 +23,7 @@ public sealed class bullet : MonoBehaviour
     private bool hasPreviousLineOfSight;
     private float usedTurnAngleDegrees;
     private float motionElapsedSeconds;
+    private float motionStartTime;
     private float guidanceCommandElapsedSeconds;
     private float cachedGuidanceTurnRate;
     private float speedMultiplier = 1f;
@@ -185,6 +186,7 @@ public sealed class bullet : MonoBehaviour
         hasPreviousLineOfSight = previousLineOfSight.sqrMagnitude > Mathf.Epsilon;
         usedTurnAngleDegrees = 0f;
         motionElapsedSeconds = 0f;
+        motionStartTime = Time.time;
         guidanceCommandElapsedSeconds = 0f;
         cachedGuidanceTurnRate = 0f;
         showFlightWarningLine = enableFlightWarningLine;
@@ -258,7 +260,9 @@ public sealed class bullet : MonoBehaviour
 
     private void ApplyMotion()
     {
-        motionElapsedSeconds += Time.fixedDeltaTime;
+        motionElapsedSeconds = Structure.UseTimeTimeForMotion
+            ? Mathf.Max(0f, Time.time - motionStartTime)
+            : motionElapsedSeconds + Time.fixedDeltaTime;
         float currentSpeed = GetCurrentSpeed();
         float currentTurnRate = GetCurrentTurnRate();
 

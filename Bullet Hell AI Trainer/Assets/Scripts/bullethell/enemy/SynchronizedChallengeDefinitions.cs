@@ -410,13 +410,61 @@ public static partial class BulletHellStageAttackDefinitions
         };
     }
 
+    private static BulletHellStageDefinition BuildChallengeD4Stage()
+    {
+        List<BulletHellStagePattern> patterns = new List<BulletHellStagePattern>();
+        FormationShape[] shapes =
+        {
+            FormationShape.Column, FormationShape.V, FormationShape.X,
+        };
+        float[][] times =
+        {
+            new[] { 0f, 0.33f, 0.66f },
+            new[] { 1f, 1.66f, 2.33f },
+            new[] { 2f, 2.66f, 3.33f },
+        };
+        float[] expansionRates = { 10f, 11f, 13f };
+        float[] offsets = { 0f, -10f, 10f };
+        for (int shapeIndex = 0; shapeIndex < shapes.Length; shapeIndex++)
+        {
+            List<Vector2> coordinates = BuildFormationCoordinates(
+                shapes[shapeIndex],
+                radius: shapeIndex == 0 ? 2 : 4,
+                uniqueCenter: true);
+            for (int volley = 0; volley < offsets.Length; volley++)
+            {
+                patterns.Add(Pattern(BuildRectangularFormation(
+                    250f, 1, 6f, coordinates,
+                    expansionRates[shapeIndex], offsets[volley]),
+                    times[shapeIndex][volley]));
+            }
+        }
+
+        BulletStructure angularJerk = new BulletStructure(
+            400f, 2, BulletMotionType.ConstantTurn, 270f,
+            angularAccelerationDegreesPerSecondSquared: -50f,
+            angularAccelerationDurationSeconds: float.PositiveInfinity,
+            angularJerkDegreesPerSecondCubed: 5f,
+            angularJerkDurationSeconds: 20f,
+            useTimeTimeForMotion: true);
+        patterns.Add(Pattern(Projectile(angularJerk, 6f, 12, 30f), 4f));
+
+        return Stage(ChallengeCategory.D, 3, "○字編隊",
+            "要素：編隊（矩形補正I字）・編隊（矩形補正V字）・" +
+            "編隊（矩形補正X字）・全周・角躍度\n" +
+            "偏差を変えて発射するI字・V字・X字編隊と、" +
+            "角躍度によって回転速度が変化する全周弾を組み合わせた" +
+            "完成弾幕に対応しよう。",
+            patterns.ToArray());
+    }
+
     private static BulletHellStageDefinition[] BuildChallengeRankingStages()
     {
         return new[]
         {
             Stage(ChallengeCategory.Ranking, 0, "順次",
                 "要素：D-1 弾幕結界・D-2 分裂・追尾複合弾幕・" +
-                "D-3 多弾頭・特異点のある角加速度弾\n" +
+                "D-3 多弾頭・特異点のある角加速度弾・D-4 ○字編隊\n" +
                 "Challenge Dの完成弾幕へ、8秒ごとに定められた順序で挑戦しよう。\n" +
                 "Bossへ与えた累積ダメージ量でハイスコアを目指そう。"),
         };
@@ -431,15 +479,22 @@ public static partial class BulletHellStageAttackDefinitions
         X,
     }
 
-    private static List<Vector2> BuildFormationCoordinates(FormationShape shape)
+    private static List<Vector2> BuildFormationCoordinates(
+        FormationShape shape,
+        int radius = 4,
+        bool uniqueCenter = false)
     {
         List<Vector2> coordinates = new List<Vector2>();
         int branchCount = shape == FormationShape.X ? 2 : 1;
         for (int branch = 0; branch < branchCount; branch++)
         {
             float branchSign = branch == 0 ? -1f : 1f;
-            for (int index = -4; index <= 4; index++)
+            for (int index = -radius; index <= radius; index++)
             {
+                if (uniqueCenter && branch > 0 && index == 0)
+                {
+                    continue;
+                }
                 float x = shape == FormationShape.Column ? 0f : index;
                 float y;
                 switch (shape)
@@ -470,15 +525,17 @@ public static partial class BulletHellStageAttackDefinitions
         float baseSpeed,
         int threat,
         float repeat,
-        IReadOnlyList<Vector2> coordinates)
+        IReadOnlyList<Vector2> coordinates,
+        float expansionRate = 5f,
+        float aimOffset = 0f)
     {
         BulletStructure[] structures = new BulletStructure[coordinates.Count];
         float[] angles = new float[coordinates.Count];
         for (int index = 0; index < coordinates.Count; index++)
         {
             Vector2 coordinate = coordinates[index];
-            float sx = coordinate.x == 0f ? 0f : 5f;
-            float sy = coordinate.y == 0f ? 0f : 5f;
+            float sx = coordinate.x == 0f ? 0f : expansionRate;
+            float sy = coordinate.y == 0f ? 0f : expansionRate;
             float forwardSpeed = baseSpeed + sy * coordinate.y;
             float sideSpeed = sx * coordinate.x;
             structures[index] = Straight(
@@ -488,7 +545,11 @@ public static partial class BulletHellStageAttackDefinitions
             angles[index] = Mathf.Atan2(sideSpeed, forwardSpeed) *
                 Mathf.Rad2Deg;
         }
-        return ProjectileExplicit(structures, angles, repeat);
+        return Projectile(
+            structures[0], repeat, structures.Length,
+            aimOffset: aimOffset,
+            projectileStructures: structures,
+            projectileAngles: angles);
     }
 
     private static BulletStructure[] BuildAngularDistribution(
