@@ -71,3 +71,50 @@ Desktop.ini
 # Local unityroom credentials (generated automatically in the Unity Editor)
 /Bullet Hell AI Trainer/Assets/Resources/UnityroomRankingSettings.asset
 /Bullet Hell AI Trainer/Assets/Resources/UnityroomRankingSettings.asset.meta
+
+# syogi Unity project generated files
+/syogi/[Ll]ibrary/
+/syogi/[Tt]emp/
+/syogi/[Oo]bj/
+/syogi/[Ll]ogs/
+/syogi/[Uu]ser[Ss]ettings/
+/syogi/[Mm]emoryCaptures/
+/syogi/[Rr]ecordings/
+/syogi/[Bb]uild/
+/syogi/[Bb]uilds/
+/syogi/Assets/AssetStoreTools*
+/syogi/Assets/Plugins/Editor/JetBrains*
+/syogi/.vs/
+/syogi/.idea/
+/syogi/.vscode/
+/syogi/.gradle/
+/syogi/ExportedObj/
+/syogi/.consulo/
+/syogi/*.csproj
+/syogi/*.sln
+/syogi/*.suo
+/syogi/*.tmp
+/syogi/*.user
+/syogi/*.userprefs
+/syogi/*.pidb
+/syogi/*.booproj
+/syogi/*.svd
+/syogi/*.pdb
+/syogi/*.mdb
+/syogi/*.opendb
+/syogi/*.VC.db
+/syogi/*.pidb.meta
+/syogi/*.pdb.meta
+/syogi/*.mdb.meta
+/syogi/sysinfo.txt
+/syogi/crashlytics-build.properties
+/syogi/[Cc]rash*/
+/syogi/*.apk
+/syogi/*.aab
+/syogi/*.unitypackage
+/syogi/*.app
+/syogi/Assets/AddressableAssetsData/*/*.bin*
+/syogi/Assets/StreamingAssets/aa.meta
+/syogi/Assets/StreamingAssets/aa/
+/syogi/Assets/StreamingAssets/Android.meta
+/syogi/Assets/StreamingAssets/Android/

@@ -458,13 +458,47 @@ public static partial class BulletHellStageAttackDefinitions
             patterns.ToArray());
     }
 
+    private static BulletHellStageDefinition BuildChallengeD5Stage()
+    {
+        BulletStructure navigationA = new BulletStructure(
+            300f, 3, BulletMotionType.ProportionalNavigation, 90f,
+            navigationConstant: 3f,
+            totalTurnAngleDegrees: 100f);
+        BulletStructure homingB = new BulletStructure(
+            300f, 3, BulletMotionType.Homing, 20f,
+            totalTurnAngleDegrees: 20f);
+        BulletStructure clockNavigation = new BulletStructure(
+            50f, 3, BulletMotionType.ProportionalNavigation, 45f,
+            navigationConstant: 8f,
+            totalTurnAngleDegrees: 90f,
+            linearAcceleration: 50f,
+            linearAccelerationDurationSeconds: 10f,
+            guidanceCommandIntervalSeconds: 0.8f);
+
+        return Stage(ChallengeCategory.D, 4, "誘導弾だらけ",
+            "要素：自機狙い偶数way・N=3比例航法誘導弾・純粋追尾誘導弾・クロック式比例航法誘導弾・加速・連射\n" +
+            "N=3比例航法弾と純粋追尾弾、偏差を変えて連射する" +
+            "加速付きクロック式比例航法誘導弾を組み合わせた" +
+            "完成弾幕に対応しよう。",
+            Pattern(Projectile(navigationA, 2f, 2,
+                projectileAngles: new[] { -90f, 90f }), 0f),
+            Pattern(Projectile(homingB, 2f, 2,
+                projectileAngles: new[] { -20f, 20f }), 0f),
+            Pattern(Projectile(clockNavigation, 2f,
+                burstCount: 8,
+                burstInterval: 0.1f,
+                burstOffsets: new[] { 0f, 10f, 25f, 15f, -5f, -15f, -30f, -20f },
+                reaimDuringBurst: true), 0f));
+    }
+
     private static BulletHellStageDefinition[] BuildChallengeRankingStages()
     {
         return new[]
         {
             Stage(ChallengeCategory.Ranking, 0, "順次",
                 "要素：D-1 弾幕結界・D-2 分裂・追尾複合弾幕・" +
-                "D-3 多弾頭・特異点のある角加速度弾・D-4 ○字編隊\n" +
+                "D-3 多弾頭・特異点のある角加速度弾・D-4 ○字編隊・" +
+                "D-5 誘導弾だらけ\n" +
                 "Challenge Dの完成弾幕へ、8秒ごとに定められた順序で挑戦しよう。\n" +
                 "Bossへ与えた累積ダメージ量でハイスコアを目指そう。"),
         };
