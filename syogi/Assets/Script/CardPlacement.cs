@@ -10,6 +10,14 @@ public class CardPlacement : MonoBehaviour
     public List<bulletData_Card> placedBullets = new List<bulletData_Card>();
     public List<Bullet> bulletObjects = new List<Bullet>();
 
+    public void ClearPlaced()
+    {
+        foreach (var bullet in bulletObjects)
+            if (bullet != null) Destroy(bullet.gameObject);
+        bulletObjects.Clear();
+        placedBullets.Clear();
+    }
+
     public void PlaceSelectedCard(int cellX, int cellY)
     {
         if (board == null) board = GetComponent<fieldrender>();
@@ -18,10 +26,11 @@ public class CardPlacement : MonoBehaviour
         var parent = board.FoundationRect;
         int columns = board.Columns;
         int rows = board.Rows;
-        if (parent == null || card == null || card.bullet == null || card.AffectAreaRow <= 0 ||
+        if (parent == null || selector == null || !selector.CanPlaceSelectedCard || card.bullet == null || card.AffectAreaRow <= 0 ||
             columns <= 0 || rows <= 0 || cellX < 0 || cellX >= columns || cellY < 0 || cellY >= rows) return;
 
         int center = card.AffectAreaRow / 2;
+        int placedCount = 0;
         foreach (var source in card.bullet)
         {
             int x = cellX + source.x - center;
@@ -40,6 +49,8 @@ public class CardPlacement : MonoBehaviour
             bulletObjects.Add(bullet);
             if (bulletManager == null) bulletManager = GetComponent<BulletManager>();
             if (bulletManager != null) bulletManager.Add(bullet);
+            placedCount++;
         }
+        if (placedCount > 0) selector.ConsumeSelectedCard();
     }
 }
