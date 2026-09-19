@@ -36,14 +36,7 @@ public class CpuPlayer : MonoBehaviour
                 {
                     int x = center.x + source.x - cardCenter;
                     int y = center.y + source.y - cardCenter;
-                    var data = new bulletData_Card
-                    {
-                        x = x,
-                        y = y,
-                        nextX = x + source.nextX - source.x,
-                        nextY = y - (source.nextY - source.y),
-                        HP = source.HP
-                    };
+                    var data = source.CopyAt(x, y, false);
                     var bullet = Bullet.Create(parent, data, new Vector2Int(board.Columns, board.Rows), board.FieldRightTopPos, false);
                     placedBullets.Add(bullet);
                     bulletManager.Add(bullet);

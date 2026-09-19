@@ -19,6 +19,45 @@ public class BulletManager : MonoBehaviour
         bullets.Clear();
     }
 
+    Vector2Int GetMissileDirection(Bullet missile, List<Bullet> active, Dictionary<Bullet, Vector2Int> startPositions)
+    {
+        var range = missile.DetectRange;
+        if (range == null) return missile.MoveDirection;
+
+        var position = startPositions[missile];
+        foreach (var offset in range)
+        {
+            var targetPosition = position + offset;
+            if (targetPosition.x < 0 || targetPosition.x >= board.Columns ||
+                targetPosition.y < 0 || targetPosition.y >= board.Rows) continue;
+
+            foreach (var other in active)
+            {
+                if (other == null || other == missile || other.IsPlayer == missile.IsPlayer) continue;
+                if (startPositions[other] != targetPosition) continue;
+                return new Vector2Int(Mathf.Clamp(offset.x, -1, 1), Mathf.Clamp(offset.y, -1, 1));
+            }
+        }
+        return missile.MoveDirection;
+    }
+
+    // 同じ時刻 t (0 <= t <= 1) に二つの移動点が一致するかを整数演算で調べる。
+    static bool PathsMeet(Vector2Int firstStart, Vector2Int firstEnd, Vector2Int secondStart, Vector2Int secondEnd)
+    {
+        long relativeX = (long)firstStart.x - secondStart.x;
+        long relativeY = (long)firstStart.y - secondStart.y;
+        long relativeMoveX = (long)firstEnd.x - firstStart.x - ((long)secondEnd.x - secondStart.x);
+        long relativeMoveY = (long)firstEnd.y - firstStart.y - ((long)secondEnd.y - secondStart.y);
+
+        if (relativeMoveX == 0 && relativeMoveY == 0)
+            return relativeX == 0 && relativeY == 0;
+
+        if (relativeX * relativeMoveY - relativeY * relativeMoveX != 0) return false;
+        long meetingTimeNumerator = -(relativeX * relativeMoveX + relativeY * relativeMoveY);
+        long meetingTimeDenominator = relativeMoveX * relativeMoveX + relativeMoveY * relativeMoveY;
+        return meetingTimeNumerator >= 0 && meetingTimeNumerator <= meetingTimeDenominator;
+    }
+
     public bool ResumeTurn()
     {
         bool result = false;
@@ -26,15 +65,48 @@ public class BulletManager : MonoBehaviour
         if (judge == null) judge = GetComponent<BattleJudge>();
         if (board == null || board.Columns <= 0 || board.Rows <= 0) return false;
 
-        // 全弾の移動を終えてから、到着位置で衝突を解決する。
+        // 索敵には全弾のターン開始位置を使い、登録順による結果の違いを避ける。
         var active = new List<Bullet>(bullets);
+        var startPositions = new Dictionary<Bullet, Vector2Int>();
+        foreach (var bullet in active)
+        {
+            if (bullet != null) startPositions[bullet] = bullet.Position;
+        }
+
         foreach (var bullet in active)
         {
             if (bullet == null) continue;
-            if (bullet.MoveDirection != Vector2Int.zero) result = true;
-            bullet.SetPosition(bullet.NextPosition);
+            if (bullet.Attribute == Attribute.missile)
+                bullet.SetMoveDirection(GetMissileDirection(bullet, active, startPositions));
+            var destination = bullet.Position + bullet.MoveDirection;
+            if (destination != bullet.Position) result = true;
+            bullet.SetPosition(destination);
         }
 
+        // 子弾は親の移動後に生成し、このターンは終点での衝突判定だけに参加する。
+        var parent = board.FoundationRect;
+        var spawnedThisTurn = new HashSet<Bullet>();
+        foreach (var bullet in new List<Bullet>(active))
+        {
+            if (bullet == null || !bullet.HasPendingSubBullets) continue;
+            result = true;
+            if (!bullet.AdvanceSubBulletTurn() || parent == null) continue;
+            foreach (var template in bullet.SubBullets)
+            {
+                if (template == null) continue;
+                int x = bullet.Position.x + template.x;
+                int y = bullet.Position.y + template.y;
+                if (x < 0 || x >= board.Columns || y < 0 || y >= board.Rows) continue;
+                var childData = template.CopyAt(x, y, bullet.IsPlayer);
+                var child = Bullet.Create(parent, childData, new Vector2Int(board.Columns, board.Rows),
+                    board.FieldRightTopPos, bullet.IsPlayer);
+                Add(child);
+                active.Add(child);
+                spawnedThisTurn.Add(child);
+            }
+        }
+
+        // 既存弾同士は移動経路を、生成直後の子弾はターン終端の位置を比較する。
         var damage = new Dictionary<Bullet, int>();
         for (int i = 0; i < active.Count; i++)
         {
@@ -43,14 +115,21 @@ public class BulletManager : MonoBehaviour
             for (int j = i + 1; j < active.Count; j++)
             {
                 var second = active[j];
-                if (second == null || first.IsPlayer == second.IsPlayer || first.Position != second.Position) continue;
+                if (second == null) continue;
+                bool meets = spawnedThisTurn.Contains(first) || spawnedThisTurn.Contains(second)
+                    ? first.Position == second.Position
+                    : PathsMeet(startPositions[first], first.Position, startPositions[second], second.Position);
+                if (!meets) continue;
                 if (!damage.ContainsKey(first)) damage[first] = 0;
                 if (!damage.ContainsKey(second)) damage[second] = 0;
-                damage[first] += second.HP;
-                damage[second] += first.HP;
+                if(first.Attribute!=Attribute.gus)damage[first] += second.HP;
+                if (second.Attribute != Attribute.gus) damage[second] += first.HP;
+                if(first.Attribute==Attribute.mirror) second.SetMoveDirection(-second.MoveDirection);
+                if(second.Attribute==Attribute.mirror) first.SetMoveDirection(-first.MoveDirection);
             }
         }
 
+        // ダメージを適用し、HPが0以下になった弾を削除する。
         foreach (var bullet in active)
         {
             if (bullet == null) continue;

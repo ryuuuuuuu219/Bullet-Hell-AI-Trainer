@@ -36,13 +36,7 @@ public class CardPlacement : MonoBehaviour
             int x = cellX + source.x - center;
             int y = cellY + source.y - center;
             if (x < 0 || x >= columns || y < 0 || y >= rows) continue;
-            var data = new bulletData_Card
-            {
-                x = x, y = y,
-                nextX = cellX + source.nextX - center,
-                nextY = cellY + source.nextY - center,
-                HP = source.HP
-            };
+            var data = source.CopyAt(x, y, true);
             placedBullets.Add(data);
 
             var bullet = Bullet.Create(parent, data, new Vector2Int(columns, rows), board.FieldRightTopPos);
