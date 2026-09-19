@@ -21,7 +21,7 @@ description: syogi/Assets/Script/CardDefinitions.cs のカードを追加・変�
 対象CardID[新規は未使用のID／既存は現在のID][default:新規なら既存最大ID+1]：
 CardName[文字列]：
 CardDiscription[表示文]：
-AffectAreaRow[プレビューと配置基準のマス数]：
+AffectAreaRow[プレビューと配置基準の奇数マス数]：
 RemainingCount[枚]：
 初期配置する弾の数[発]：
 
@@ -54,6 +54,7 @@ RemainingCount[枚]：
 
 - `CardID` は一意にする。`CardSelect` は `CardID` をボタンのキーに使うが、配列内の位置と一致する必要はない。新規カードは通常末尾へ追加し、IDは既存最大ID+1を既定値とする。既存IDや順序は明示依頼がない限り変えない。
 - `AffectAreaRow` はプレビューの縦横のマス数と配置時の中心計算に使われる。初期弾の `(x, y)` はその範囲内に置く。`(nextX, nextY)` は移動方向を定めるため、範囲外でもよい。味方の配置先は盤面手前、CPUは奥の `PlacementRows` 行に収まるか確認する。
+- `AffectAreaRow` は奇数にする。各カード生成関数は偶数が渡されると `Debug.LogError` を記録して例外で生成を中断する。
 - `wall`、`gus`、`mirror` は移動方向がゼロの属性。表示上も矛盾しないよう、通常は `nextX=x`、`nextY=y` とする。`missile` の `detectrange` は弾自身からの相対座標で、列挙順が標的の優先順になる。対象がいなければ現在の方向で進む。
 - `subBullets` の各 `(x, y)` は生成時の親弾位置からのオフセット。`subBulletCount` は編隊を生成する回数、`subBulletDelay` は初回までと以後の生成間隔で、0以下は1ターンとして処理される。親は生成後も残り、子弾は出現ターンに移動せず、そのターン終端の衝突から参加する。範囲外に生成される子弾は作られない。
 - 配置時はカード定義から弾データが複製され、CPU側ではY方向の移動ベクトルが反転する。新しい属性・索敵範囲・子弾定義が複製後にも残るか確認する。プレビューは初期弾だけを表示する。
