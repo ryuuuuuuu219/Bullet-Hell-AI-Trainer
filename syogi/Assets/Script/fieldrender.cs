@@ -1,13 +1,18 @@
-﻿using System.Collections.Generic;
+using System.Collections.Generic;
 using UnityEngine;
 using UnityEngine.UI;
 
 public class fieldrender : MonoBehaviour
 {
     public GameObject foundation;
+    public GameObject AltFoundation;
     public Vector2 fieldnum;
     [Tooltip("土台画像の右上アンカーからのオフセット（UI座標）")]
     public Vector2 FieldRightTopPos;
+
+    public RectTransform FoundationRect => foundation != null ? foundation.GetComponent<RectTransform>() : null;
+    public int Columns => (int)fieldnum.x;
+    public int Rows => (int)fieldnum.y;
 
     List<GameObject> lines = new List<GameObject>();
     void BuildLine(RectTransform parent, string name, Vector2 start, Vector2 end)
@@ -30,15 +35,59 @@ public class fieldrender : MonoBehaviour
     // Start is called once before the first execution of Update after the MonoBehaviour is created
     void Start()
     {
+        DrawGrid();
+    }
+
+    void DrawGrid()
+    {
         var foundationRect = foundation != null ? foundation.GetComponent<RectTransform>() : null;
         if (foundationRect == null)
         {
-            Debug.LogError("foundation に土台画像の RectTransform を持つオブジェクトを設定してください。", this);
+            Debug.LogError(" 土台画像の RectTransform を持つオブジェクトを設定してください。", this);
             return;
         }
 
         int column = (int)fieldnum.x;
         int row = (int)fieldnum.y;
+        if (column <= 0 || row <= 0)
+        {
+            Debug.LogError("マス数は縦横ともに1以上に設定してください。", this);
+            return;
+        }
+
+        for (int i = 0; i <= column; i++)
+        {
+            float x = 1f - (float)i / column;
+            BuildLine(foundationRect, "VerticalLine_" + i, new Vector2(x, 1f), new Vector2(x, 0f));
+
+        }
+        for (int j = 0; j <= row; j++)
+        {
+            float y = 1f - (float)j / row;
+            BuildLine(foundationRect, "HorizontalLine_" + j, new Vector2(1f, y), new Vector2(0f, y));
+        }
+    }
+
+    public void DrawGrid2(int Range)
+    {
+        for (int i = lines.Count - 1; i >= 0; i--)
+        {
+            if (lines[i] == null) { lines.RemoveAt(i); continue; }
+            if (AltFoundation != null && lines[i].transform.parent == AltFoundation.transform)
+            {
+                lines[i].SetActive(false);
+                Destroy(lines[i]);
+                lines.RemoveAt(i);
+            }
+        }
+        var foundationRect = AltFoundation != null ? AltFoundation.GetComponent<RectTransform>() : null;
+        if (foundationRect == null)
+        {
+            return;
+        }
+
+        int column = Range;
+        int row = Range;
         if (column <= 0 || row <= 0)
         {
             Debug.LogError("マス数は縦横ともに1以上に設定してください。", this);
