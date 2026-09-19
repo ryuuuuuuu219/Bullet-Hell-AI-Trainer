@@ -25,8 +25,8 @@ public class BoardCellInput : MonoBehaviour
 
     void BuildFrontRowButtons(RectTransform parent, int columns, int rows)
     {
-        // 盤面の下端を手前として、下から最大3行に配置する。
-        for (int y = 0; y < Mathf.Min(3, rows); y++)
+        // 盤面の下端を手前として、下から配置可能行数まで配置する。
+        for (int y = 0; y < Mathf.Min(CardDefinitions.PlacementRows, rows); y++)
         {
             for (int x = 0; x < columns; x++)
             {

@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using TMPro;
 using UnityEngine;
 
 public class BattleJudge : MonoBehaviour
@@ -14,12 +15,20 @@ public class BattleJudge : MonoBehaviour
     [SerializeField] int playerDamage;
     [SerializeField] int opponentDamage;
 
+    [SerializeField] TextMeshProUGUI damageUI;
+    string damageText => "ダメージ量\t相手："+opponentDamage+"\n\t\t\t自分："+playerDamage;
+
     // それぞれが受けたダメージの累計。
     public int PlayerDamage => playerDamage;
     public int OpponentDamage => opponentDamage;
     public Result CurrentResult { get; private set; } = Result.Undecided;
 
     public event Action<int, int, Result> StateChanged;
+
+    private void Update()
+    {
+        damageUI.text = damageText;
+    }
 
     public void DamagePlayer(int amount)
     {

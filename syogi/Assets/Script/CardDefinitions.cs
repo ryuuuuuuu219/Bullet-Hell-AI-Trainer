@@ -2,6 +2,9 @@
 
 public static class CardDefinitions
 {
+    public const int BoardSize = 9;
+    public const int PlacementRows = 3;
+
     public static CardData[] Create()
     {
         var Card1bulletData = new List<bulletData_Card> { new bulletData_Card { x = 0, y = 0, nextX = 0, nextY = 1, HP = 1 }, new bulletData_Card { x = 1, y = 0, nextX = 1, nextY = 1, HP = 1 }, new bulletData_Card { x = 2, y = 0, nextX = 2, nextY = 1, HP = 1 } };

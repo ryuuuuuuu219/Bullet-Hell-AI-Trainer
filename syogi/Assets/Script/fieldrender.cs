@@ -6,13 +6,12 @@ public class fieldrender : MonoBehaviour
 {
     public GameObject foundation;
     public GameObject AltFoundation;
-    public Vector2 fieldnum;
     [Tooltip("土台画像の右上アンカーからのオフセット（UI座標）")]
     public Vector2 FieldRightTopPos;
 
     public RectTransform FoundationRect => foundation != null ? foundation.GetComponent<RectTransform>() : null;
-    public int Columns => (int)fieldnum.x;
-    public int Rows => (int)fieldnum.y;
+    public int Columns => CardDefinitions.BoardSize;
+    public int Rows => CardDefinitions.BoardSize;
 
     List<GameObject> lines = new List<GameObject>();
     void BuildLine(RectTransform parent, string name, Vector2 start, Vector2 end)
@@ -47,8 +46,8 @@ public class fieldrender : MonoBehaviour
             return;
         }
 
-        int column = (int)fieldnum.x;
-        int row = (int)fieldnum.y;
+        int column = Columns;
+        int row = Rows;
         if (column <= 0 || row <= 0)
         {
             Debug.LogError("マス数は縦横ともに1以上に設定してください。", this);

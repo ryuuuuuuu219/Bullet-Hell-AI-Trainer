@@ -16,7 +16,7 @@ public class CpuPlayer : MonoBehaviour
         if (board == null) board = GetComponent<fieldrender>();
         if (bulletManager == null) bulletManager = GetComponent<BulletManager>();
         var parent = board != null ? board.FoundationRect : null;
-        if (parent == null || bulletManager == null || board.Columns <= 0 || board.Rows < 3) return;
+        if (parent == null || bulletManager == null || board.Columns <= 0 || board.Rows < CardDefinitions.PlacementRows) return;
 
         handPlaced = true;
         var cards = CardDefinitions.Create();
@@ -27,7 +27,7 @@ public class CpuPlayer : MonoBehaviour
                 var candidates = FindPlacements(card);
                 if (candidates.Count == 0)
                 {
-                    Debug.LogWarning("CPUのカードを奥3行に配置できません: " + card.CardName, this);
+                    Debug.LogWarning("CPUのカードを奥" + CardDefinitions.PlacementRows + "行に配置できません: " + card.CardName, this);
                     continue;
                 }
                 var center = candidates[Random.Range(0, candidates.Count)];
@@ -57,7 +57,7 @@ public class CpuPlayer : MonoBehaviour
         var candidates = new List<Vector2Int>();
         if (card.bullet == null || card.AffectAreaRow <= 0) return candidates;
         int cardCenter = card.AffectAreaRow / 2;
-        int backStart = board.Rows - 3;
+        int backStart = board.Rows - CardDefinitions.PlacementRows;
         for (int y = backStart; y < board.Rows; y++)
         {
             for (int x = 0; x < board.Columns; x++)
