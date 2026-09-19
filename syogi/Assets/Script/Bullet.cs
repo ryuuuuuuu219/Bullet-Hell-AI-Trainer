@@ -4,6 +4,7 @@
 public class Bullet : MonoBehaviour
 {
     [SerializeField] bulletData_Card data;
+    [SerializeField] bool isPlayer = true;
     BulletView view;
 
     public bulletData_Card Data => data;
@@ -11,21 +12,23 @@ public class Bullet : MonoBehaviour
     public Vector2Int NextPosition => new Vector2Int(data.nextX, data.nextY);
     public Vector2Int MoveDirection => NextPosition - Position;
     public int HP => data.HP;
+    public bool IsPlayer => isPlayer;
 
-    public static Bullet Create(RectTransform parent, bulletData_Card data, Vector2Int size, Vector2 offset)
+    public static Bullet Create(RectTransform parent, bulletData_Card data, Vector2Int size, Vector2 offset, bool isPlayer = true)
     {
         var obj = new GameObject("Bullet_" + data.x + "_" + data.y,
             typeof(RectTransform), typeof(BulletView), typeof(Bullet));
         obj.layer = parent.gameObject.layer;
         obj.transform.SetParent(parent, false);
         var bullet = obj.GetComponent<Bullet>();
-        bullet.Initialize(data, size, offset);
+        bullet.Initialize(data, size, offset, isPlayer);
         return bullet;
     }
 
-    public void Initialize(bulletData_Card bulletData, Vector2Int size, Vector2 offset)
+    public void Initialize(bulletData_Card bulletData, Vector2Int size, Vector2 offset, bool belongsToPlayer = true)
     {
         data = bulletData;
+        isPlayer = belongsToPlayer;
         view = GetComponent<BulletView>();
         view.Initialize(this, size, offset);
     }

@@ -18,7 +18,7 @@ public class BulletView : MonoBehaviour
         boardOffset = offset;
         rect = GetComponent<RectTransform>();
         var image = GetComponent<Image>();
-        image.color = Color.blue;
+        image.color = owner.IsPlayer ? Color.blue : Color.red;
         image.raycastTarget = false;
         if (hpLabel == null)
         {

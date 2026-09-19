@@ -43,7 +43,7 @@ public class BulletManager : MonoBehaviour
             for (int j = i + 1; j < active.Count; j++)
             {
                 var second = active[j];
-                if (second == null || first.Position != second.Position) continue;
+                if (second == null || first.IsPlayer == second.IsPlayer || first.Position != second.Position) continue;
                 if (!damage.ContainsKey(first)) damage[first] = 0;
                 if (!damage.ContainsKey(second)) damage[second] = 0;
                 damage[first] += second.HP;

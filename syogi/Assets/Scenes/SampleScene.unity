@@ -1195,6 +1195,7 @@ GameObject:
   - component: {fileID: 875770461}
   - component: {fileID: 875770462}
   - component: {fileID: 875770463}
+  - component: {fileID: 875770464}
   m_Layer: 0
   m_Name: Renderer
   m_TagString: Untagged
@@ -1315,6 +1316,7 @@ MonoBehaviour:
   resetButton: {fileID: 1900000001}
   judge: {fileID: 875770463}
   resultLabel: {fileID: 446492426}
+  cpu: {fileID: 875770464}
 --- !u!114 &875770462
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -1344,6 +1346,20 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::BattleJudge
   playerDamage: 0
   opponentDamage: 0
+--- !u!114 &875770464
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 875770454}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d7a5d8d1fd3f4954bca181999016ab15, type: 3}
+  m_Name:
+  m_EditorClassIdentifier: Assembly-CSharp::CpuPlayer
+  board: {fileID: 875770455}
+  bulletManager: {fileID: 875770462}
 --- !u!1 &1150962419
 GameObject:
   m_ObjectHideFlags: 0

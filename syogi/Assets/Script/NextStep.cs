@@ -12,6 +12,7 @@ public class NextStep : MonoBehaviour
     public GameObject resetButton;
     public BattleJudge judge;
     public TextMeshProUGUI resultLabel;
+    public CpuPlayer cpu;
 
     enum Phase
     {
@@ -29,6 +30,7 @@ public class NextStep : MonoBehaviour
         if (cardSelect == null) cardSelect = GetComponent<CardSelect>();
         if (placement == null) placement = GetComponent<CardPlacement>();
         if (judge == null) judge = GetComponent<BattleJudge>();
+        if (cpu == null) cpu = GetComponent<CpuPlayer>();
         if (phaselabel != null) phaselabel.text = "配置フェーズ";
         if (buttom != null) buttom.text = "次へ";
         if (resetButton != null) resetButton.SetActive(true);
@@ -53,6 +55,7 @@ public class NextStep : MonoBehaviour
         if (currentPhase == Phase.Config)
         {
             currentPhase = Phase.Battle;
+            if (cpu != null) cpu.PlaceHand();
             if (phaselabel != null) phaselabel.text = "戦闘フェーズ";
             if (buttom != null) buttom.text = "次ターンへ";
             if (cellInput != null) cellInput.SetPlacementEnabled(false);
@@ -120,6 +123,8 @@ public class NextStep : MonoBehaviour
         if (cardSelect == null) cardSelect = GetComponent<CardSelect>();
         if (placement == null) placement = GetComponent<CardPlacement>();
         if (judge == null) judge = GetComponent<BattleJudge>();
+        if (cpu == null) cpu = GetComponent<CpuPlayer>();
+        if (cpu != null) cpu.ClearPlaced();
         if (bm != null) bm.ClearBullets();
         if (placement != null) placement.ClearPlaced();
         if (judge != null) judge.ResetDamage();
