@@ -3,6 +3,15 @@
 [RequireComponent(typeof(BulletView))]
 public class Bullet : MonoBehaviour
 {
+    public struct TurnState
+    {
+        public bulletData_Card Data;
+        public bool IsPlayer;
+        public Vector2Int MoveDirectionOverride;
+        public int TurnsSinceSubBulletEmission;
+        public int SubBulletEmissions;
+    }
+
     [SerializeField] bulletData_Card data;
     [SerializeField] bool isPlayer = true;
     BulletView view;
@@ -82,6 +91,32 @@ public class Bullet : MonoBehaviour
     public void RefreshDisplay()
     {
         if (view != null) view.RefreshDisplay();
+    }
+
+    public TurnState CaptureTurnState()
+    {
+        return new TurnState
+        {
+            Data = new bulletData_Card
+            {
+                x = data.x, y = data.y, nextX = data.nextX, nextY = data.nextY,
+                HP = data.HP, attribute = data.attribute, subBullets = data.subBullets,
+                subBulletCount = data.subBulletCount, subBulletDelay = data.subBulletDelay,
+                detectrange = data.detectrange
+            },
+            IsPlayer = isPlayer,
+            MoveDirectionOverride = MoveDirection_override,
+            TurnsSinceSubBulletEmission = turnsSinceSubBulletEmission,
+            SubBulletEmissions = subBulletEmissions
+        };
+    }
+
+    public void RestoreTurnState(TurnState state)
+    {
+        MoveDirection_override = state.MoveDirectionOverride;
+        turnsSinceSubBulletEmission = state.TurnsSinceSubBulletEmission;
+        subBulletEmissions = state.SubBulletEmissions;
+        RefreshDisplay();
     }
 
 }

@@ -63,4 +63,12 @@ public class BattleJudge : MonoBehaviour
         CurrentResult = Result.Undecided;
         StateChanged?.Invoke(playerDamage, opponentDamage, CurrentResult);
     }
+
+    public void RestoreDamage(int player, int opponent)
+    {
+        playerDamage = player;
+        opponentDamage = opponent;
+        CurrentResult = Result.Undecided;
+        StateChanged?.Invoke(playerDamage, opponentDamage, CurrentResult);
+    }
 }

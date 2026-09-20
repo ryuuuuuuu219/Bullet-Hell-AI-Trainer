@@ -7,6 +7,37 @@ public class BulletManager : MonoBehaviour
     public fieldrender board;
     public BattleJudge judge;
 
+    List<Bullet.TurnState> previousTurn;
+    public bool CanUndoTurn => previousTurn != null;
+
+    public void SaveTurn()
+    {
+        previousTurn = new List<Bullet.TurnState>();
+        foreach (var bullet in bullets)
+            if (bullet != null) previousTurn.Add(bullet.CaptureTurnState());
+    }
+
+    public bool UndoTurn()
+    {
+        if (previousTurn == null) return false;
+        if (board == null) board = GetComponent<fieldrender>();
+        if (board == null || board.FoundationRect == null || board.Columns <= 0 || board.Rows <= 0) return false;
+
+        var saved = previousTurn;
+        previousTurn = null;
+        ClearBullets();
+        foreach (var state in saved)
+        {
+            var bullet = Bullet.Create(board.FoundationRect, state.Data,
+                new Vector2Int(board.Columns, board.Rows), board.FieldRightTopPos, state.IsPlayer);
+            bullet.RestoreTurnState(state);
+            Add(bullet);
+        }
+        return true;
+    }
+
+    public void ForgetTurn() => previousTurn = null;
+
     public void Add(Bullet bullet)
     {
         if (bullet != null && !bullets.Contains(bullet)) bullets.Add(bullet);
@@ -15,7 +46,11 @@ public class BulletManager : MonoBehaviour
     public void ClearBullets()
     {
         foreach (var bullet in bullets)
-            if (bullet != null) Destroy(bullet.gameObject);
+            if (bullet != null)
+            {
+                bullet.gameObject.SetActive(false);
+                Destroy(bullet.gameObject);
+            }
         bullets.Clear();
     }
 
@@ -65,25 +100,8 @@ public class BulletManager : MonoBehaviour
         if (judge == null) judge = GetComponent<BattleJudge>();
         if (board == null || board.Columns <= 0 || board.Rows <= 0) return false;
 
-        // 索敵には全弾のターン開始位置を使い、登録順による結果の違いを避ける。
+        // 分裂を先に処理し、子弾もこのターンに移動させる。
         var active = new List<Bullet>(bullets);
-        var startPositions = new Dictionary<Bullet, Vector2Int>();
-        foreach (var bullet in active)
-        {
-            if (bullet != null) startPositions[bullet] = bullet.Position;
-        }
-
-        foreach (var bullet in active)
-        {
-            if (bullet == null) continue;
-            if (bullet.Attribute == Attribute.missile)
-                bullet.SetMoveDirection(GetMissileDirection(bullet, active, startPositions));
-            var destination = bullet.Position + bullet.MoveDirection;
-            if (destination != bullet.Position) result = true;
-            bullet.SetPosition(destination);
-        }
-
-        // 子弾は親の移動後に生成し、このターンは終点での衝突判定だけに参加する。
         var parent = board.FoundationRect;
         var spawnedThisTurn = new HashSet<Bullet>();
         foreach (var bullet in new List<Bullet>(active))
@@ -100,13 +118,36 @@ public class BulletManager : MonoBehaviour
                 var childData = template.CopyAt(x, y, bullet.IsPlayer);
                 var child = Bullet.Create(parent, childData, new Vector2Int(board.Columns, board.Rows),
                     board.FieldRightTopPos, bullet.IsPlayer);
+                bullet.SetHP(Mathf.Max(0, bullet.HP - childData.HP));
                 Add(child);
                 active.Add(child);
                 spawnedThisTurn.Add(child);
             }
+            if (bullet.HP <= 0)
+            {
+                active.Remove(bullet);
+                bullets.Remove(bullet);
+                bullet.gameObject.SetActive(false);
+                Destroy(bullet.gameObject);
+            }
         }
 
-        // 既存弾同士は移動経路を、生成直後の子弾はターン終端の位置を比較する。
+        // 索敵には分裂後の全弾のターン開始位置を使う。
+        var startPositions = new Dictionary<Bullet, Vector2Int>();
+        foreach (var bullet in active)
+            if (bullet != null) startPositions[bullet] = bullet.Position;
+
+        foreach (var bullet in active)
+        {
+            if (bullet == null) continue;
+            if (bullet.Attribute == Attribute.missile)
+                bullet.SetMoveDirection(GetMissileDirection(bullet, active, startPositions));
+            var destination = bullet.Position + bullet.MoveDirection;
+            if (destination != bullet.Position) result = true;
+            bullet.SetPosition(destination);
+        }
+
+        // 既存弾同士は移動経路を、生成直後の子弾が関わる衝突は終点を比較する。
         var damage = new Dictionary<Bullet, int>();
         for (int i = 0; i < active.Count; i++)
         {

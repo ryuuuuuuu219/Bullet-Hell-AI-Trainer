@@ -10,6 +10,7 @@ public class NextStep : MonoBehaviour
     public CardSelect cardSelect;
     public CardPlacement placement;
     public GameObject resetButton;
+    public GameObject undoButton;
     public BattleJudge judge;
     public TextMeshProUGUI resultLabel;
     public CpuPlayer cpu;
@@ -22,6 +23,17 @@ public class NextStep : MonoBehaviour
     }
 
     Phase currentPhase = Phase.Config;
+    int previousNobodyTurns;
+    int previousPlayerDamage;
+    int previousOpponentDamage;
+
+    void UpdateUndoButton()
+    {
+        if (undoButton == null) return;
+        undoButton.SetActive(currentPhase == Phase.Battle);
+        var button = undoButton.GetComponent<UnityEngine.UI.Button>();
+        if (button != null) button.interactable = bm != null && bm.CanUndoTurn;
+    }
 
     private void Start()
     {
@@ -34,6 +46,7 @@ public class NextStep : MonoBehaviour
         if (phaselabel != null) phaselabel.text = "配置フェーズ";
         if (buttom != null) buttom.text = "次へ";
         if (resetButton != null) resetButton.SetActive(true);
+        UpdateUndoButton();
         if (resultLabel != null)
         {
             resultLabel.enableAutoSizing = true;
@@ -55,13 +68,20 @@ public class NextStep : MonoBehaviour
         if (currentPhase == Phase.Config)
         {
             currentPhase = Phase.Battle;
+            if (placement != null) placement.ClearOverrideDisplays();
+            if (bm != null) bm.ForgetTurn();
             if (cpu != null) cpu.PlaceHand();
             if (phaselabel != null) phaselabel.text = "戦闘フェーズ";
             if (buttom != null) buttom.text = "次ターンへ";
             if (cellInput != null) cellInput.SetPlacementEnabled(false);
             if (resetButton != null) resetButton.SetActive(false);
+            UpdateUndoButton();
             return;
         }
+        previousNobodyTurns = NobodyTurns;
+        previousPlayerDamage = judge != null ? judge.PlayerDamage : 0;
+        previousOpponentDamage = judge != null ? judge.OpponentDamage : 0;
+        if (bm != null) bm.SaveTurn();
         if (bm != null && !bm.ResumeTurn())
         {
             NobodyTurns++;
@@ -114,6 +134,20 @@ public class NextStep : MonoBehaviour
             if (buttom != null) buttom.text = "リセット";
             if (resetButton != null) resetButton.SetActive(true);
         }
+        UpdateUndoButton();
+    }
+
+    public void Undo()
+    {
+        if (currentPhase != Phase.Battle || bm == null || !bm.UndoTurn()) return;
+        NobodyTurns = previousNobodyTurns;
+        if (judge != null) judge.RestoreDamage(previousPlayerDamage, previousOpponentDamage);
+        currentPhase = Phase.Battle;
+        if (phaselabel != null) phaselabel.text = "戦闘フェーズ";
+        if (buttom != null) buttom.text = "次ターンへ";
+        if (resultLabel != null) resultLabel.gameObject.SetActive(false);
+        if (resetButton != null) resetButton.SetActive(false);
+        UpdateUndoButton();
     }
 
     public void ResetGame()
@@ -126,6 +160,7 @@ public class NextStep : MonoBehaviour
         if (cpu == null) cpu = GetComponent<CpuPlayer>();
         if (cpu != null) cpu.ClearPlaced();
         if (bm != null) bm.ClearBullets();
+        if (bm != null) bm.ForgetTurn();
         if (placement != null) placement.ClearPlaced();
         if (judge != null) judge.ResetDamage();
         if (cardSelect != null) cardSelect.ResetCards();
@@ -136,5 +171,6 @@ public class NextStep : MonoBehaviour
         if (cellInput != null) cellInput.SetPlacementEnabled(true);
         if (resetButton != null) resetButton.SetActive(true);
         if (resultLabel != null) resultLabel.gameObject.SetActive(false);
+        UpdateUndoButton();
     }
 }

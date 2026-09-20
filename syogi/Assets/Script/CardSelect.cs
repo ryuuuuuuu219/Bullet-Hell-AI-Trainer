@@ -15,6 +15,7 @@ public class CardSelect : MonoBehaviour
     readonly Dictionary<int, TMP_Text> cardLabels = new Dictionary<int, TMP_Text>();
     TMP_Text description;
     public CardData SelectedCard { get; private set; }
+    public TMP_FontAsset DescriptionFont => description != null ? description.font : null;
 
     void Start()
     {

@@ -17,6 +17,13 @@ public class bulletData_Card
 
     public bulletData_Card CopyAt(int positionX, int positionY, bool isPlayer)
     {
+        Vector2Int[] copiedDetectRange = null;
+        if (detectrange != null)
+        {
+            copiedDetectRange = new Vector2Int[detectrange.Length];
+            for (int i = 0; i < detectrange.Length; i++)
+                copiedDetectRange[i] = new Vector2Int(detectrange[i].x, isPlayer ? detectrange[i].y : -detectrange[i].y);
+        }
         return new bulletData_Card
         {
             x = positionX,
@@ -28,7 +35,7 @@ public class bulletData_Card
             subBullets = subBullets,
             subBulletCount = subBulletCount,
             subBulletDelay = subBulletDelay,
-            detectrange = detectrange
+            detectrange = copiedDetectRange
         };
     }
 }
