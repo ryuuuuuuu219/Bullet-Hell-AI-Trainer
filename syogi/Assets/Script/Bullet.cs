@@ -100,7 +100,7 @@ public class Bullet : MonoBehaviour
             Data = new bulletData_Card
             {
                 x = data.x, y = data.y, nextX = data.nextX, nextY = data.nextY,
-                HP = data.HP, attribute = data.attribute, subBullets = data.subBullets,
+                HP = data.HP, name = data.name, attribute = data.attribute, subBullets = data.subBullets,
                 subBulletCount = data.subBulletCount, subBulletDelay = data.subBulletDelay,
                 detectrange = data.detectrange
             },

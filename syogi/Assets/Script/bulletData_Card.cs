@@ -3,7 +3,7 @@
 [System.Serializable]
 public class bulletData_Card
 {
-
+    public string name;
     public int x;
     public int y;
     public int nextX;
@@ -31,6 +31,7 @@ public class bulletData_Card
             nextX = positionX + nextX - x,
             nextY = positionY + (isPlayer ? nextY - y : y - nextY),
             HP = HP,
+            name = name,
             attribute = attribute,
             subBullets = subBullets,
             subBulletCount = subBulletCount,

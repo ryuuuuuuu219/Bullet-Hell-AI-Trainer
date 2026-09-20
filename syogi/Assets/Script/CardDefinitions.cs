@@ -28,6 +28,21 @@ public static class CardDefinitions
         };
     }
 
+    static CardData NameBullets(CardData card)
+    {
+        foreach (var bullet in card.bullet)
+            SetName(bullet, card.CardName);
+        return card;
+    }
+
+    static void SetName(bulletData_Card bullet, string cardName)
+    {
+        bullet.name = cardName;
+        if (bullet.subBullets == null) return;
+        foreach (var child in bullet.subBullets)
+            if (child != null) SetName(child, cardName);
+    }
+
     public static CardData CreateHorizontalVolleyCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
@@ -37,7 +52,7 @@ public static class CardDefinitions
             bullets.Add(new bulletData_Card { x = x, y = 0, nextX = x, nextY = 1, HP = 1 });
         }
 
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "横一列斉射",
@@ -45,14 +60,14 @@ public static class CardDefinitions
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = bullets
-        };
+        });
     }
 
     public static CardData CreateDefenseWallCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "防御壁",
@@ -63,14 +78,14 @@ public static class CardDefinitions
             {
                 new bulletData_Card { x = center, y = center, nextX = center, nextY = center, HP = 9, attribute = Attribute.wall }
             }
-        };
+        });
     }
 
     public static CardData CreatePiercingBulletCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "貫通弾",
@@ -81,14 +96,14 @@ public static class CardDefinitions
             {
                 new bulletData_Card { x = center, y = center, nextX = center, nextY = center + 1, HP = 9 }
             }
-        };
+        });
     }
 
     public static CardData CreateGasCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "ガス弾",
@@ -108,14 +123,14 @@ public static class CardDefinitions
                     subBulletCount = 1, subBulletDelay = 5
                 }
             }
-        };
+        });
     }
 
     public static CardData CreateMissileCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "ミサイル",
@@ -135,14 +150,14 @@ public static class CardDefinitions
                     }
                 }
             }
-        };
+        });
     }
 
     public static CardData CreateMirrorCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "反射トラップ",
@@ -157,7 +172,7 @@ public static class CardDefinitions
                     HP = 2, attribute = Attribute.mirror
                 }
             }
-        };
+        });
     }
 
     public static CardData CreateDispersionCard(int cardId, int affectAreaRow, int remainingCount,
@@ -165,7 +180,7 @@ public static class CardDefinitions
     {
         ValidateAffectAreaRow(affectAreaRow);
         int center = (affectAreaRow - 1) / 2;
-        return new CardData
+        return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = cardName,
@@ -185,6 +200,6 @@ public static class CardDefinitions
                     subBulletCount = 6, subBulletDelay = 0
                 }
             }
-        };
+        });
     }
 }

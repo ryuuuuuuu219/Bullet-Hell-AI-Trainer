@@ -55,6 +55,7 @@ public class NextStep : MonoBehaviour
             resultLabel.raycastTarget = false;
             resultLabel.gameObject.SetActive(false);
         }
+        if (cpu != null) cpu.PlaceHand();
     }
 
     int NobodyTurns = 0;
@@ -70,15 +71,15 @@ public class NextStep : MonoBehaviour
             currentPhase = Phase.Battle;
             if (placement != null) placement.ClearOverrideDisplays();
             if (bm != null) bm.ForgetTurn();
-            if (cpu != null) cpu.PlaceHand();
             if (phaselabel != null) phaselabel.text = "戦闘フェーズ";
             if (buttom != null) buttom.text = "次ターンへ";
-            if (cellInput != null) cellInput.SetPlacementEnabled(false);
+            if (cellInput != null) cellInput.SetBattleMode(true);
             if (resetButton != null) resetButton.SetActive(false);
             UpdateUndoButton();
             return;
         }
         previousNobodyTurns = NobodyTurns;
+        if (cellInput != null) cellInput.HideDetails();
         previousPlayerDamage = judge != null ? judge.PlayerDamage : 0;
         previousOpponentDamage = judge != null ? judge.OpponentDamage : 0;
         if (bm != null) bm.SaveTurn();
@@ -93,6 +94,7 @@ public class NextStep : MonoBehaviour
         if (NobodyTurns >= 2)
         {
             currentPhase = Phase.Judge;
+            if (cellInput != null) cellInput.SetBattleMode(false, false);
             var result = judge != null ? judge.Judge() : BattleJudge.Result.Undecided;
             if (phaselabel != null)
             {
@@ -140,6 +142,7 @@ public class NextStep : MonoBehaviour
     public void Undo()
     {
         if (currentPhase != Phase.Battle || bm == null || !bm.UndoTurn()) return;
+        if (cellInput != null) cellInput.HideDetails();
         NobodyTurns = previousNobodyTurns;
         if (judge != null) judge.RestoreDamage(previousPlayerDamage, previousOpponentDamage);
         currentPhase = Phase.Battle;
@@ -168,9 +171,10 @@ public class NextStep : MonoBehaviour
         NobodyTurns = 0;
         if (phaselabel != null) phaselabel.text = "配置フェーズ";
         if (buttom != null) buttom.text = "次へ";
-        if (cellInput != null) cellInput.SetPlacementEnabled(true);
+        if (cellInput != null) cellInput.SetBattleMode(false);
         if (resetButton != null) resetButton.SetActive(true);
         if (resultLabel != null) resultLabel.gameObject.SetActive(false);
         UpdateUndoButton();
+        if (cpu != null) cpu.PlaceHand();
     }
 }
