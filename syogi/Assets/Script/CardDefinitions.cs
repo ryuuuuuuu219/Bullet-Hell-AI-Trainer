@@ -28,39 +28,41 @@ public static class CardDefinitions
         };
     }
 
-    static CardData NameBullets(CardData card)
+    static CardData NameBullets(CardData card, string displayCode)
     {
         foreach (var bullet in card.bullet)
-            SetName(bullet, card.CardName);
+            SetName(bullet, card.CardName, displayCode);
         return card;
     }
 
-    static void SetName(bulletData_Card bullet, string cardName)
+    static void SetName(bulletData_Card bullet, string cardName, string displayCode)
     {
         bullet.name = cardName;
+        bullet.displayCode = displayCode;
         if (bullet.subBullets == null) return;
         foreach (var child in bullet.subBullets)
-            if (child != null) SetName(child, cardName);
+            if (child != null) SetName(child, cardName, displayCode);
     }
 
     public static CardData CreateHorizontalVolleyCard(int cardId, int affectAreaRow, int remainingCount)
     {
         ValidateAffectAreaRow(affectAreaRow);
+        int center = (affectAreaRow - 1) / 2;
         var bullets = new List<bulletData_Card>();
         for (int x = 0; x < affectAreaRow; x++)
         {
-            bullets.Add(new bulletData_Card { x = x, y = 0, nextX = x, nextY = 1, HP = 1 });
+            bullets.Add(new bulletData_Card { x = x, y = center, nextX = x, nextY = center+1, HP = 1 });
         }
 
         return NameBullets(new CardData
         {
             CardID = cardId,
             CardName = "横一列斉射",
-            CardDiscription = "横一列の編隊になって飛翔するHP1の弾幕3斉射",
+            CardDiscription = "内訳：通常弾(Ball)×3\n横一列の編隊になって飛翔するHP1の弾幕3斉射",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = bullets
-        });
+        }, "Ball");
     }
 
     public static CardData CreateDefenseWallCard(int cardId, int affectAreaRow, int remainingCount)
@@ -71,14 +73,14 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = "防御壁",
-            CardDiscription = "留まる壁HP9",
+            CardDiscription = "内訳：防御壁(DeFw)×1\n留まる壁HP9",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
             {
                 new bulletData_Card { x = center, y = center, nextX = center, nextY = center, HP = 9, attribute = Attribute.wall }
             }
-        });
+        }, "DeFw");
     }
 
     public static CardData CreatePiercingBulletCard(int cardId, int affectAreaRow, int remainingCount)
@@ -89,14 +91,14 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = "貫通弾",
-            CardDiscription = "一発のみ、HP9で飛翔する貫通弾",
+            CardDiscription = "内訳：貫通弾(APb)×1\nHP9で飛翔する貫通弾",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
             {
                 new bulletData_Card { x = center, y = center, nextX = center, nextY = center + 1, HP = 9 }
             }
-        });
+        }, "APb");
     }
 
     public static CardData CreateGasCard(int cardId, int affectAreaRow, int remainingCount)
@@ -107,7 +109,7 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = "ガス弾",
-            CardDiscription = "炸裂し、その座標に接触した弾幕のHPを削る",
+            CardDiscription = "内訳：ガス弾(Gab)×1\n一定距離で炸裂し、その座標に接触した弾幕のHPを削る",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
@@ -123,7 +125,7 @@ public static class CardDefinitions
                     subBulletCount = 1, subBulletDelay = 5
                 }
             }
-        });
+        }, "Gab");
     }
 
     public static CardData CreateMissileCard(int cardId, int affectAreaRow, int remainingCount)
@@ -134,7 +136,7 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = "ミサイル",
-            CardDiscription = "周辺の弾幕に向かい誘導する",
+            CardDiscription = "内訳：ミサイル(Msl)×1\n周辺の弾幕に向かい誘導する",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
@@ -150,7 +152,7 @@ public static class CardDefinitions
                     }
                 }
             }
-        });
+        }, "Msl");
     }
 
     public static CardData CreateMirrorCard(int cardId, int affectAreaRow, int remainingCount)
@@ -161,7 +163,7 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = "反射トラップ",
-            CardDiscription = "接触した弾幕を反射する",
+            CardDiscription = "内訳：反射トラップ(RefT)×1\n接触した弾幕を反射する",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
@@ -172,7 +174,7 @@ public static class CardDefinitions
                     HP = 2, attribute = Attribute.mirror
                 }
             }
-        });
+        }, "RefT");
     }
 
     public static CardData CreateDispersionCard(int cardId, int affectAreaRow, int remainingCount,
@@ -184,7 +186,7 @@ public static class CardDefinitions
         {
             CardID = cardId,
             CardName = cardName,
-            CardDiscription = "複数の弾を生成しながら飛翔する",
+            CardDiscription = "内訳：分裂弾("+ (horizontalDirection > 0 ? "Sp-r" : "Sp-l") + ")×1\n複数の弾を生成しながら飛翔する",
             AffectAreaRow = affectAreaRow,
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
@@ -200,6 +202,6 @@ public static class CardDefinitions
                     subBulletCount = 6, subBulletDelay = 0
                 }
             }
-        });
+        }, horizontalDirection > 0 ? "Sp-r" : "Sp-l");
     }
 }

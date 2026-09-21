@@ -47,7 +47,9 @@ public class BulletView : MonoBehaviour
         rect.anchorMax = new Vector2((bullet.Position.x + 0.675f) / boardSize.x, (bullet.Position.y + 0.675f) / boardSize.y);
         rect.anchoredPosition = boardOffset;
         rect.sizeDelta = Vector2.zero;
-        hpLabel.text = bullet.HP.ToString();
+        hpLabel.text = string.IsNullOrEmpty(bullet.Data.displayCode)
+            ? bullet.HP.ToString()
+            : "<size=60%>" + bullet.Data.displayCode + "</size>\n" + bullet.HP;
         gameObject.name = "Bullet_" + bullet.Position.x + "_" + bullet.Position.y;
     }
 }

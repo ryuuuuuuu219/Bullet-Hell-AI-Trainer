@@ -4,6 +4,7 @@
 public class bulletData_Card
 {
     public string name;
+    public string displayCode;
     public int x;
     public int y;
     public int nextX;
@@ -32,6 +33,7 @@ public class bulletData_Card
             nextY = positionY + (isPlayer ? nextY - y : y - nextY),
             HP = HP,
             name = name,
+            displayCode = displayCode,
             attribute = attribute,
             subBullets = subBullets,
             subBulletCount = subBulletCount,

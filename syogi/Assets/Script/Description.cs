@@ -54,7 +54,9 @@ public class Description : MonoBehaviour
     void bullet(bulletData_Card bulletData, int range, bool isplayer=true)
     {
         Color color = isplayer ? Color.blue : Color.red;
-        string hp = bulletData.HP.ToString();
+        string hp = string.IsNullOrEmpty(bulletData.displayCode)
+            ? bulletData.HP.ToString()
+            : "<size=60%>" + bulletData.displayCode + "</size>\n" + bulletData.HP;
         Vector2 startAnchor = new Vector2((bulletData.x + 0.5f) / range, (bulletData.y + 0.5f) / range);
         Vector2 endAnchor = new Vector2((bulletData.nextX + 0.5f) / range, (bulletData.nextY + 0.5f) / range);
         Vector2 startPos = Vector2.Scale(startAnchor, field.rect.size);
@@ -89,6 +91,9 @@ public class Description : MonoBehaviour
         var label = hpObj.GetComponent<TextMeshProUGUI>();
         label.text = hp;
         label.fontSize = cell * 0.2f;
+        label.enableAutoSizing = true;
+        label.fontSizeMin = 1f;
+        label.fontSizeMax = cell * 0.2f;
         label.alignment = TextAlignmentOptions.Center;
         label.color = Color.white;
         label.raycastTarget = false;
