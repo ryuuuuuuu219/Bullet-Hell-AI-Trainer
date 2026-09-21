@@ -40,6 +40,21 @@ public class CardSelect : MonoBehaviour
             Debug.LogError("カードPrefabの高さは0より大きく設定してください。", this);
             return;
         }
+        var noSelection = Instantiate(CardPrefab, scroll.content, false);
+        noSelection.name = "Card_None";
+        var noSelectionRect = noSelection.GetComponent<RectTransform>();
+        noSelectionRect.anchorMin = new Vector2(0f, 1f);
+        noSelectionRect.anchorMax = Vector2.one;
+        noSelectionRect.pivot = new Vector2(0.5f, 1f);
+        noSelectionRect.anchoredPosition = Vector2.zero;
+        noSelectionRect.sizeDelta = new Vector2(0f, height);
+        var noSelectionLabel = noSelection.GetComponentInChildren<TMP_Text>(true);
+        noSelectionLabel.font = description.font;
+        noSelectionLabel.text = "選択しない";
+        noSelectionLabel.raycastTarget = false;
+        noSelection.GetComponent<Button>().onClick.AddListener(ClearSelection);
+        noSelection.SetActive(true);
+
         for (int i = 0; i < CardDatas.Length; i++)
         {
             var card = CardDatas[i];
@@ -49,7 +64,7 @@ public class CardSelect : MonoBehaviour
             rect.anchorMin = new Vector2(0f, 1f);
             rect.anchorMax = Vector2.one;
             rect.pivot = new Vector2(0.5f, 1f);
-            rect.anchoredPosition = new Vector2(0f, -i * height);
+            rect.anchoredPosition = new Vector2(0f, -(i + 1) * height);
             rect.sizeDelta = new Vector2(0f, height);
             var label = instance.GetComponentInChildren<TMP_Text>(true);
             label.font = description.font;
@@ -62,12 +77,20 @@ public class CardSelect : MonoBehaviour
             instance.SetActive(true);
         }
         var viewport = scroll.viewport != null ? scroll.viewport : scroll.GetComponent<RectTransform>();
-        scroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(viewport.rect.height, CardDatas.Length * height));
+        scroll.content.SetSizeWithCurrentAnchors(RectTransform.Axis.Vertical, Mathf.Max(viewport.rect.height, (CardDatas.Length + 1) * height));
         scroll.verticalNormalizedPosition = 1f;
         SelectCard(CardDatas[0]);
     }
 
     string CardLabel(CardData card) => card.CardName + " ×" + card.RemainingCount;
+
+    void ClearSelection()
+    {
+        SelectedCard = null;
+        description.text = "カードを選択していません。";
+        var grid = Render != null ? Render.GetComponent<fieldrender>() : GetComponent<fieldrender>();
+        if (grid != null) grid.ClearGrid2();
+    }
 
     void SelectCard(CardData card)
     {

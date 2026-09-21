@@ -69,16 +69,7 @@ public class fieldrender : MonoBehaviour
 
     public void DrawGrid2(int Range)
     {
-        for (int i = lines.Count - 1; i >= 0; i--)
-        {
-            if (lines[i] == null) { lines.RemoveAt(i); continue; }
-            if (AltFoundation != null && lines[i].transform.parent == AltFoundation.transform)
-            {
-                lines[i].SetActive(false);
-                Destroy(lines[i]);
-                lines.RemoveAt(i);
-            }
-        }
+        ClearGrid2();
         var foundationRect = AltFoundation != null ? AltFoundation.GetComponent<RectTransform>() : null;
         if (foundationRect == null)
         {
@@ -105,5 +96,19 @@ public class fieldrender : MonoBehaviour
             BuildLine(foundationRect, "HorizontalLine_" + j, new Vector2(1f, y), new Vector2(0f, y));
         }
 
+    }
+
+    public void ClearGrid2()
+    {
+        for (int i = lines.Count - 1; i >= 0; i--)
+        {
+            if (lines[i] == null) { lines.RemoveAt(i); continue; }
+            if (AltFoundation != null && lines[i].transform.parent == AltFoundation.transform)
+            {
+                lines[i].SetActive(false);
+                Destroy(lines[i]);
+                lines.RemoveAt(i);
+            }
+        }
     }
 }

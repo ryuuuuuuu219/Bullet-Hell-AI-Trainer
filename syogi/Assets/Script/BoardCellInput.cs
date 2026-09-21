@@ -11,7 +11,6 @@ public class BoardCellInput : MonoBehaviour
     public CardPlacement placement;
     public BulletManager bulletManager;
     readonly List<Button> buttons = new List<Button>();
-    readonly List<int> buttonRows = new List<int>();
     RectTransform detailsRect;
     TextMeshProUGUI detailsText;
     bool battleMode;
@@ -23,7 +22,7 @@ public class BoardCellInput : MonoBehaviour
         for (int i = 0; i < buttons.Count; i++)
         {
             if (buttons[i] != null)
-                buttons[i].interactable = enabled || (allowPlacement && buttonRows[i] < CardDefinitions.PlacementRows);
+                buttons[i].interactable = enabled || allowPlacement;
         }
     }
 
@@ -63,20 +62,41 @@ public class BoardCellInput : MonoBehaviour
                 button.targetGraphic = image;
                 button.transition = Selectable.Transition.None;
                 button.navigation = new Navigation { mode = Navigation.Mode.None };
-                button.interactable = battleMode || y < CardDefinitions.PlacementRows;
+                button.interactable = true;
                 int cellX = x;
                 int cellY = y;
                 button.onClick.AddListener(() => OnCellClicked(cellX, cellY));
                 buttons.Add(button);
-                buttonRows.Add(y);
             }
         }
     }
 
     void OnCellClicked(int x, int y)
     {
+        if (HasBulletAt(x, y)) OnOccupiedCellClicked(x, y);
+        else OnEmptyCellClicked(x, y);
+    }
+
+    bool HasBulletAt(int x, int y)
+    {
+        if (bulletManager == null) bulletManager = GetComponent<BulletManager>();
+        if (bulletManager == null) return false;
+        foreach (var bullet in bulletManager.bullets)
+            if (bullet != null && bullet.gameObject.activeInHierarchy && bullet.HP > 0 &&
+                bullet.Position.x == x && bullet.Position.y == y) return true;
+        return false;
+    }
+
+    void OnEmptyCellClicked(int x, int y)
+    {
         if (battleMode) ShowDetails(x, y);
-        else if (placement != null) placement.PlaceSelectedCard(x, y);
+        else if (y < CardDefinitions.PlacementRows && placement != null)
+            placement.PlaceSelectedCard(x, y);
+    }
+
+    void OnOccupiedCellClicked(int x, int y)
+    {
+        ShowDetails(x, y);
     }
 
     void ShowDetails(int x, int y)
