@@ -20,8 +20,7 @@ public class Bullet : MonoBehaviour
 
     public bulletData_Card Data => data;
     public Vector2Int Position => new Vector2Int(data.x, data.y);
-    public Vector2Int NextPosition => new Vector2Int(data.nextX, data.nextY);
-    public Vector2Int MoveDirection => (Attribute == Attribute.wall || Attribute == Attribute.gus || Attribute == Attribute.mirror) ? Vector2Int.zero : MoveDirection_override != Vector2Int.zero ? MoveDirection_override : (NextPosition - Position);
+    public Vector2Int MoveDirection => (Attribute == Attribute.wall || Attribute == Attribute.gus || Attribute == Attribute.mirror) ? Vector2Int.zero : MoveDirection_override != Vector2Int.zero ? MoveDirection_override : data.moveVector;
     public Vector2Int MoveDirection_override=Vector2Int.zero;
     public int HP => data.HP;
     public bool IsPlayer => isPlayer;
@@ -56,8 +55,7 @@ public class Bullet : MonoBehaviour
     {
         if (data == null) return;
         MoveDirection_override = direction;
-        data.nextX = data.x + direction.x;
-        data.nextY = data.y + direction.y;
+        data.moveVector = direction;
     }
 
     public bool AdvanceSubBulletTurn()
@@ -76,8 +74,7 @@ public class Bullet : MonoBehaviour
         var direction = MoveDirection;
         data.x = position.x;
         data.y = position.y;
-        data.nextX = position.x + direction.x;
-        data.nextY = position.y + direction.y;
+        data.moveVector = direction;
         RefreshDisplay();
     }
 
@@ -99,7 +96,7 @@ public class Bullet : MonoBehaviour
         {
             Data = new bulletData_Card
             {
-                x = data.x, y = data.y, nextX = data.nextX, nextY = data.nextY,
+                x = data.x, y = data.y, moveVector = data.moveVector,
                 HP = data.HP, name = data.name, displayCode = data.displayCode,
                 attribute = data.attribute, subBullets = data.subBullets,
                 subBulletCount = data.subBulletCount, subBulletDelay = data.subBulletDelay,

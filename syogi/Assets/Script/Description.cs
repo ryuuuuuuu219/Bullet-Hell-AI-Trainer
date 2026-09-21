@@ -58,7 +58,9 @@ public class Description : MonoBehaviour
             ? bulletData.HP.ToString()
             : "<size=60%>" + bulletData.displayCode + "</size>\n" + bulletData.HP;
         Vector2 startAnchor = new Vector2((bulletData.x + 0.5f) / range, (bulletData.y + 0.5f) / range);
-        Vector2 endAnchor = new Vector2((bulletData.nextX + 0.5f) / range, (bulletData.nextY + 0.5f) / range);
+        Vector2 endAnchor = new Vector2(
+            (bulletData.x + bulletData.moveVector.x + 0.5f) / range,
+            (bulletData.y + bulletData.moveVector.y + 0.5f) / range);
         Vector2 startPos = Vector2.Scale(startAnchor, field.rect.size);
         Vector2 endPos = Vector2.Scale(endAnchor, field.rect.size);
         float cell = Mathf.Min(field.rect.width, field.rect.height) / range;

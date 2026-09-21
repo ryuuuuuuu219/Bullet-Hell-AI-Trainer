@@ -51,7 +51,7 @@ public static class CardDefinitions
         var bullets = new List<bulletData_Card>();
         for (int x = 0; x < affectAreaRow; x++)
         {
-            bullets.Add(new bulletData_Card { x = x, y = center, nextX = x, nextY = center+1, HP = 1 });
+            bullets.Add(new bulletData_Card { x = x, y = center, moveVector = new UnityEngine.Vector2Int(0, 1), HP = 1 });
         }
 
         return NameBullets(new CardData
@@ -78,7 +78,7 @@ public static class CardDefinitions
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
             {
-                new bulletData_Card { x = center, y = center, nextX = center, nextY = center, HP = 9, attribute = Attribute.wall }
+                new bulletData_Card { x = center, y = center, moveVector = UnityEngine.Vector2Int.zero, HP = 9, attribute = Attribute.wall }
             }
         }, "DeFw");
     }
@@ -96,7 +96,7 @@ public static class CardDefinitions
             RemainingCount = remainingCount,
             bullet = new List<bulletData_Card>
             {
-                new bulletData_Card { x = center, y = center, nextX = center, nextY = center + 1, HP = 9 }
+                new bulletData_Card { x = center, y = center, moveVector = new UnityEngine.Vector2Int(0, 1), HP = 9 }
             }
         }, "APb");
     }
@@ -116,11 +116,11 @@ public static class CardDefinitions
             {
                 new bulletData_Card
                 {
-                    x = center, y = center, nextX = center, nextY = center + 1,
+                    x = center, y = center, moveVector = new UnityEngine.Vector2Int(0, 1),
                     HP = 2, attribute = Attribute.dispersion,
                     subBullets = new[]
                     {
-                        new bulletData_Card { x = 0, y = 0, nextX = 0, nextY = 0, HP = 2, attribute = Attribute.gus }
+                        new bulletData_Card { x = 0, y = 0, moveVector = UnityEngine.Vector2Int.zero, HP = 2, attribute = Attribute.gus }
                     },
                     subBulletCount = 1, subBulletDelay = 5
                 }
@@ -143,7 +143,7 @@ public static class CardDefinitions
             {
                 new bulletData_Card
                 {
-                    x = center, y = center, nextX = center, nextY = center + 1,
+                    x = center, y = center, moveVector = new UnityEngine.Vector2Int(0, 1),
                     HP = 2, attribute = Attribute.missile,
                     detectrange = new[]
                     {
@@ -170,7 +170,7 @@ public static class CardDefinitions
             {
                 new bulletData_Card
                 {
-                    x = center, y = center, nextX = center, nextY = center,
+                    x = center, y = center, moveVector = UnityEngine.Vector2Int.zero,
                     HP = 2, attribute = Attribute.mirror
                 }
             }
@@ -193,11 +193,11 @@ public static class CardDefinitions
             {
                 new bulletData_Card
                 {
-                    x = center, y = center, nextX = center + horizontalDirection, nextY = center + 1,
+                    x = center, y = center, moveVector = new UnityEngine.Vector2Int(horizontalDirection, 1),
                     HP = 6, attribute = Attribute.dispersion,
                     subBullets = new[]
                     {
-                        new bulletData_Card { x = 0, y = 0, nextX = 0, nextY = 1, HP = 1, attribute = Attribute.projectile }
+                        new bulletData_Card { x = 0, y = 0, moveVector = new UnityEngine.Vector2Int(0, 1), HP = 1, attribute = Attribute.projectile }
                     },
                     subBulletCount = 6, subBulletDelay = 0
                 }

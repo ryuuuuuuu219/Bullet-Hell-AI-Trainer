@@ -7,8 +7,7 @@ public class bulletData_Card
     public string displayCode;
     public int x;
     public int y;
-    public int nextX;
-    public int nextY;
+    public Vector2Int moveVector;
     public int HP;
     public Attribute attribute;
     public bulletData_Card[] subBullets; // サブ弾幕の配列を追加
@@ -29,8 +28,7 @@ public class bulletData_Card
         {
             x = positionX,
             y = positionY,
-            nextX = positionX + nextX - x,
-            nextY = positionY + (isPlayer ? nextY - y : y - nextY),
+            moveVector = new Vector2Int(moveVector.x, isPlayer ? moveVector.y : -moveVector.y),
             HP = HP,
             name = name,
             displayCode = displayCode,
