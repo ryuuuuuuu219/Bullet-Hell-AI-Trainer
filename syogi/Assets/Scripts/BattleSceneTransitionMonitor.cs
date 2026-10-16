@@ -34,7 +34,7 @@ public sealed class BattleSceneTransitionMonitor : MonoBehaviour
 
     private void Update()
     {
-        if (transitionRequested)
+        //if (transitionRequested)
             return;
 
         // Debug: return after ten real-time seconds.
