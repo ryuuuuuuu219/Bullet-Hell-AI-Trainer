@@ -309,6 +309,11 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a210a03fcc54c7a8f680551d669dc3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  sceneNames:
+  - main menu
+  - battle0
+  - nobel0
+  - debriefing0
 --- !u!1 &1100
 GameObject:
   m_ObjectHideFlags: 0
@@ -392,7 +397,7 @@ GameObject:
   - component: {fileID: 1203}
   - component: {fileID: 1204}
   m_Layer: 5
-  m_Name: Go to battle
+  m_Name: Go to battle0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1201
@@ -486,13 +491,13 @@ MonoBehaviour:
       - m_Target: {fileID: 1005}
         m_TargetAssemblyTypeName: SceneNavigation, Assembly-CSharp
         m_MethodName: LoadScene
-        m_Mode: 5
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 1
           m_FloatArgument: 0
-          m_StringArgument: battle
+          m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!1 &1210
@@ -507,7 +512,7 @@ GameObject:
   - component: {fileID: 1212}
   - component: {fileID: 1213}
   m_Layer: 5
-  m_Name: battle
+  m_Name: battle0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1211
@@ -564,7 +569,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: battle
+  m_Text: battle0
 --- !u!1 &1300
 GameObject:
   m_ObjectHideFlags: 0
@@ -578,7 +583,7 @@ GameObject:
   - component: {fileID: 1303}
   - component: {fileID: 1304}
   m_Layer: 5
-  m_Name: Go to nobel
+  m_Name: Go to nobel0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1301
@@ -672,13 +677,13 @@ MonoBehaviour:
       - m_Target: {fileID: 1005}
         m_TargetAssemblyTypeName: SceneNavigation, Assembly-CSharp
         m_MethodName: LoadScene
-        m_Mode: 5
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 2
           m_FloatArgument: 0
-          m_StringArgument: nobel
+          m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!1 &1310
@@ -693,7 +698,7 @@ GameObject:
   - component: {fileID: 1312}
   - component: {fileID: 1313}
   m_Layer: 5
-  m_Name: nobel
+  m_Name: nobel0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1311
@@ -750,7 +755,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: nobel
+  m_Text: nobel0
 --- !u!1 &2000
 GameObject:
   m_ObjectHideFlags: 0
@@ -1090,7 +1095,7 @@ GameObject:
   - component: {fileID: 1403}
   - component: {fileID: 1404}
   m_Layer: 5
-  m_Name: Go to debriefing
+  m_Name: Go to debriefing0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1401
@@ -1184,13 +1189,13 @@ MonoBehaviour:
       - m_Target: {fileID: 1005}
         m_TargetAssemblyTypeName: SceneNavigation, Assembly-CSharp
         m_MethodName: LoadScene
-        m_Mode: 5
+        m_Mode: 3
         m_Arguments:
           m_ObjectArgument: {fileID: 0}
           m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
-          m_IntArgument: 0
+          m_IntArgument: 3
           m_FloatArgument: 0
-          m_StringArgument: debriefing
+          m_StringArgument: 
           m_BoolArgument: 0
         m_CallState: 2
 --- !u!1 &1410
@@ -1205,7 +1210,7 @@ GameObject:
   - component: {fileID: 1412}
   - component: {fileID: 1413}
   m_Layer: 5
-  m_Name: debriefing
+  m_Name: debriefing0
   m_TagString: Untagged
   m_IsActive: 1
 --- !u!224 &1411
@@ -1262,7 +1267,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: debriefing
+  m_Text: debriefing0
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

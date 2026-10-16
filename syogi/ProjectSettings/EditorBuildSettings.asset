@@ -9,12 +9,12 @@ EditorBuildSettings:
     path: Assets/Scenes/main menu.unity
     guid: 99b62bb159c3454cbe4693aa43ea8324
   - enabled: 1
-    path: Assets/Scenes/battle.unity
+    path: Assets/Scenes/battle0.unity
     guid: 6d74cd2e5a144a5695c2fea8b1c72f3a
   - enabled: 1
-    path: Assets/Scenes/nobel.unity
+    path: Assets/Scenes/nobel0.unity
     guid: 6f40e41ec5444799b20b44f3444bd7df
   - enabled: 1
-    path: Assets/Scenes/debriefing.unity
+    path: Assets/Scenes/debriefing0.unity
     guid: c6120aec1d6345889838fb465f260a69
   m_configObjects: {}
