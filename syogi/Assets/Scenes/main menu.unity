@@ -309,6 +309,12 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 6a210a03fcc54c7a8f680551d669dc3a, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
+  toStoryButtons:
+  - sceneName: battle0
+    buttons:
+    - {fileID: 1300}
+    - {fileID: 1200}
+    - {fileID: 1400}
   sceneNames:
   - main menu
   - battle0
