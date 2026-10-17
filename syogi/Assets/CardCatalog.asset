@@ -1,0 +1,68 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e07b8e7e3e1642d0b01f9ecf8b7360dc, type: 3}
+  m_Name: CardCatalog
+  m_EditorClassIdentifier: 
+  initialSettings:
+    directionBasis: 0
+    interpolation: 0
+    hasSplitDelay: 0
+    splitDelay: 0
+    hasChildFiringStructure: 0
+  parameters:
+  - ID: "BulletSpeed"
+    initialValue: 120
+    mod: 0
+  - ID: "FireInterval"
+    initialValue: 5
+    mod: 0
+  - ID: "BulletCount"
+    initialValue: 8
+    mod: 0
+  - ID: "FormationAngleStart"
+    initialValue: 0
+    mod: 0
+  - ID: "FormationAngleEnd"
+    initialValue: 14
+    mod: 0
+  - ID: "AngularSpeedStart"
+    initialValue: 0
+    mod: 0
+  - ID: "AngularSpeedEnd"
+    initialValue: 0
+    mod: 0
+  - ID: "SpeedOffsetStart"
+    initialValue: -15
+    mod: 0
+  - ID: "SpeedOffsetEnd"
+    initialValue: 38
+    mod: 0
+  - ID: "PowerSlopeStart"
+    initialValue: 0
+    mod: 0
+  - ID: "PowerSlopeEnd"
+    initialValue: 0
+    mod: 0
+  - ID: "PowerConstantStart"
+    initialValue: 0.3
+    mod: 0
+  - ID: "PowerConstantEnd"
+    initialValue: 0.9
+    mod: 0
+  - ID: "SplitInterval"
+    initialValue: 0
+    mod: 0
+  cards:
+  - displayName: Spe:+10U/s
+    items:
+    - ID: "BulletSpeed"
+      mod: 10
