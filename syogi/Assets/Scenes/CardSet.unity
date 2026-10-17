@@ -177,15 +177,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u5F3E\u901F: 120 + 0 = 120\r\n\u767A\u5C04\u5468\u671F: 5 + 0 = 5\r\n\u767A\u5C04\u6570:
-    8 + 0 = 8\r\n\u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09: 0 + 0 = 0\r\n\u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:
-    14 + 0 = 14\r\n\u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09: 0 + 0 = 0\r\n\u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:
-    0 + 0 = 0\r\n\u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09: -15 + 0 = -15\r\n\u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:
-    38 + 0 = 38\r\n\u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:
-    0 + 0 = 0\r\n\u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:
-    0 + 0 = 0\r\n\u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09: 0.3 + 0
-    = 0.3\r\n\u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09: 0.9 + 0 = 0.9\r\n\u5206\u88C2\u9593\u9694:
-    0 + 0 = 0"
+  m_text: "\u767a\u5c04\u57fa\u6e96: \u7167\u6e96\n\u7de8\u968a\u306e\u88dc\u9593\u65b9\u5f0f: \u7dda\u5f62\n\u5206\u88c2\u9045\u5ef6: \u306a\u3057\n\u5b50\u5f3e\u306e\u767a\u5c04\u69cb\u9020: \u5b9a\u7fa9\u306a\u3057\n\u5f3e\u901f: 120 + 0 = 120\r\n\u767a\u5c04\u5468\u671f: 5 + 0 = 5\r\n\u767a\u5c04\u6570: 8 + 0 = 8\r\n\u7de8\u968a\u89d2\u5ea6\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u7de8\u968a\u89d2\u5ea6\uff08\u7d42\u70b9\uff09: 14 + 0 = 14\r\n\u89d2\u901f\u5ea6\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u89d2\u901f\u5ea6\uff08\u7d42\u70b9\uff09: 0 + 0 = 0\r\n\u5f3e\u901f\u5dee\uff08\u59cb\u70b9\uff09: -15 + 0 = -15\r\n\u5f3e\u901f\u5dee\uff08\u7d42\u70b9\uff09: 38 + 0 = 38\r\n\u5a01\u529b\u30fb\u6642\u9593\u4fc2\u6570\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u5a01\u529b\u30fb\u6642\u9593\u4fc2\u6570\uff08\u7d42\u70b9\uff09: 0 + 0 = 0\r\n\u5a01\u529b\u30fb\u5b9a\u6570\uff08\u59cb\u70b9\uff09: 0.3 + 0 = 0.3\r\n\u5a01\u529b\u30fb\u5b9a\u6570\uff08\u7d42\u70b9\uff09: 0.9 + 0 = 0.9\r\n\u5206\u88c2\u9593\u9694: 0 + 0 = 0"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
   m_sharedMaterial: {fileID: 5564924448460782022, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
@@ -850,8 +842,8 @@ GameObject:
   m_PrefabAsset: {fileID: 0}
   serializedVersion: 6
   m_Component:
-  - component: {fileID: 447541113}
   - component: {fileID: 447541110}
+  - component: {fileID: 447541113}
   - component: {fileID: 447541112}
   - component: {fileID: 447541111}
   m_Layer: 0
@@ -919,6 +911,21 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 447541109}
   m_CullTransparentMesh: 1
+--- !u!114 &447541113
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 447541109}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d268dfdb76a54a47a8bc6549d9bf7841, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  text: {fileID: 53299945}
+  padding: 12
+  scrollSensitivity: 30
 --- !u!1 &594542966
 GameObject:
   m_ObjectHideFlags: 0
@@ -1540,6 +1547,61 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 1246764407}
   m_CullTransparentMesh: 1
+--- !u!1 &1332778823
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 1332778825}
+  - component: {fileID: 1332778824}
+  m_Layer: 0
+  m_Name: SceneNavigation
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &1332778824
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332778823}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 6a210a03fcc54c7a8f680551d669dc3a, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::SceneNavigation
+  sceneNames:
+  - main menu
+  - battle0
+  - nobel0
+  - debriefing0
+  toStoryButtons: []
+  Scenes:
+  - isUnlocked: 1
+    sceneName: battle0
+  - isUnlocked: 0
+    sceneName: battle1
+--- !u!4 &1332778825
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1332778823}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 963.85455, y: 447.02197, z: 6.61856}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1 &1719523436
 GameObject:
   m_ObjectHideFlags: 0
@@ -2077,7 +2139,19 @@ MonoBehaviour:
   m_TargetGraphic: {fileID: 1991814747}
   m_OnClick:
     m_PersistentCalls:
-      m_Calls: []
+      m_Calls:
+      - m_Target: {fileID: 1332778824}
+        m_TargetAssemblyTypeName: SceneNavigation, Assembly-CSharp
+        m_MethodName: ReturnToMainMenu
+        m_Mode: 1
+        m_Arguments:
+          m_ObjectArgument: {fileID: 0}
+          m_ObjectArgumentAssemblyTypeName: UnityEngine.Object, UnityEngine
+          m_IntArgument: 0
+          m_FloatArgument: 0
+          m_StringArgument: 
+          m_BoolArgument: 0
+        m_CallState: 2
 --- !u!114 &1991814747
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -2426,21 +2500,6 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 2113771038}
   m_CullTransparentMesh: 1
---- !u!114 &447541113
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 447541109}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d268dfdb76a54a47a8bc6549d9bf7841, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
-  text: {fileID: 53299945}
-  padding: 12
-  scrollSensitivity: 30
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -2448,3 +2507,4 @@ SceneRoots:
   - {fileID: 1787680929}
   - {fileID: 2043506691}
   - {fileID: 1803442618}
+  - {fileID: 1332778825}

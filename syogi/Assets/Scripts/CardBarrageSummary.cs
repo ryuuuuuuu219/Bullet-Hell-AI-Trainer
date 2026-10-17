@@ -39,8 +39,24 @@ public sealed class CardBarrageSummary : MonoBehaviour
 
     public static string BuildSummary(CardCatalog source, IEnumerable<CardData> cards)
     {
-        if (source == null || source.parameters == null) return string.Empty;
+        if (source == null) return string.Empty;
         var result = new StringBuilder();
+        CardInitialSettings settings = source.initialSettings;
+        if (settings != null)
+        {
+            string direction = settings.directionBasis == CardDirectionBasis.Aim ? "照準"
+                : settings.directionBasis == CardDirectionBasis.Movement ? "移動ベクトル"
+                : settings.directionBasis.ToString();
+            string interpolation = settings.interpolation == CardFormationInterpolation.Linear
+                ? "線形" : settings.interpolation.ToString();
+            result.Append("発射基準: ").AppendLine(direction);
+            result.Append("編隊の補間方式: ").AppendLine(interpolation);
+            result.Append("分裂遅延: ").AppendLine(settings.hasSplitDelay
+                ? Format(settings.splitDelay) + " 秒" : "なし");
+            result.Append("子弾の発射構造: ").Append(settings.hasChildFiringStructure
+                ? "定義あり" : "定義なし");
+        }
+        if (source.parameters == null) return result.ToString();
         foreach (CardParameterValue parameter in source.parameters)
         {
             if (parameter == null) continue;
