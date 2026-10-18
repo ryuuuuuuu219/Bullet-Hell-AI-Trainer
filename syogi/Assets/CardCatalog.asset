@@ -20,46 +20,68 @@ MonoBehaviour:
     hasChildFiringStructure: 0
   parameters:
   - ID: "BulletSpeed"
+    isToParent: 1
     initialValue: 120
     mod: 0
   - ID: "FireInterval"
+    isToParent: 1
     initialValue: 5
     mod: 0
   - ID: "BulletCount"
+    isToParent: 1
     initialValue: 8
     mod: 0
   - ID: "FormationAngleStart"
+    isToParent: 1
     initialValue: 0
     mod: 0
   - ID: "FormationAngleEnd"
+    isToParent: 1
     initialValue: 14
     mod: 0
   - ID: "AngularSpeedStart"
+    isToParent: 1
     initialValue: 0
     mod: 0
   - ID: "AngularSpeedEnd"
+    isToParent: 1
     initialValue: 0
     mod: 0
   - ID: "SpeedOffsetStart"
+    isToParent: 1
     initialValue: -15
     mod: 0
   - ID: "SpeedOffsetEnd"
+    isToParent: 1
     initialValue: 38
     mod: 0
   - ID: "PowerSlopeStart"
+    isToParent: 1
     initialValue: 0
     mod: 0
   - ID: "PowerSlopeEnd"
+    isToParent: 1
     initialValue: 0
     mod: 0
   - ID: "PowerConstantStart"
+    isToParent: 1
     initialValue: 0.3
     mod: 0
   - ID: "PowerConstantEnd"
+    isToParent: 1
     initialValue: 0.9
     mod: 0
   - ID: "SplitInterval"
+    isToParent: 1
     initialValue: 0
+    mod: 0
+  - ID: "BulletRadius"
+    isToParent: 1
+    initialValue: 5
+    mod: 0
+  - ID: "BulletLifetime"
+    isToParent: 1
+    initialValue: 10
     mod: 0
   cards:
   - displayName: Spe:+10U/s

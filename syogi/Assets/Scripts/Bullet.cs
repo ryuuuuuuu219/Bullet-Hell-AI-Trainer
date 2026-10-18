@@ -15,19 +15,28 @@ public class BarrageSettings
     [Min(0.01f)] public float lineWidth = 5f;
     [Min(0.01f)] public float lifetime = 10f;
     public AnimationCurve powerCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
+    public bool useLinearPower;
+    public float powerSlope;
+    public float powerConstant = 1f;
 
     public BarrageSettings ValidatedCopy()
     {
+        if (!BarrageComposer.IsFinite(fireInterval) || fireInterval <= 0 || bulletCount <= 0 ||
+            !BarrageComposer.IsFinite(speed) || speed <= 0 ||
+            !BarrageComposer.IsFinite(lifetime) || lifetime <= 0 ||
+            !BarrageComposer.IsFinite(radius) || radius <= 0 ||
+            !BarrageComposer.IsFinite(lineWidth) || lineWidth <= 0 || sides < 3 ||
+            !BarrageComposer.IsFinite(spreadAngle) || spreadAngle < 0 || spreadAngle > 360 ||
+            !BarrageComposer.IsFinite(angularSpeed) ||
+            !BarrageComposer.IsFinite(direction.x) || !BarrageComposer.IsFinite(direction.y) ||
+            direction.sqrMagnitude <= 0 || !BarrageComposer.IsFinite(direction.sqrMagnitude) ||
+            !BarrageComposer.IsFinite(powerSlope) || !BarrageComposer.IsFinite(powerConstant))
+        {
+            Debug.LogError("Invalid barrage settings. Positive interval, speed, lifetime and size are required; firing cancelled.");
+            return null;
+        }
         BarrageSettings copy = (BarrageSettings)MemberwiseClone();
-        copy.fireInterval = Mathf.Max(0.01f, fireInterval);
-        copy.bulletCount = Mathf.Clamp(bulletCount, 1, 360);
-        copy.spreadAngle = Mathf.Clamp(spreadAngle, 0f, 360f);
-        copy.direction = direction.sqrMagnitude > 0.000001f ? direction.normalized : Vector2.down;
-        copy.speed = Mathf.Max(0f, speed);
-        copy.sides = Mathf.Clamp(sides, 3, 128);
-        copy.radius = Mathf.Max(0.01f, radius);
-        copy.lineWidth = Mathf.Max(0.01f, lineWidth);
-        copy.lifetime = Mathf.Max(0.01f, lifetime);
+        copy.direction = direction.normalized;
         copy.powerCurve = powerCurve == null
             ? AnimationCurve.EaseInOut(0f, 1f, 1f, 0f)
             : new AnimationCurve(powerCurve.keys)
@@ -50,6 +59,9 @@ public class Bullet : MonoBehaviour
     private LineRenderer outline;
     private bool initialized;
     private float power = 1f;
+    private bool useLinearPower;
+    private float powerSlope, powerConstant;
+    public float Power => power;
 
     public AnimationCurve powerCurve = AnimationCurve.EaseInOut(0f, 1f, 1f, 0f);
     Color color => Color.HSVToRGB(Mathf.Clamp01(power) * 0.8333333f, 1f, 1f);
@@ -63,11 +75,15 @@ public class Bullet : MonoBehaviour
     public void Initialize(Material material, BarrageSettings settings)
     {
         BarrageSettings config = (settings ?? new BarrageSettings()).ValidatedCopy();
+        if (config == null) { Destroy(gameObject); return; }
         speed = config.speed;
         lifetime = config.lifetime;
         angularSpeed = config.angularSpeed;
         direction = new Vector3(config.direction.x, config.direction.y, 0f);
         powerCurve = config.powerCurve;
+        useLinearPower = config.useLinearPower;
+        powerSlope = config.powerSlope;
+        powerConstant = config.powerConstant;
         elapsed = 0f;
 
         outline = GetComponent<LineRenderer>();
@@ -90,7 +106,7 @@ public class Bullet : MonoBehaviour
 
     private void SetColor()
     {
-        power = powerCurve.Evaluate(Mathf.Clamp01(elapsed / lifetime));
+        power = useLinearPower ? powerSlope * elapsed + powerConstant : powerCurve.Evaluate(elapsed);
         outline.startColor = color;
         outline.endColor = color;
     }

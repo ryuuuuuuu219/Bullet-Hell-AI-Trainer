@@ -10,10 +10,25 @@ public class player : MonoBehaviour
     [SerializeField] private BarrageSettings barrage = new BarrageSettings();
     [SerializeField] private bool autoFire = true;
     private float fireTimer;
+    [SerializeField] private CardCatalog cardCatalog;
+    [SerializeField] private Transform aimTarget;
+    private BarrageDefinition definition;
+    private bool firingValid;
+    private Vector2 movementDirection = Vector2.down;
 
     private void Awake()
     {
-        barrage = (barrage ?? new BarrageSettings()).ValidatedCopy();
+        if (cardCatalog != null)
+        {
+            firingValid = BarrageComposer.TryCompose(cardCatalog.initialSettings, cardCatalog.parameters,
+                CardSelectionSession.Restore(cardCatalog), out definition, out string error);
+            if (!firingValid) Debug.LogError(error, this);
+        }
+        else
+        {
+            barrage = (barrage ?? new BarrageSettings()).ValidatedCopy();
+            firingValid = barrage != null;
+        }
         lineRenderer = GetComponent<LineRenderer>();
         lineRenderer.positionCount = 3;
         lineRenderer.SetPosition(0, new Vector3(-1f, 0.6f, 0f)*size);
@@ -31,20 +46,10 @@ public class player : MonoBehaviour
 
     void Update()
     {
-        if (autoFire)
-        {
-            float interval = Mathf.Max(0.01f, barrage.fireInterval);
-            fireTimer += Time.deltaTime;
-            while (fireTimer >= interval)
-            {
-                fireTimer -= interval;
-                FireBullet();
-            }
-        }
-
         Keyboard keyboard = Keyboard.current;
         if (keyboard == null)
         {
+            TickFire();
             return;
         }
 
@@ -68,12 +73,35 @@ public class player : MonoBehaviour
 
         Vector2 movement = Vector2.ClampMagnitude(direction, 1f) * moveSpeed * Time.deltaTime;
         transform.position += new Vector3(movement.x, movement.y, 0f);
+        if (direction.sqrMagnitude > 0) movementDirection = direction.normalized;
+        TickFire();
+    }
+
+    private void TickFire()
+    {
+        if (!autoFire || !firingValid) return;
+        float interval = definition != null ? definition.interval : barrage.fireInterval;
+        fireTimer += Time.deltaTime;
+        while (fireTimer >= interval && firingValid)
+        {
+            float remaining = fireTimer - interval;
+            if (remaining == fireTimer)
+            {
+                Debug.LogError("FireInterval is too small for the current timer precision. Firing cancelled.", this);
+                firingValid = false;
+                break;
+            }
+            fireTimer = remaining;
+            FireBullet();
+        }
     }
 
     // Applies to future shots; already-fired bullets retain their settings.
     public void ConfigureBarrage(BarrageSettings settings)
     {
         barrage = (settings ?? new BarrageSettings()).ValidatedCopy();
+        definition = null;
+        firingValid = barrage != null;
         fireTimer = 0f;
     }
 
@@ -86,8 +114,10 @@ public class player : MonoBehaviour
     // Emits one volley, including when automatic firing is disabled.
     public void FireBullet()
     {
-        if (lineRenderer == null) return;
+        if (lineRenderer == null || !firingValid) return;
+        if (definition != null) { FireFormation(); return; }
         BarrageSettings shot = (barrage ?? new BarrageSettings()).ValidatedCopy();
+        if (shot == null) { firingValid = false; return; }
         Vector3 origin = transform.position + Vector3.down * (1.3f * size);
         Vector3 centerDirection = new Vector3(shot.direction.x, shot.direction.y, 0f);
         bool fullCircle = Mathf.Approximately(shot.spreadAngle, 360f);
@@ -103,6 +133,44 @@ public class player : MonoBehaviour
             bulletObject.transform.position = origin;
             Bullet bullet = bulletObject.AddComponent<Bullet>();
             bullet.Initialize(lineRenderer.sharedMaterial, shot);
+        }
+    }
+
+    private void FireFormation()
+    {
+        Vector3 origin = transform.position + Vector3.down * (1.3f * size);
+        Vector2 forward = movementDirection;
+        if (definition.basis == CardDirectionBasis.Aim)
+        {
+            if (aimTarget == null)
+            {
+                Debug.LogError("Assign the barrage aim target. Firing cancelled.", this);
+                firingValid = false;
+                return;
+            }
+            forward = (Vector2)(aimTarget.position - origin);
+        }
+        if (forward.sqrMagnitude <= 0 || !BarrageComposer.IsFinite(forward.sqrMagnitude))
+        {
+            Debug.LogError("Invalid barrage direction. Firing cancelled.", this);
+            firingValid = false;
+            return;
+        }
+        forward.Normalize();
+        for (int i = 0; i < definition.count; i++)
+        {
+            BarrageProjectile data = definition.GetProjectile(i);
+            Vector3 heading = Quaternion.Euler(0, 0, data.angle) * (Vector3)forward;
+            var shot = new BarrageSettings
+            {
+                fireInterval = definition.interval, speed = data.speed,
+                direction = heading, angularSpeed = data.angularSpeed,
+                radius = definition.radius, lifetime = definition.lifetime,
+                useLinearPower = true, powerSlope = data.powerSlope, powerConstant = data.powerConstant
+            };
+            GameObject bulletObject = new GameObject("PlayerBullet");
+            bulletObject.transform.position = origin;
+            bulletObject.AddComponent<Bullet>().Initialize(lineRenderer.sharedMaterial, shot);
         }
     }
 }

@@ -190,6 +190,9 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sceneNavigation: {fileID: 1005}
   transitionDelaySeconds: 10
+  autoFinishAfterDelay: 0
+  stageID: 1
+  cardCatalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
   elapsedSeconds: 0
   score: 0
 --- !u!1 &330585543
@@ -314,6 +317,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4916c81b74d5f2a4780ca715903218f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player
+  cardCatalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
+  aimTarget: {fileID: 2100000001}
   moveSpeed: 500
   size: 30
 --- !u!4 &2020685537
@@ -441,6 +446,46 @@ LineRenderer:
   m_UseWorldSpace: 0
   m_Loop: 0
   m_ApplyActiveColorSpace: 1
+--- !u!1 &2100000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000001}
+  - component: {fileID: 2100000002}
+  m_Layer: 0
+  m_Name: Aim Target
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2100000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: -90}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: eeaf8d7baec7cd34fa7554c9705d931b, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -448,3 +493,4 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 1001}
   - {fileID: 2020685537}
+  - {fileID: 2100000001}

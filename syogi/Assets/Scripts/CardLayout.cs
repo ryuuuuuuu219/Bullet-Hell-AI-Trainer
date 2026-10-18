@@ -20,6 +20,7 @@ public sealed class CardLayout : MonoBehaviour
     private readonly List<CardData> selectedCards = new List<CardData>();
     private readonly List<RectTransform> selectedViews = new List<RectTransform>();
     public IReadOnlyList<CardData> SelectedCards => selectedCards;
+    private bool rebuilding;
 
     public void ToggleCard(CardData card)
     {
@@ -47,6 +48,7 @@ public sealed class CardLayout : MonoBehaviour
         }
         view.gameObject.SetActive(true);
         ArrangeSelectedCards();
+        if (!rebuilding) CardSelectionSession.Save(catalog, selectedCards);
         return true;
     }
 
@@ -62,6 +64,7 @@ public sealed class CardLayout : MonoBehaviour
             Destroy(view.gameObject);
         }
         ArrangeSelectedCards();
+        if (!rebuilding) CardSelectionSession.Save(catalog, selectedCards);
     }
 
     private void ArrangeSelectedCards()
@@ -106,21 +109,21 @@ public sealed class CardLayout : MonoBehaviour
 
     public void Rebuild()
     {
+        CardData[] saved = CardSelectionSession.Restore(catalog);
+        rebuilding = true;
         Clear();
         while (selectedCards.Count > 0) RemoveCard(selectedCards.Count - 1);
         RefreshSelectionCount();
         if (catalog == null || cardPrefab == null || cardParent == null)
         {
             Debug.LogError("Assign the card catalog, prefab and parent.", this);
+            rebuilding = false;
             return;
         }
 
-        if (catalog.cards == null)
-            return;
-
         // Empty Inspector entries do not create gaps between visible cards.
         var cards = new List<CardData>();
-        foreach (CardData card in catalog.cards)
+        foreach (CardData card in CardSelectionSession.GetInventory(catalog).Candidates)
             if (card != null) cards.Add(card);
 
         for (int i = 0; i < cards.Count; i++)
@@ -143,6 +146,9 @@ public sealed class CardLayout : MonoBehaviour
             view.gameObject.SetActive(true);
         }
         ArrangeSelectedCards();
+        foreach (CardData card in saved) AddCard(card);
+        rebuilding = false;
+        CardSelectionSession.Save(catalog, selectedCards);
     }
 
     private void RefreshSelectionCount()

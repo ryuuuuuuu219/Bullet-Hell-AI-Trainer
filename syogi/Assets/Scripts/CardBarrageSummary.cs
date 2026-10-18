@@ -1,4 +1,4 @@
-using System.Globalization;
+﻿using System.Globalization;
 using System.Collections.Generic;
 using System.Text;
 using TMPro;
@@ -32,14 +32,16 @@ public sealed class CardBarrageSummary : MonoBehaviour
     }
 
     // Calculate without changing the catalog's initial values or modifiers.
-    public static string BuildSummary(CardCatalog source)
+    public static string BuildSummary(CardCatalog source, bool isparent = true)
     {
-        return BuildSummary(source, source != null ? source.cards : null);
+        return BuildSummary(source, source != null ? source.cards : null, isparent);
     }
 
-    public static string BuildSummary(CardCatalog source, IEnumerable<CardData> cards)
+    public static string BuildSummary(CardCatalog source, IEnumerable<CardData> cards, bool isparent = true)
     {
         if (source == null) return string.Empty;
+        // Materialize once: parent and child must use the same selected cards.
+        var selected = cards == null ? new List<CardData>() : new List<CardData>(cards);
         var result = new StringBuilder();
         CardInitialSettings settings = source.initialSettings;
         if (settings != null)
@@ -53,55 +55,39 @@ public sealed class CardBarrageSummary : MonoBehaviour
             result.Append("編隊の補間方式: ").AppendLine(interpolation);
             result.Append("分裂遅延: ").AppendLine(settings.hasSplitDelay
                 ? Format(settings.splitDelay) + " 秒" : "なし");
-            result.Append("子弾の発射構造: ").Append(settings.hasChildFiringStructure
-                ? "定義あり" : "定義なし");
         }
-        if (source.parameters == null) return result.ToString();
-        foreach (CardParameterValue parameter in source.parameters)
+        foreach (CardParameterValue parameter in source.parameters ?? System.Array.Empty<CardParameterValue>())
         {
             if (parameter == null) continue;
-            float modifier = parameter.mod;
-            if (!string.IsNullOrEmpty(parameter.ID) && cards != null)
-                foreach (CardData card in cards)
-                {
-                    if (card?.items == null) continue;
-                    foreach (CardItem item in card.items)
-                        if (item != null && item.ID == parameter.ID)
-                            modifier += item.mod;
-                }
+            float modifier = BarrageComposer.SumModifier(parameter, selected, isparent);
 
             if (result.Length > 0) result.AppendLine();
-            result.Append(GetLabel(parameter.ID)).Append(": ")
+            result.Append(CardParameterIds.GetLabel(parameter.ID)).Append(": ")
                 .Append(Format(parameter.initialValue)).Append(" + ");
             if (modifier < 0f) result.Append('(');
             result.Append(Format(modifier));
             if (modifier < 0f) result.Append(')');
-            result.Append(" = ").Append(Format(parameter.initialValue + modifier));
+            float value = parameter.initialValue + modifier;
+            if (parameter.ID == CardParameterIds.BulletCount) value = (float)System.Math.Floor(value);
+            result.Append(" = ").Append(Format(value));
+        }
+        if (isparent)
+        {
+            if (result.Length > 0) result.AppendLine();
+            result.Append("子弾の発射構造: ");
+            if (settings == null) result.Append("初期設定なし");
+            else if (!settings.hasChildFiringStructure) result.Append("定義なし");
+            else if (source.ChildStructure == null) result.Append("未設定");
+            else if (source.ChildStructure == source) result.Append("参照エラー（親と同一）");
+            else
+            {
+                result.AppendLine("定義あり").AppendLine("------------------------------");
+                result.Append(BuildSummary(source.ChildStructure, selected, false));
+            }
         }
         return result.ToString();
     }
 
     private static string Format(float value) => value.ToString("0.###", CultureInfo.InvariantCulture);
 
-    private static string GetLabel(string id)
-    {
-        switch (id)
-        {
-            case CardParameterIds.BulletSpeed: return "弾速";
-            case CardParameterIds.FireInterval: return "発射周期";
-            case CardParameterIds.BulletCount: return "発射数";
-            case CardParameterIds.FormationAngleStart: return "編隊角度（始点）";
-            case CardParameterIds.FormationAngleEnd: return "編隊角度（終点）";
-            case CardParameterIds.AngularSpeedStart: return "角速度（始点）";
-            case CardParameterIds.AngularSpeedEnd: return "角速度（終点）";
-            case CardParameterIds.SpeedOffsetStart: return "弾速差（始点）";
-            case CardParameterIds.SpeedOffsetEnd: return "弾速差（終点）";
-            case CardParameterIds.PowerSlopeStart: return "威力・時間係数（始点）";
-            case CardParameterIds.PowerSlopeEnd: return "威力・時間係数（終点）";
-            case CardParameterIds.PowerConstantStart: return "威力・定数（始点）";
-            case CardParameterIds.PowerConstantEnd: return "威力・定数（終点）";
-            case CardParameterIds.SplitInterval: return "分裂間隔";
-            default: return id ?? "未設定";
-        }
-    }
 }
