@@ -1,5 +1,6 @@
-using UnityEngine;
+﻿using UnityEngine;
 using UnityEngine.EventSystems;
+using UnityEngine.InputSystem;
 
 [DisallowMultipleComponent]
 public sealed class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExitHandler
@@ -27,6 +28,12 @@ public sealed class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExi
         Restore();
     }
 
+    private void Update()
+    {
+        if (hovering && Mouse.current != null && !Mouse.current.leftButton.isPressed)
+            Restore();
+    }
+
     private void OnDisable()
     {
         Restore();
@@ -34,6 +41,8 @@ public sealed class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     private void Restore()
     {
+        if(hovering && Mouse.current != null && Mouse.current.leftButton.isPressed)
+            return;
         if (!hovering) return;
         hovering = false;
         transform.localScale = originalScale;

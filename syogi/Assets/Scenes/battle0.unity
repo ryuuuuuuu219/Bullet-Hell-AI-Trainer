@@ -191,10 +191,11 @@ MonoBehaviour:
   sceneNavigation: {fileID: 1005}
   transitionDelaySeconds: 10
   autoFinishAfterDelay: 0
+  cardCatalog: {fileID: 11400000, guid: c9743c8e254244b794b67df3545b2d0c, type: 2}
   stageID: 1
-  cardCatalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
   elapsedSeconds: 0
   score: 0
+  isClearThreshold: 80
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -317,10 +318,49 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 4916c81b74d5f2a4780ca715903218f6, type: 3}
   m_Name: 
   m_EditorClassIdentifier: Assembly-CSharp::player
-  cardCatalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
-  aimTarget: {fileID: 2100000001}
   moveSpeed: 500
   size: 30
+  barrage:
+    fireInterval: 0.2
+    bulletCount: 1
+    spreadAngle: 0
+    direction: {x: 0, y: -1}
+    speed: 50
+    angularSpeed: 0
+    sides: 32
+    radius: 5
+    lineWidth: 5
+    lifetime: 10
+    powerCurve:
+      serializedVersion: 2
+      m_Curve:
+      - serializedVersion: 3
+        time: 0
+        value: 1
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      - serializedVersion: 3
+        time: 1
+        value: 0
+        inSlope: 0
+        outSlope: 0
+        tangentMode: 0
+        weightedMode: 0
+        inWeight: 0
+        outWeight: 0
+      m_PreInfinity: 2
+      m_PostInfinity: 2
+      m_RotationOrder: 4
+    useLinearPower: 0
+    powerSlope: 0
+    powerConstant: 1
+  autoFire: 1
+  cardCatalog: {fileID: 11400000, guid: c9743c8e254244b794b67df3545b2d0c, type: 2}
+  aimTarget: {fileID: 2100000001}
 --- !u!4 &2020685537
 Transform:
   m_ObjectHideFlags: 0
@@ -459,6 +499,9 @@ GameObject:
   m_Layer: 0
   m_Name: Aim Target
   m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
   m_IsActive: 1
 --- !u!4 &2100000001
 Transform:
@@ -471,6 +514,7 @@ Transform:
   m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
   m_LocalPosition: {x: 0, y: 0, z: -90}
   m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
@@ -484,8 +528,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eeaf8d7baec7cd34fa7554c9705d931b, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

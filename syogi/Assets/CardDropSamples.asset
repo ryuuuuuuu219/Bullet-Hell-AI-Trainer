@@ -1,0 +1,342 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: e07b8e7e3e1642d0b01f9ecf8b7360dc, type: 3}
+  m_Name: CardDropSamples
+  m_EditorClassIdentifier: 
+  initialSettings:
+    directionBasis: 0
+    interpolation: 0
+    hasSplitDelay: 0
+    splitDelay: 0
+    hasChildFiringStructure: 0
+  parameters:
+  - ID: "BulletSpeed"
+    isToParent: 1
+    initialValue: 120
+    mod: 0
+  - ID: "FireInterval"
+    isToParent: 1
+    initialValue: 5
+    mod: 0
+  - ID: "BulletCount"
+    isToParent: 1
+    initialValue: 8
+    mod: 0
+  - ID: "FormationAngleStart"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "FormationAngleEnd"
+    isToParent: 1
+    initialValue: 14
+    mod: 0
+  - ID: "AngularSpeedStart"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "AngularSpeedEnd"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "SpeedOffsetStart"
+    isToParent: 1
+    initialValue: -15
+    mod: 0
+  - ID: "SpeedOffsetEnd"
+    isToParent: 1
+    initialValue: 38
+    mod: 0
+  - ID: "PowerSlopeStart"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "PowerSlopeEnd"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "PowerConstantStart"
+    isToParent: 1
+    initialValue: 0.3
+    mod: 0
+  - ID: "PowerConstantEnd"
+    isToParent: 1
+    initialValue: 0.9
+    mod: 0
+  - ID: "SplitInterval"
+    isToParent: 1
+    initialValue: 0
+    mod: 0
+  - ID: "BulletRadius"
+    isToParent: 1
+    initialValue: 5
+    mod: 0
+  - ID: "BulletLifetime"
+    isToParent: 1
+    initialValue: 10
+    mod: 0
+  cards:
+  - displayName: "ID:1 \u5F3E\u901F:-43.62 \u5F3E\u306E\u534A\u5F84:11.54 \u5F3E\u5BFF\u547D:-10.45 \u767A\u5C04\u5468\u671F:0.77 \u767A\u5C04\u6570:4.47 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:99.10 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:87.47 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:75.26 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:-50.26 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:-88.12 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:61.53 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:0.43 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:0.45 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:0.38 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.06"
+    items:
+    - ID: "BulletSpeed"
+      mod: -43.623287
+    - ID: "BulletRadius"
+      mod: 11.541899
+    - ID: "BulletLifetime"
+      mod: -10.452798
+    - ID: "FireInterval"
+      mod: 0.77038914
+    - ID: "BulletCount"
+      mod: 4.4678063
+    - ID: "FormationAngleStart"
+      mod: 99.095436
+    - ID: "FormationAngleEnd"
+      mod: 87.47126
+    - ID: "AngularSpeedStart"
+      mod: 75.255356
+    - ID: "AngularSpeedEnd"
+      mod: -50.26126
+    - ID: "SpeedOffsetStart"
+      mod: -88.12178
+    - ID: "SpeedOffsetEnd"
+      mod: 61.52917
+    - ID: "PowerSlopeStart"
+      mod: 0.4333558
+    - ID: "PowerSlopeEnd"
+      mod: 0.45122224
+    - ID: "PowerConstantStart"
+      mod: 0.37902713
+    - ID: "PowerConstantEnd"
+      mod: 0.058362063
+  - displayName: "ID:2 \u5F3E\u901F:-191.65 \u5F3E\u306E\u534A\u5F84:2.69 \u5F3E\u5BFF\u547D:0.46 \u767A\u5C04\u5468\u671F:-1.57 \u767A\u5C04\u6570:-1.03 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:-125.34 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:-161.09 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:-10.74 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:-69.99 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:60.55 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:-92.71 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.17 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:0.23 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:-0.52 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:-0.28"
+    items:
+    - ID: "BulletSpeed"
+      mod: -191.65024
+    - ID: "BulletRadius"
+      mod: 2.694926
+    - ID: "BulletLifetime"
+      mod: 0.45718288
+    - ID: "FireInterval"
+      mod: -1.5692023
+    - ID: "BulletCount"
+      mod: -1.0267807
+    - ID: "FormationAngleStart"
+      mod: -125.335945
+    - ID: "FormationAngleEnd"
+      mod: -161.09462
+    - ID: "AngularSpeedStart"
+      mod: -10.738162
+    - ID: "AngularSpeedEnd"
+      mod: -69.986275
+    - ID: "SpeedOffsetStart"
+      mod: 60.552673
+    - ID: "SpeedOffsetEnd"
+      mod: -92.70964
+    - ID: "PowerSlopeStart"
+      mod: -0.17477578
+    - ID: "PowerSlopeEnd"
+      mod: 0.23317938
+    - ID: "PowerConstantStart"
+      mod: -0.5163225
+    - ID: "PowerConstantEnd"
+      mod: -0.28059137
+  - displayName: "ID:3 \u5F3E\u901F:-244.41 \u5F3E\u306E\u534A\u5F84:17.46 \u5F3E\u5BFF\u547D:-6.17 \u767A\u5C04\u5468\u671F:-1.04 \u767A\u5C04\u6570:-5.28 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:-159.22 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:-105.75 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:66.33 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:-32.33 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:32.27 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:82.95 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.01 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:0.20 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:-0.41 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.04"
+    items:
+    - ID: "BulletSpeed"
+      mod: -244.41245
+    - ID: "BulletRadius"
+      mod: 17.463604
+    - ID: "BulletLifetime"
+      mod: -6.17154
+    - ID: "FireInterval"
+      mod: -1.0383295
+    - ID: "BulletCount"
+      mod: -5.2791395
+    - ID: "FormationAngleStart"
+      mod: -159.22032
+    - ID: "FormationAngleEnd"
+      mod: -105.749565
+    - ID: "AngularSpeedStart"
+      mod: 66.33172
+    - ID: "AngularSpeedEnd"
+      mod: -32.33371
+    - ID: "SpeedOffsetStart"
+      mod: 32.26671
+    - ID: "SpeedOffsetEnd"
+      mod: 82.948975
+    - ID: "PowerSlopeStart"
+      mod: -0.010468388
+    - ID: "PowerSlopeEnd"
+      mod: 0.19646783
+    - ID: "PowerConstantStart"
+      mod: -0.40785307
+    - ID: "PowerConstantEnd"
+      mod: 0.043386206
+  - displayName: "ID:4 \u5F3E\u901F:-57.90 \u5F3E\u306E\u534A\u5F84:22.97 \u5F3E\u5BFF\u547D:-1.44 \u767A\u5C04\u5468\u671F:-2.32 \u767A\u5C04\u6570:-3.00 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:59.00 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:92.28 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:-107.45 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:-83.75 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:109.63 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:-37.95 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.37 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:0.38 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:-0.12 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.36"
+    items:
+    - ID: "BulletSpeed"
+      mod: -57.903336
+    - ID: "BulletRadius"
+      mod: 22.966284
+    - ID: "BulletLifetime"
+      mod: -1.4367282
+    - ID: "FireInterval"
+      mod: -2.3222032
+    - ID: "BulletCount"
+      mod: -2.996997
+    - ID: "FormationAngleStart"
+      mod: 59.00416
+    - ID: "FormationAngleEnd"
+      mod: 92.280815
+    - ID: "AngularSpeedStart"
+      mod: -107.44922
+    - ID: "AngularSpeedEnd"
+      mod: -83.747055
+    - ID: "SpeedOffsetStart"
+      mod: 109.62898
+    - ID: "SpeedOffsetEnd"
+      mod: -37.952312
+    - ID: "PowerSlopeStart"
+      mod: -0.37285292
+    - ID: "PowerSlopeEnd"
+      mod: 0.3772915
+    - ID: "PowerConstantStart"
+      mod: -0.11883844
+    - ID: "PowerConstantEnd"
+      mod: 0.36032888
+  - displayName: "ID:5 \u5F3E\u901F:-49.98 \u5F3E\u306E\u534A\u5F84:-27.01 \u5F3E\u5BFF\u547D:-8.20 \u767A\u5C04\u5468\u671F:-3.12 \u767A\u5C04\u6570:3.79 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:183.01 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:69.10 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:-14.86 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:71.39 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:9.87 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:92.09 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.16 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:-0.37 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:0.45 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.03"
+    items:
+    - ID: "BulletSpeed"
+      mod: -49.97956
+    - ID: "BulletRadius"
+      mod: -27.010183
+    - ID: "BulletLifetime"
+      mod: -8.199086
+    - ID: "FireInterval"
+      mod: -3.12429
+    - ID: "BulletCount"
+      mod: 3.794338
+    - ID: "FormationAngleStart"
+      mod: 183.01456
+    - ID: "FormationAngleEnd"
+      mod: 69.09582
+    - ID: "AngularSpeedStart"
+      mod: -14.855441
+    - ID: "AngularSpeedEnd"
+      mod: 71.38821
+    - ID: "SpeedOffsetStart"
+      mod: 9.871857
+    - ID: "SpeedOffsetEnd"
+      mod: 92.08966
+    - ID: "PowerSlopeStart"
+      mod: -0.16444288
+    - ID: "PowerSlopeEnd"
+      mod: -0.36547232
+    - ID: "PowerConstantStart"
+      mod: 0.4497999
+    - ID: "PowerConstantEnd"
+      mod: 0.032577008
+  - displayName: "ID:6 \u5F3E\u901F:106.16 \u5F3E\u306E\u534A\u5F84:-4.70 \u5F3E\u5BFF\u547D:-1.77 \u767A\u5C04\u5468\u671F:0.94 \u767A\u5C04\u6570:3.63 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:-134.23 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:160.94 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:-14.04 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:66.68 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:-21.10 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:-39.03 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:0.36 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:-0.44 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:-0.17 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.21"
+    items:
+    - ID: "BulletSpeed"
+      mod: 106.1565
+    - ID: "BulletRadius"
+      mod: -4.6976433
+    - ID: "BulletLifetime"
+      mod: -1.7691224
+    - ID: "FireInterval"
+      mod: 0.9400947
+    - ID: "BulletCount"
+      mod: 3.630433
+    - ID: "FormationAngleStart"
+      mod: -134.23462
+    - ID: "FormationAngleEnd"
+      mod: 160.94183
+    - ID: "AngularSpeedStart"
+      mod: -14.042644
+    - ID: "AngularSpeedEnd"
+      mod: 66.67545
+    - ID: "SpeedOffsetStart"
+      mod: -21.101633
+    - ID: "SpeedOffsetEnd"
+      mod: -39.03209
+    - ID: "PowerSlopeStart"
+      mod: 0.36202604
+    - ID: "PowerSlopeEnd"
+      mod: -0.43984175
+    - ID: "PowerConstantStart"
+      mod: -0.17491002
+    - ID: "PowerConstantEnd"
+      mod: 0.21184756
+  - displayName: "ID:7 \u5F3E\u901F:240.29 \u5F3E\u306E\u534A\u5F84:-6.05 \u5F3E\u5BFF\u547D:6.74 \u767A\u5C04\u5468\u671F:0.17 \u767A\u5C04\u6570:4.89 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:145.78 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:-54.19 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:-33.44 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:-47.46 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:-17.00 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:48.45 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.16 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:0.12 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:0.21 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:-0.21"
+    items:
+    - ID: "BulletSpeed"
+      mod: 240.28711
+    - ID: "BulletRadius"
+      mod: -6.052012
+    - ID: "BulletLifetime"
+      mod: 6.743597
+    - ID: "FireInterval"
+      mod: 0.16801557
+    - ID: "BulletCount"
+      mod: 4.8862553
+    - ID: "FormationAngleStart"
+      mod: 145.78148
+    - ID: "FormationAngleEnd"
+      mod: -54.185062
+    - ID: "AngularSpeedStart"
+      mod: -33.436565
+    - ID: "AngularSpeedEnd"
+      mod: -47.45737
+    - ID: "SpeedOffsetStart"
+      mod: -17.00249
+    - ID: "SpeedOffsetEnd"
+      mod: 48.452106
+    - ID: "PowerSlopeStart"
+      mod: -0.16495146
+    - ID: "PowerSlopeEnd"
+      mod: 0.12122255
+    - ID: "PowerConstantStart"
+      mod: 0.21232547
+    - ID: "PowerConstantEnd"
+      mod: -0.21014805
+  - displayName: "ID:8 \u5F3E\u901F:-110.83 \u5F3E\u306E\u534A\u5F84:3.59 \u5F3E\u5BFF\u547D:-9.25 \u767A\u5C04\u5468\u671F:0.59 \u767A\u5C04\u6570:-2.10 \u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09:163.51 \u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:95.62 \u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09:65.88 \u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:13.62 \u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09:-36.64 \u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:0.60 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:-0.06 \u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:-0.19 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09:-0.08 \u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09:0.02"
+    items:
+    - ID: "BulletSpeed"
+      mod: -110.82832
+    - ID: "BulletRadius"
+      mod: 3.5903945
+    - ID: "BulletLifetime"
+      mod: -9.251075
+    - ID: "FireInterval"
+      mod: 0.59212613
+    - ID: "BulletCount"
+      mod: -2.1045792
+    - ID: "FormationAngleStart"
+      mod: 163.5089
+    - ID: "FormationAngleEnd"
+      mod: 95.61716
+    - ID: "AngularSpeedStart"
+      mod: 65.8782
+    - ID: "AngularSpeedEnd"
+      mod: 13.623656
+    - ID: "SpeedOffsetStart"
+      mod: -36.64055
+    - ID: "SpeedOffsetEnd"
+      mod: 0.5960524
+    - ID: "PowerSlopeStart"
+      mod: -0.060416874
+    - ID: "PowerSlopeEnd"
+      mod: -0.19333161
+    - ID: "PowerConstantStart"
+      mod: -0.07622318
+    - ID: "PowerConstantEnd"
+      mod: 0.02459426

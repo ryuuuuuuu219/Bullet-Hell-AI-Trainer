@@ -177,7 +177,18 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "\u767a\u5c04\u57fa\u6e96: \u7167\u6e96\n\u7de8\u968a\u306e\u88dc\u9593\u65b9\u5f0f: \u7dda\u5f62\n\u5206\u88c2\u9045\u5ef6: \u306a\u3057\n\u5b50\u5f3e\u306e\u767a\u5c04\u69cb\u9020: \u5b9a\u7fa9\u306a\u3057\n\u5f3e\u901f: 120 + 0 = 120\r\n\u767a\u5c04\u5468\u671f: 5 + 0 = 5\r\n\u767a\u5c04\u6570: 8 + 0 = 8\r\n\u7de8\u968a\u89d2\u5ea6\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u7de8\u968a\u89d2\u5ea6\uff08\u7d42\u70b9\uff09: 14 + 0 = 14\r\n\u89d2\u901f\u5ea6\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u89d2\u901f\u5ea6\uff08\u7d42\u70b9\uff09: 0 + 0 = 0\r\n\u5f3e\u901f\u5dee\uff08\u59cb\u70b9\uff09: -15 + 0 = -15\r\n\u5f3e\u901f\u5dee\uff08\u7d42\u70b9\uff09: 38 + 0 = 38\r\n\u5a01\u529b\u30fb\u6642\u9593\u4fc2\u6570\uff08\u59cb\u70b9\uff09: 0 + 0 = 0\r\n\u5a01\u529b\u30fb\u6642\u9593\u4fc2\u6570\uff08\u7d42\u70b9\uff09: 0 + 0 = 0\r\n\u5a01\u529b\u30fb\u5b9a\u6570\uff08\u59cb\u70b9\uff09: 0.3 + 0 = 0.3\r\n\u5a01\u529b\u30fb\u5b9a\u6570\uff08\u7d42\u70b9\uff09: 0.9 + 0 = 0.9\r\n\u5206\u88c2\u9593\u9694: 0 + 0 = 0"
+  m_text: "\u767A\u5C04\u57FA\u6E96: \u7167\u6E96\r\n\u7DE8\u968A\u306E\u88DC\u9593\u65B9\u5F0F:
+    \u7DDA\u5F62\r\n\u5206\u88C2\u9045\u5EF6: \u306A\u3057\r\n\r\n\u5F3E\u901F: 120
+    + 0 = 120\r\n\u767A\u5C04\u5468\u671F: 5 + 0 = 5\r\n\u767A\u5C04\u6570: 8 + 0
+    = 8\r\n\u7DE8\u968A\u89D2\u5EA6\uFF08\u59CB\u70B9\uFF09: 0 + 0 = 0\r\n\u7DE8\u968A\u89D2\u5EA6\uFF08\u7D42\u70B9\uFF09:
+    14 + 0 = 14\r\n\u89D2\u901F\u5EA6\uFF08\u59CB\u70B9\uFF09: 0 + 0 = 0\r\n\u89D2\u901F\u5EA6\uFF08\u7D42\u70B9\uFF09:
+    0 + 0 = 0\r\n\u5F3E\u901F\u5DEE\uFF08\u59CB\u70B9\uFF09: -15 + 0 = -15\r\n\u5F3E\u901F\u5DEE\uFF08\u7D42\u70B9\uFF09:
+    38 + 0 = 38\r\n\u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u59CB\u70B9\uFF09:
+    0 + 0 = 0\r\n\u5A01\u529B\u30FB\u6642\u9593\u4FC2\u6570\uFF08\u7D42\u70B9\uFF09:
+    0 + 0 = 0\r\n\u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u59CB\u70B9\uFF09: 0.3 + 0
+    = 0.3\r\n\u5A01\u529B\u30FB\u5B9A\u6570\uFF08\u7D42\u70B9\uFF09: 0.9 + 0 = 0.9\r\n\u5206\u88C2\u9593\u9694:
+    0 + 0 = 0\r\n\u5F3E\u306E\u534A\u5F84: 5 + 0 = 5\r\n\u5F3E\u5BFF\u547D: 10 +
+    0 = 10\r\n\u5B50\u5F3E\u306E\u767A\u5C04\u69CB\u9020: \u5B9A\u7FA9\u306A\u3057"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
   m_sharedMaterial: {fileID: 5564924448460782022, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
@@ -204,7 +215,7 @@ MonoBehaviour:
   m_faceColor:
     serializedVersion: 2
     rgba: 4294967295
-  m_fontSize: 28
+  m_fontSize: 24.7
   m_fontSizeBase: 28
   m_fontWeight: 400
   m_enableAutoSizing: 1
@@ -269,7 +280,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: c389705fc79749ef8e99ae564f24fb93, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  catalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
+  catalog: {fileID: 11400000, guid: c9743c8e254244b794b67df3545b2d0c, type: 2}
   selection: {fileID: 1132166274}
 --- !u!1 &141432044
 GameObject:
@@ -1430,7 +1441,7 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: d8474945db014da6bf4bfec43de1bb06, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  catalog: {fileID: 11400000, guid: 322938767aae487fbd0e221c43630776, type: 2}
+  catalog: {fileID: 11400000, guid: c9743c8e254244b794b67df3545b2d0c, type: 2}
   cardPrefab: {fileID: 7570812290477640204, guid: 6a350403ae99c0e4f880c1e489534f6a, type: 3}
   cardParent: {fileID: 1132166270}
   minX: -650
