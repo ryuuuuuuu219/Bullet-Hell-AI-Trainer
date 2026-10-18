@@ -67,6 +67,7 @@ public sealed class BattleSceneTransitionMonitor : MonoBehaviour
             Debug.LogError(error, this);
             return;
         }
+        CardSelectionSession.Persist(cardCatalog);
         transitionRequested = true;
         Debug.Log($"Card dropped: {drop.displayName} ({inventory.Candidates.Count}/{CardInventory.Capacity})", this);
         if (isClear)

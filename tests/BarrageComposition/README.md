@@ -1,12 +1,25 @@
 Run from the repository root (.NET 10 SDK):
 
 ```powershell
-dotnet run --project tests/BarrageComposition/BarrageComposition.csproj -- syogi/Assets/CardCatalog.asset
+dotnet run --project tests/BarrageComposition/BarrageComposition.csproj -- syogi/Assets/CardDropSamples.asset
 ```
 
 Uses the production composition source and current catalog. Covers initial values,
 card addition, source preservation, count flooring, single-bullet and multi-bullet
 interpolation, seconds-based power, and invalid inputs. Does not run Unity.
+
+Persistence checks also cover JSON round trips of inventory values, selection
+order and references, empty selections, continued drop numbering, and invalid
+selection indices. These use System.Text.Json; Unity JsonUtility and filesystem
+integration still require Play Mode checks.
+
+Card saves are written automatically after selection changes and reward drops
+under Application.persistentDataPath. The filename is cards-<SHA256 of catalog
+name>.json, so catalog names must remain unique and stable. The previous save is
+kept as .bak; unreadable saves are copied aside before replacing them.
+In Unity, acquire and select a dropped card, stop and restart Play Mode, and
+verify its values, selection order, and next drop number. Also deselect all cards
+and restart to verify that the empty selection persists.
 
 Unity Play Mode checks:
 
@@ -26,8 +39,8 @@ Drop checks in Unity:
 
 - During battle0, set score to 12.5 (stageID 1). Invoke the monitor component's
   Finish Battle context menu in Play Mode. The next CardSet should list a card with
-  15 parameters. Each mod is independently 137.5 * (random - 0.5) * its multiplier;
-  there is no fixed sum. Speed multiplier is 0.5, so its range is -34.375 to +34.375.
+  15 parameters. Each mod is independently 137.5 * (ConvertDropWeight(random) - 0.5) * its multiplier;
+  there is no fixed sum. Speed multiplier is 0.5, so its range is +34.375 to +103.125.
 - Call FinishBattle from the actual completion condition. Automatic timeout is off
   by default to preserve the existing disabled timer; enable autoFinishAfterDelay
   explicitly to use the timer.

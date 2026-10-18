@@ -85,13 +85,17 @@ class Program
         Near(Compose(small).interval, .001f, "Positive values not silently clamped");
         var repeated = new CardData { items = new[] { new CardItem { ID = "BulletSpeed", mod = 2 }, new CardItem { ID = "BulletSpeed", mod = 3 } } };
         Near(Compose(Defaults(), speedCard, repeated).speed, 135, "All matching items summed");
+        Near((float)CardInventory.ConvertDropWeight(0), 1, "Curve join");
+        Near((float)CardInventory.ConvertDropWeight(-1.2), 0.24145533f, "Exponential branch");
+        Near((float)CardInventory.ConvertDropWeight(-100), -.2f, "Curve lower asymptote");
+        Near((float)((CardInventory.ConvertDropWeight(0) - CardInventory.ConvertDropWeight(-.00001)) / .00001), 1, "Left slope at join");
         var inventory = new CardInventory(new[] { speedCard });
         CardData starter = inventory.Candidates[0];
         Check(!ReferenceEquals(starter, speedCard), "Starter is copied");
         inventory.SetSelection(new[] { starter });
         Check(inventory.TryAddDrop(12.5f, 3, out var reward, out _, () => 0.75f), "Create reward");
         foreach (var item in reward.items)
-            Near(item.mod / CardInventory.GetDropMultiplier(item.ID), 40.625f, "Independent centered random coefficient");
+            Near(item.mod / CardInventory.GetDropMultiplier(item.ID), 203.125f, "Converted random coefficient");
         Check(reward.items.Length == 15 && reward.items.Select(x => x.ID).Distinct().Count() == 15, "All 15 distinct parameters generated");
         Check(!reward.items.Any(x => x.ID == CardParameterIds.SplitInterval), "Unimplemented split excluded");
         Check(BarrageComposer.TryCompose(settings, Defaults(), new[] { reward }, out _, out _), "Reward composes into barrage");
@@ -111,22 +115,46 @@ class Program
             Check(!inventory.TryAddDrop(1, 1, out _, out _, () => badWeight), "Invalid random source rejected");
         Check(before.SequenceEqual(inventory.Candidates), "Generation failures preserve all candidates");
         Check(inventory.TryAddDrop(15, 1, out var low, out _, () => 0), "Zero samples accepted");
-        Near(low.items[0].mod, -41.25f, "Speed lower endpoint");
-        Near(low.items[1].mod, -4.125f, "Radius lower endpoint");
+        Near(low.items[0].mod, 41.25f, "Speed lower endpoint");
+        Near(low.items[1].mod, 4.125f, "Radius lower endpoint");
         Check(inventory.TryAddDrop(15, 1, out var high, out _, () => 1), "One samples accepted");
         foreach (var item in high.items)
-            Near(item.mod, -low.items.Single(x => x.ID == item.ID).mod, "Symmetric endpoints including negative multipliers");
+            Near(item.mod, 3 * low.items.Single(x => x.ID == item.ID).mod, "Converted endpoints including negative multipliers");
         Check(low.displayName.Split(' ')[0] != high.displayName.Split(' ')[0], "Drop IDs differ at capacity");
         Check(inventory.TryAddDrop(15, 1, out var center, out _, () => .5f), "Midpoint accepted");
-        Check(center.items.All(x => x.mod == 0), "Midpoint produces no modifiers");
+        foreach (var item in center.items)
+            Near(item.mod, 165f * CardInventory.GetDropMultiplier(item.ID), "Converted midpoint");
         int draw = 0;
         Check(inventory.TryAddDrop(15, 1, out var mixed, out _, () => draw++ == 0 ? 1 : .5f), "Independent samples accepted");
         Near(mixed.items[0].mod, high.items[0].mod, "Other samples do not change speed");
-        Check(mixed.items.Skip(1).All(x => x.mod == 0), "Other parameters keep their own midpoint");
+        foreach (var item in mixed.items.Skip(1))
+            Near(item.mod, center.items.Single(x => x.ID == item.ID).mod, "Other parameters keep their own midpoint");
         inventory.SetSelection(inventory.Candidates);
         Check(inventory.Selected.Count == 5, "Selection limit remains five");
         Near(speedCard.items[0].mod, 10, "Catalog untouched by inventory");
         Check(new CardInventory(Enumerable.Repeat(speedCard, 20)).Candidates.Count == 16, "Starter capacity");
+        inventory.SetSelection(new[] { mixed, starter, center });
+        var options = new System.Text.Json.JsonSerializerOptions { IncludeFields = true };
+        string json = System.Text.Json.JsonSerializer.Serialize(inventory.CaptureSave(), options);
+        var savedData = System.Text.Json.JsonSerializer.Deserialize<CardInventory.SaveData>(json, options);
+        var loaded = CardInventory.FromSave(savedData);
+        Check(loaded.Candidates.Count == inventory.Candidates.Count, "Saved inventory count restored");
+        Check(loaded.Selected.Select(c => c.displayName).SequenceEqual(inventory.Selected.Select(c => c.displayName)),
+            "Selection order restored");
+        Check(loaded.Selected.All(c => loaded.Candidates.Contains(c)), "Selection references restored candidates");
+        for (int i = 0; i < loaded.Candidates.Count; i++)
+        {
+            Check(loaded.Candidates[i].items.Select(x => x.ID).SequenceEqual(inventory.Candidates[i].items.Select(x => x.ID)), "Saved parameter IDs restored");
+            Check(loaded.Candidates[i].items.Select(x => x.mod).SequenceEqual(inventory.Candidates[i].items.Select(x => x.mod)), "Saved modifiers restored");
+        }
+        Check(loaded.TryAddDrop(1, 1, out var resumedDrop, out _, () => .5f), "Drop after reload");
+        Check(resumedDrop.displayName.StartsWith("ID:" + savedData.nextDropId + " "), "Drop numbering resumes");
+        loaded.SetSelection(Array.Empty<CardData>());
+        Check(CardInventory.FromSave(loaded.CaptureSave()).Selected.Count == 0, "Empty selection persists");
+        savedData.selectedIndices = new[] { savedData.cards.Length };
+        bool rejectedSave = false;
+        try { CardInventory.FromSave(savedData); } catch (ArgumentException) { rejectedSave = true; }
+        Check(rejectedSave, "Invalid saved selection rejected");
         Console.WriteLine($"PASS: {checks} composition/inventory checks (actual source and saved catalog).");
     }
 }

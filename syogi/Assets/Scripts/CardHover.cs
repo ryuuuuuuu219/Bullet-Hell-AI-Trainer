@@ -10,9 +10,11 @@ public sealed class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExi
     private int originalSiblingIndex;
     private Transform originalParent;
     private bool hovering;
+    private bool pointerInside;
 
     public void OnPointerEnter(PointerEventData eventData)
     {
+        pointerInside = true;
         if (hovering) return;
         originalScale = transform.localScale;
         originalSiblingIndex = transform.GetSiblingIndex();
@@ -25,24 +27,26 @@ public sealed class CardHover : MonoBehaviour, IPointerEnterHandler, IPointerExi
 
     public void OnPointerExit(PointerEventData eventData)
     {
-        Restore();
+        pointerInside = false;
+        if (Mouse.current == null || !Mouse.current.leftButton.isPressed)
+            Restore();
     }
 
     private void Update()
     {
-        if (hovering && Mouse.current != null && !Mouse.current.leftButton.isPressed)
+        if (hovering && !pointerInside &&
+            (Mouse.current == null || !Mouse.current.leftButton.isPressed))
             Restore();
     }
 
     private void OnDisable()
     {
+        pointerInside = false;
         Restore();
     }
 
     private void Restore()
     {
-        if(hovering && Mouse.current != null && Mouse.current.leftButton.isPressed)
-            return;
         if (!hovering) return;
         hovering = false;
         transform.localScale = originalScale;

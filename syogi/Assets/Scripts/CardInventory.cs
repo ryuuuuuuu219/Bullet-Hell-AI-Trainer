@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Globalization;
 using System.Text;
@@ -6,6 +6,51 @@ using System.Text;
 // Runtime candidates are independent copies of the catalog's starter cards.
 public sealed class CardInventory
 {
+    [Serializable]
+    public sealed class SaveData
+    {
+        public int version = 1;
+        public CardData[] cards;
+        public int[] selectedIndices;
+        public long nextDropId;
+    }
+
+    public SaveData CaptureSave()
+    {
+        return new SaveData
+        {
+            cards = candidates.ConvertAll(Copy).ToArray(),
+            selectedIndices = selected.ConvertAll(card => candidates.IndexOf(card)).ToArray(),
+            nextDropId = nextDropId
+        };
+    }
+
+    public static CardInventory FromSave(SaveData data)
+    {
+        if (data == null || data.version != 1 || data.cards == null ||
+            data.cards.Length > Capacity || data.selectedIndices == null ||
+            data.selectedIndices.Length > 5 || data.nextDropId < 1 || data.nextDropId == long.MaxValue)
+            throw new ArgumentException("Invalid card save data.");
+        foreach (CardData card in data.cards)
+        {
+            if (card == null || card.items == null)
+                throw new ArgumentException("Invalid saved card.");
+            foreach (CardItem item in card.items)
+                if (item == null || string.IsNullOrEmpty(item.ID) || !BarrageComposer.IsFinite(item.mod))
+                    throw new ArgumentException("Invalid saved card parameter.");
+        }
+        var restored = new CardInventory(data.cards);
+        foreach (int index in data.selectedIndices)
+        {
+            if (index < 0 || index >= restored.candidates.Count ||
+                restored.selected.Contains(restored.candidates[index]))
+                throw new ArgumentException("Invalid saved selection.");
+            restored.selected.Add(restored.candidates[index]);
+        }
+        restored.nextDropId = data.nextDropId;
+        return restored;
+    }
+
     public const int Capacity = 16;
     private readonly List<CardData> candidates = new List<CardData>();
     private readonly List<CardData> selected = new List<CardData>();
@@ -111,13 +156,13 @@ public sealed class CardInventory
                 error = "Drop random weight must be finite and between 0 and 1.";
                 return false;
             }
-            weights[i] = weight;
+            weights[i] = ConvertDropWeight((weight - 0.5d)*2d);
         }
         var items = new CardItem[itemsnum];
         var name = new StringBuilder("ID:").Append(nextDropId);
         for (int i = 0; i < items.Length; i++)
         {
-            double modifier = total * (weights[i] - 0.5d) * GetDropMultiplier(dropIds[i]);
+            double modifier = total * weights[i] * GetDropMultiplier(dropIds[i]);
             if (double.IsNaN(modifier) || double.IsInfinity(modifier) || Math.Abs(modifier) > float.MaxValue)
             {
                 error = "Drop modifier overflow: " + dropIds[i];
@@ -139,6 +184,12 @@ public sealed class CardInventory
         candidates.Add(drop);
         nextDropId++;
         return true;
+    }
+
+    // Continuous value and slope at zero; approaches -1/5 for negative inputs.
+    public static double ConvertDropWeight(double x)
+    {
+        return x < 0d ? -0.2d + 1.2d * Math.Exp(x / 1.2d) : 1d + x;
     }
 
     public static CardData Copy(CardData source)
