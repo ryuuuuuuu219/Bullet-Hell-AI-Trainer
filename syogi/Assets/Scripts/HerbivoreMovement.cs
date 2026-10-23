@@ -13,6 +13,7 @@ public sealed class HerbivoreMovement : MonoBehaviour
     private GrassField field;
     private GrassTargeting.Candidate target;
     private bool hasTarget;
+    private float decisionElapsed;
 
     private void Awake()
     {
@@ -20,12 +21,17 @@ public sealed class HerbivoreMovement : MonoBehaviour
         movementDirection = movementDirection.sqrMagnitude > 0 ? movementDirection.normalized : Vector2.right;
     }
 
-    private void OnEnable() => feeding.AfterFeeding += ChooseTarget;
+    private void OnEnable()
+    {
+        decisionElapsed = 0f;
+        feeding.AfterFeeding += ChooseTarget;
+    }
     private void OnDisable() => feeding.AfterFeeding -= ChooseTarget;
     private void Start() => ChooseTarget(feeding.Field);
 
     private void ChooseTarget(GrassField grassField)
     {
+        decisionElapsed = 0f;
         field = grassField;
         hasTarget = false;
         IsStopped = field == null || field.Grid == null || HasGrassHere();
@@ -45,6 +51,15 @@ public sealed class HerbivoreMovement : MonoBehaviour
     private void Update()
     {
         if (field == null || field.Grid == null) return;
+        // Target decisions remain once per second even though feeding is slower.
+        // A feeding event also triggers an immediate decision after consumption.
+        decisionElapsed += Time.deltaTime;
+        if (decisionElapsed >= 1f)
+        {
+            float remainder = decisionElapsed % 1f;
+            ChooseTarget(field);
+            decisionElapsed = remainder;
+        }
         if (HasGrassHere()) IsStopped = true;
         if (IsStopped) return;
         // Small steps prevent skipping a grass cell during a long frame.

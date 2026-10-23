@@ -735,9 +735,10 @@ MonoBehaviour:
   randomizeSeed: 1
   seed: 1
   updateInterval: 10
-  maxGrass: 10
+  maxGrass: 3
   increaseAmount: 1
   birthNeighborMinimum: 1
+  birthNeighborMaximum: 1
   growthEnabled: 1
   wrapBoundary: 0
 --- !u!1 &2100000030

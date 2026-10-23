@@ -3,20 +3,20 @@ using System;
 // Pure simulation: every cell reads the same previous generation.
 public sealed class GrassGrid
 {
-    public const int InitialAmount = 1;
-    private int[] current;
-    private int[] next;
+    public const float InitialAmount = 1f;
+    private float[] current;
+    private float[] next;
     public int Width { get; private set; }
     public int Height { get; private set; }
-    public int this[int x, int y] { get { return current[y * Width + x]; } }
+    public float this[int x, int y] { get { return current[y * Width + x]; } }
 
     public GrassGrid(int width, int height, int initialCount, int seed)
     {
         if (width <= 0 || height <= 0) throw new ArgumentOutOfRangeException("width");
         Width = width;
         Height = height;
-        current = new int[checked(width * height)];
-        next = new int[current.Length];
+        current = new float[checked(width * height)];
+        next = new float[current.Length];
         if (initialCount < 0 || initialCount > current.Length)
             throw new ArgumentOutOfRangeException("initialCount");
         var random = new Random(seed);
@@ -48,25 +48,35 @@ public sealed class GrassGrid
     }
 
     // Returns the actual amount consumed, including zero for empty/outside cells.
-    public int ConsumeAtWorldPosition(double worldX, double worldY, double cellSize, int requestedAmount)
+    public float ConsumeAtWorldPosition(double worldX, double worldY, double cellSize, float requestedAmount)
     {
         int x, y;
-        if (requestedAmount <= 0 || !TryWorldToCell(worldX, worldY, cellSize, out x, out y)) return 0;
+        if (float.IsNaN(requestedAmount) || float.IsInfinity(requestedAmount) || requestedAmount <= 0 || !TryWorldToCell(worldX, worldY, cellSize, out x, out y)) return 0;
         int index = y * Width + x;
-        int consumed = Math.Min(current[index], requestedAmount);
-        current[index] -= consumed;
+        float consumed = Math.Min(current[index], requestedAmount);
+        float remaining = current[index] - consumed;
+        // Remove subtraction roundoff (e.g. five meals of 0.2 from 1).
+        // Relative tolerance preserves genuinely small resource quantities.
+        if (remaining <= Math.Max(current[index], requestedAmount) * 0.000001f)
+        {
+            consumed = current[index];
+            remaining = 0f;
+        }
+        current[index] = remaining;
         return consumed;
     }
 
-    public void Step(int maximum, int increase, int birthNeighborMinimum, bool growthEnabled, bool wrap)
+    public void Step(float maximum, float increase, int birthNeighborMinimum, bool growthEnabled, bool wrap, int birthNeighborMaximum = 1)
     {
-        if (maximum < 1 || increase < 0 || birthNeighborMinimum < 0 || birthNeighborMinimum > 8)
+        if (float.IsNaN(maximum) || float.IsInfinity(maximum) || float.IsNaN(increase) || float.IsInfinity(increase)
+            || maximum < 1 || increase < 0 || birthNeighborMinimum < 0 || birthNeighborMinimum > 8
+            || birthNeighborMaximum < birthNeighborMinimum || birthNeighborMaximum > 8)
             throw new ArgumentOutOfRangeException("rule");
         for (int y = 0; y < Height; y++)
         for (int x = 0; x < Width; x++)
         {
             int index = y * Width + x;
-            int amount = current[index];
+            float amount = current[index];
             if (amount == 0)
             {
                 int neighbors = 0;
@@ -83,9 +93,11 @@ public sealed class GrassGrid
                     else if (nx < 0 || nx >= Width || ny < 0 || ny >= Height) continue;
                     if (current[ny * Width + nx] > 0) neighbors++;
                 }
-                next[index] = neighbors >= birthNeighborMinimum ? InitialAmount : 0;
+                next[index] = neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum ? InitialAmount : 0;
             }
-            else next[index] = (int)Math.Min(maximum, (long)amount + (growthEnabled ? increase : 0));
+            // A mature cell dies on this tick; it cannot also be reborn on this tick.
+            else if (amount >= maximum) next[index] = 0;
+            else next[index] = Math.Min(maximum, amount + (growthEnabled ? increase : 0));
         }
         var previous = current;
         current = next;

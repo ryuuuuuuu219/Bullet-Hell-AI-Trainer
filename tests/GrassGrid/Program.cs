@@ -9,9 +9,12 @@ class Program
     static void Main()
     {
         TestTargeting();
+        TestBirthNeighborRange();
+        TestFractionalGrass();
+        TestResources();
         var initial = new GrassGrid(100, 100, 150, 42);
         var replay = new GrassGrid(100, 100, 150, 42);
-        int count = 0;
+        float count = 0;
         for (int y = 0; y < 100; y++)
         for (int x = 0; x < 100; x++)
         {
@@ -35,9 +38,9 @@ class Program
                 int expected = dx == 0 && dy == 0 ? 2 : dx <= 1 && dy <= 1 ? 1 : 0;
                 Check(grid[x, y] == expected, "Eight neighbors, synchronous birth, boundary");
             }
-            for (int i = 0; i < 20; i++) grid.Step(10, 1, 1, true, wrap);
+            for (int i = 0; i < 20; i++) grid.Step(3, 1, 1, true, wrap);
             for (int y = 0; y < 7; y++)
-            for (int x = 0; x < 7; x++) Check(grid[x, y] == 10, "Saturation");
+            for (int x = 0; x < 7; x++) Check(grid[x, y] >= 0 && grid[x, y] <= 3, "Grass stays within cap during death cycles");
         }
         var empty = new GrassGrid(5, 5, 0, 42);
         empty.Step(10, 1, 1, true, false);
@@ -68,12 +71,115 @@ class Program
         Check(feeding.ConsumeAtWorldPosition(0, 0, 100, -1) == 0
             && feeding.ConsumeAtWorldPosition(0, 0, 100, 0) == 0 && feeding[50, 50] == 10, "Non-positive requests");
         feeding.Step(10, 1, 1, true, false);
-        Check(feeding[51, 49] == 1, "Depleted cell rebirth on next tick");
+        Check(feeding[51, 49] == 0, "Eight occupied neighbors block depleted cell rebirth");
         var lone = new GrassGrid(1, 1, 1, 42);
         lone.ConsumeAtWorldPosition(0, 0, 100, 1);
         lone.Step(10, 1, 1, true, false);
         Check(lone[0, 0] == 0, "Consumption survives buffer swap without neighbors");
-        Console.WriteLine("PASS: simulation rules, continuous world coordinates, consumption, boundaries, invalid inputs and post-consumption updates.");
+        var aging = new GrassGrid(3, 3, 9, 42);
+        aging.Step(3, 1, 1, true, false);
+        Check(aging[1, 1] == 2, "Growth 1 to 2");
+        aging.Step(3, 1, 1, true, false);
+        Check(aging[1, 1] == 3, "Growth 2 to 3 persists for one tick");
+        aging.ConsumeAtWorldPosition(0, 0, 100, 3);
+        aging.Step(3, 1, 1, false, false);
+        Check(aging[0, 0] == 0, "Mature grass dies even with growth disabled");
+        Check(aging[1, 1] == 0, "Eight mature neighbors block birth before simultaneous death");
+        aging.Step(3, 1, 1, true, false);
+        Check(aging[0, 0] == 0, "All dead cells remain empty without neighbors");
+        var isolated = new GrassGrid(1, 1, 1, 42);
+        isolated.Step(3, 99, 1, true, false);
+        Check(isolated[0, 0] == 3, "Large growth clamps to cap");
+        isolated.Step(3, 1, 1, true, false);
+        Check(isolated[0, 0] == 0, "3 to 0 death");
+        isolated.Step(3, 1, 1, true, false);
+        Check(isolated[0, 0] == 0, "No spontaneous rebirth");
+        Console.WriteLine("PASS: simulation, consumption, boundaries, cap=3, death and simultaneous rebirth rules.");
+    }
+
+    static void TestResources()
+    {
+        var animal = new HerbivoreResources();
+        Check(animal.Amount == 10, "Initial resources, including newborn");
+        animal.Maintain(1);
+        animal.Feed(1);
+        Check(Math.Abs(animal.Amount - 10.8) < 1e-9, "Maintenance 0.2 and food conversion 1:1");
+        animal = new HerbivoreResources();
+        animal.Feed(29);
+        Check(!animal.TryReproduce() && animal.Amount == 39, "No reproduction below 40");
+        animal.Feed(1);
+        Check(animal.TryReproduce() && animal.Amount == 10, "Reproduction at 40 costs 30");
+        Check(!animal.TryReproduce(), "No repeated reproduction without new resources");
+        animal.Feed(100);
+        Check(animal.Amount == 50, "Resource cap");
+        Check(animal.TryReproduce() && animal.Amount == 20, "Reproduction from cap");
+        animal = new HerbivoreResources();
+        for (int i = 0; i < 500; i++) animal.Maintain(0.1);
+        Check(animal.IsDead && animal.Amount == 0, "Starvation after 50 seconds including roundoff");
+        animal.Feed(1);
+        Check(animal.IsDead && !animal.TryReproduce(), "Dead animals cannot revive or reproduce");
+        var grid = new GrassGrid(1, 1, 1, 42);
+        grid.ConsumeAtWorldPosition(0, 0, 100, 0.75f);
+        animal = new HerbivoreResources();
+        animal.Feed(grid.ConsumeAtWorldPosition(0, 0, 100, 1));
+        Check(animal.Amount == 10.25 && grid[0, 0] == 0, "Only actual partial meal becomes resources");
+        Console.WriteLine("PASS: resources, maintenance, cap, reproduction cost, newborn resources, starvation and partial meals.");
+    }
+
+    static void TestFractionalGrass()
+    {
+        var grid = new GrassGrid(1, 1, 1, 1);
+        float total = 0;
+        for (int i = 0; i < 5; i++)
+        {
+            float eaten = grid.ConsumeAtWorldPosition(0, 0, 100, 0.2f);
+            Check(Math.Abs(eaten - 0.2f) < 0.000001f, "Fractional meal");
+            total += eaten;
+        }
+        Check(grid[0, 0] == 0 && Math.Abs(total - 1f) < 0.000001f, "No residual grass after five meals");
+        Check(grid.ConsumeAtWorldPosition(0, 0, 100, 0.2f) == 0, "Empty fractional meal");
+        grid = new GrassGrid(1, 1, 1, 1);
+        grid.ConsumeAtWorldPosition(0, 0, 100, 0.9f);
+        float available = grid[0, 0];
+        Check(grid.ConsumeAtWorldPosition(0, 0, 100, 0.2f) == available && grid[0, 0] == 0, "Partial meal capped by availability");
+        grid = new GrassGrid(1, 1, 1, 1);
+        foreach (float invalid in new[] { float.NaN, float.PositiveInfinity, float.NegativeInfinity, -0.2f })
+            Check(grid.ConsumeAtWorldPosition(0, 0, 100, invalid) == 0 && grid[0, 0] == 1, "Reject invalid consumption");
+        grid.ConsumeAtWorldPosition(0, 0, 100, 0.2f);
+        grid.Step(3f, 0.5f, 1, true, false);
+        Check(Math.Abs(grid[0, 0] - 1.3f) < 0.000001f, "Fractional growth retained");
+        var neighbor = new GrassGrid(3, 3, 1, 42);
+        int sx = 0, sy = 0;
+        for (int y = 0; y < 3; y++)
+        for (int x = 0; x < 3; x++)
+            if (neighbor[x, y] > 0) { sx = x; sy = y; }
+        neighbor.ConsumeAtWorldPosition((sx - 1) * 100, (sy - 1) * 100, 100, 0.8f);
+        neighbor.Step(3, 1, 1, true, false);
+        int nx = sx == 2 ? 1 : sx + 1;
+        Check(neighbor[nx, sy] == 1, "Fractional positive amount counts as occupied neighbor");
+        Console.WriteLine("PASS: real-valued grass, 0.2 meals, partial meals, rounding, fractional growth and birth.");
+    }
+
+    static void TestBirthNeighborRange()
+    {
+        foreach (bool wrap in new[] { false, true })
+        for (int count = 0; count <= 8; count++)
+        {
+            var grid = new GrassGrid(3, 3, 9, 42);
+            grid.Step(3, 2, 1, true, wrap);
+            grid.ConsumeAtWorldPosition(0, 0, 100, 3);
+            int kept = 0;
+            for (int y = 0; y < 3; y++)
+            for (int x = 0; x < 3; x++)
+            {
+                if (x == 1 && y == 1) continue;
+                if (kept++ >= count) grid.ConsumeAtWorldPosition((x - 1) * 100, (y - 1) * 100, 100, 3);
+            }
+            grid.Step(3, 1, 1, true, wrap);
+            Check(grid[1, 1] == (count == 1 ? 1 : 0), "Birth requires exactly one neighbor: " + count);
+            // All occupied neighbors were mature: birth uses the pre-death snapshot.
+        }
+        Console.WriteLine("PASS: birth for exactly 1 occupied neighbor; rejected for 0 and 2..8, including simultaneous death.");
     }
 
     static GrassGrid Targets(params (int x, int y, int amount)[] cells)

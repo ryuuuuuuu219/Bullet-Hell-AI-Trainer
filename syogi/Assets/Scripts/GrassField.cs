@@ -9,9 +9,10 @@ public sealed class GrassField : MonoBehaviour
     [SerializeField] private bool randomizeSeed = true;
     [SerializeField] private int seed = 1;
     [SerializeField, Min(0.01f)] private float updateInterval = 10f;
-    [SerializeField, Min(1)] private int maxGrass = 10;
-    [SerializeField, Min(0)] private int increaseAmount = 1;
+    [SerializeField, Min(1)] private float maxGrass = 3f;
+    [SerializeField, Min(0)] private float increaseAmount = 1f;
     [SerializeField, Range(0, 8)] private int birthNeighborMinimum = 1;
+    [SerializeField, Range(0, 8)] private int birthNeighborMaximum = 1;
     [SerializeField] private bool growthEnabled = true;
     [SerializeField] private bool wrapBoundary;
     public GrassGrid Grid { get; private set; }
@@ -28,10 +29,10 @@ public sealed class GrassField : MonoBehaviour
     /// Returns the actual amount removed. Outside [-5000, 5000), empty cells,
     /// non-positive requests and calls before Awake return zero.
     /// </summary>
-    public int ConsumeGrass(Vector2 worldPosition, int requestedAmount)
+    public float ConsumeGrass(Vector2 worldPosition, float requestedAmount)
     {
         if (Grid == null) return 0;
-        int consumed = Grid.ConsumeAtWorldPosition(worldPosition.x, worldPosition.y, CellSize, requestedAmount);
+        float consumed = Grid.ConsumeAtWorldPosition(worldPosition.x, worldPosition.y, CellSize, requestedAmount);
         if (consumed > 0) displayDirty = true;
         return consumed;
     }
@@ -71,7 +72,8 @@ public sealed class GrassField : MonoBehaviour
         {
             elapsed -= interval;
             Grid.Step(Mathf.Max(1, maxGrass), Mathf.Max(0, increaseAmount),
-                Mathf.Clamp(birthNeighborMinimum, 0, 8), growthEnabled, wrapBoundary);
+                Mathf.Clamp(birthNeighborMinimum, 0, 8), growthEnabled, wrapBoundary,
+                Mathf.Clamp(birthNeighborMaximum, Mathf.Clamp(birthNeighborMinimum, 0, 8), 8));
         }
         RefreshDisplay();
     }
@@ -81,7 +83,7 @@ public sealed class GrassField : MonoBehaviour
         for (int y = 0; y < CellCount; y++)
         for (int x = 0; x < CellCount; x++)
         {
-            int amount = Grid[x, y];
+            float amount = Grid[x, y];
             pixels[y * CellCount + x] = amount == 0 ? new Color32(0, 0, 0, 0)
                 : (Color32)Color.Lerp(new Color(0.05f, 0.25f, 0.06f), new Color(0.25f, 0.85f, 0.15f),
                     Mathf.Clamp01((amount - 1f) / Mathf.Max(1, maxGrass - 1)));

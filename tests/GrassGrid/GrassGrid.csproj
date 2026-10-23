@@ -6,5 +6,6 @@
   <ItemGroup>
     <Compile Include="../../syogi/Assets/Scripts/GrassGrid.cs" Link="GrassGrid.cs" />
     <Compile Include="../../syogi/Assets/Scripts/GrassTargeting.cs" Link="GrassTargeting.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/HerbivoreResources.cs" Link="HerbivoreResources.cs" />
   </ItemGroup>
 </Project>

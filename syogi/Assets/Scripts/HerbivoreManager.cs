@@ -7,6 +7,20 @@ public sealed class HerbivoreManager : MonoBehaviour
     [SerializeField] private bool randomizeSeed = true;
     [SerializeField] private int seed = 1;
     public int ActualSeed { get; private set; }
+    private int spawnedCount;
+
+    public bool TryReproduce(Vector3 position, HerbivoreResources resources)
+    {
+        if (herbivorePrefab == null || resources == null || !resources.TryReproduce()) return false;
+        Spawn(position);
+        return true;
+    }
+
+    private void Spawn(Vector3 position)
+    {
+        GameObject animal = Instantiate(herbivorePrefab, position, Quaternion.identity, transform);
+        animal.name = "Herbivore " + (++spawnedCount);
+    }
 
     private void Start()
     {
@@ -27,8 +41,7 @@ public sealed class HerbivoreManager : MonoBehaviour
             // Keep the upper edge exclusive even after conversion to float.
             x = Mathf.Min(x, halfSize - 0.001f);
             y = Mathf.Min(y, halfSize - 0.001f);
-            GameObject animal = Instantiate(herbivorePrefab, new Vector3(x, y, 0f), Quaternion.identity, transform);
-            animal.name = "Herbivore " + (i + 1);
+            Spawn(new Vector3(x, y, 0f));
         }
     }
 }
