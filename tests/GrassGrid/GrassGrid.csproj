@@ -1,0 +1,10 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <OutputType>Exe</OutputType>
+    <TargetFramework>net10.0</TargetFramework>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../syogi/Assets/Scripts/GrassGrid.cs" Link="GrassGrid.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/GrassTargeting.cs" Link="GrassTargeting.cs" />
+  </ItemGroup>
+</Project>
