@@ -10,6 +10,8 @@ public sealed class GrassField : MonoBehaviour
     [SerializeField] private int seed = 1;
     [SerializeField, Min(0.01f)] private float updateInterval = 10f;
     [SerializeField, Min(1)] private float maxGrass = 3f;
+    [SerializeField, Tooltip("枯死後の草量（0以下）。負の間は更新ごとに+1し、0で止まります。")]
+    private float deathAmount = -1f;
     [SerializeField, Min(0)] private float increaseAmount = 1f;
     [SerializeField, Range(0, 8)] private int birthNeighborMinimum = 1;
     [SerializeField, Range(0, 8)] private int birthNeighborMaximum = 1;
@@ -73,7 +75,8 @@ public sealed class GrassField : MonoBehaviour
             elapsed -= interval;
             Grid.Step(Mathf.Max(1, maxGrass), Mathf.Max(0, increaseAmount),
                 Mathf.Clamp(birthNeighborMinimum, 0, 8), growthEnabled, wrapBoundary,
-                Mathf.Clamp(birthNeighborMaximum, Mathf.Clamp(birthNeighborMinimum, 0, 8), 8));
+                Mathf.Clamp(birthNeighborMaximum, Mathf.Clamp(birthNeighborMinimum, 0, 8), 8),
+                float.IsNaN(deathAmount) || float.IsInfinity(deathAmount) ? -1f : Mathf.Min(0f, deathAmount));
         }
         RefreshDisplay();
     }
@@ -84,7 +87,7 @@ public sealed class GrassField : MonoBehaviour
         for (int x = 0; x < CellCount; x++)
         {
             float amount = Grid[x, y];
-            pixels[y * CellCount + x] = amount == 0 ? new Color32(0, 0, 0, 0)
+            pixels[y * CellCount + x] = amount <= 0 ? new Color32(0, 0, 0, 0)
                 : (Color32)Color.Lerp(new Color(0.05f, 0.25f, 0.06f), new Color(0.25f, 0.85f, 0.15f),
                     Mathf.Clamp01((amount - 1f) / Mathf.Max(1, maxGrass - 1)));
         }

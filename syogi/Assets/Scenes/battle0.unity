@@ -754,11 +754,12 @@ MonoBehaviour:
   initialSpawnCount: 150
   randomizeSeed: 1
   seed: 1
-  updateInterval: 10
-  maxGrass: 3
+  updateInterval: 60
+  maxGrass: 2
+  deathAmount: -10
   increaseAmount: 1
   birthNeighborMinimum: 1
-  birthNeighborMaximum: 1
+  birthNeighborMaximum: 2
   growthEnabled: 1
   wrapBoundary: 0
 --- !u!1 &2100000030

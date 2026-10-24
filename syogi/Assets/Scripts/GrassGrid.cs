@@ -53,6 +53,7 @@ public sealed class GrassGrid
         int x, y;
         if (float.IsNaN(requestedAmount) || float.IsInfinity(requestedAmount) || requestedAmount <= 0 || !TryWorldToCell(worldX, worldY, cellSize, out x, out y)) return 0;
         int index = y * Width + x;
+        if (current[index] <= 0) return 0;
         float consumed = Math.Min(current[index], requestedAmount);
         float remaining = current[index] - consumed;
         // Remove subtraction roundoff (e.g. five meals of 0.2 from 1).
@@ -66,9 +67,10 @@ public sealed class GrassGrid
         return consumed;
     }
 
-    public void Step(float maximum, float increase, int birthNeighborMinimum, bool growthEnabled, bool wrap, int birthNeighborMaximum = 1)
+    public void Step(float maximum, float increase, int birthNeighborMinimum, bool growthEnabled, bool wrap, int birthNeighborMaximum = 1, float deathAmount = 0f)
     {
         if (float.IsNaN(maximum) || float.IsInfinity(maximum) || float.IsNaN(increase) || float.IsInfinity(increase)
+            || float.IsNaN(deathAmount) || float.IsInfinity(deathAmount) || deathAmount > 0
             || maximum < 1 || increase < 0 || birthNeighborMinimum < 0 || birthNeighborMinimum > 8
             || birthNeighborMaximum < birthNeighborMinimum || birthNeighborMaximum > 8)
             throw new ArgumentOutOfRangeException("rule");
@@ -77,7 +79,8 @@ public sealed class GrassGrid
         {
             int index = y * Width + x;
             float amount = current[index];
-            if (amount == 0)
+            if (amount < 0) next[index] = Math.Min(0f, amount + 1f);
+            else if (amount == 0)
             {
                 int neighbors = 0;
                 for (int dy = -1; dy <= 1; dy++)
@@ -96,7 +99,7 @@ public sealed class GrassGrid
                 next[index] = neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum ? InitialAmount : 0;
             }
             // A mature cell dies on this tick; it cannot also be reborn on this tick.
-            else if (amount >= maximum) next[index] = 0;
+            else if (amount >= maximum) next[index] = deathAmount;
             else next[index] = Math.Min(maximum, amount + (growthEnabled ? increase : 0));
         }
         var previous = current;

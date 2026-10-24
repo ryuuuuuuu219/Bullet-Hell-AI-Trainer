@@ -57,7 +57,7 @@ public sealed class HerbivoreMovement : MonoBehaviour
     private void Update()
     {
         if (field == null || field.Grid == null) return;
-        // Target decisions remain once per second even though feeding is slower.
+        // Target decisions remain once per second independently of feeding.
         // A feeding event also triggers an immediate decision after consumption.
         decisionElapsed += Time.deltaTime;
         if (decisionElapsed >= 1f)
@@ -75,7 +75,13 @@ public sealed class HerbivoreMovement : MonoBehaviour
             float dt = Mathf.Min(remaining, 0.02f);
             remaining -= dt;
             MoveStep(dt);
-            if (HasGrassHere()) { IsStopped = true; break; }
+            if (HasGrassHere())
+            {
+                IsStopped = true;
+                // Check the newly entered cell before the next frame.
+                feeding.TryFeed();
+                break;
+            }
         }
     }
 

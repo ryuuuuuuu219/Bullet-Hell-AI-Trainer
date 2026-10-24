@@ -6,7 +6,7 @@ public sealed class HerbivoreFeeding : MonoBehaviour
     [SerializeField] private GrassField grassField;
     public const float ConsumptionPerSecond = 1f;
     private const float FeedingInterval = 1f;
-    private double elapsed;
+    private float feedingCounter;
     private HerbivoreResources resources;
     private HerbivoreManager manager;
     public double ResourceAmount => resources == null ? HerbivoreResources.Initial : resources.Amount;
@@ -16,8 +16,7 @@ public sealed class HerbivoreFeeding : MonoBehaviour
 
     private void OnEnable()
     {
-        // Each animal has its own phase, even when all are spawned in one frame.
-        elapsed = Random.Range(0f, FeedingInterval - 0.001f);
+        feedingCounter = 0f;
     }
 
     private void Awake()
@@ -33,35 +32,36 @@ public sealed class HerbivoreFeeding : MonoBehaviour
 
     private void Update()
     {
-        double remaining = Time.deltaTime;
-        while (remaining > 0)
+        float dt = Time.deltaTime;
+        if (dt <= 0f) return;
+        if (feedingCounter > 0f)
+            feedingCounter = Mathf.Max(0f, feedingCounter - dt);
+
+        resources.Maintain(dt);
+        if (resources.IsDead)
         {
-            // Apply maintenance up to the next meal, preserving event order on long frames.
-            double step = System.Math.Min(remaining, FeedingInterval - elapsed);
-            resources.Maintain(step);
-            remaining -= step;
-            elapsed += step;
-            if (resources.IsDead)
-            {
-                gameObject.SetActive(false);
-                Destroy(gameObject);
-                return;
-            }
-            if (elapsed < FeedingInterval) continue;
-            elapsed = 0;
-            if (grassField != null)
-            {
-                float consumed = grassField.ConsumeGrass((Vector2)transform.position, ConsumptionPerSecond * FeedingInterval);
-                resources.Feed(consumed);
-                AfterFeeding?.Invoke(grassField);
-            }
-            if (manager != null && TryGetComponent(out HerbivoreMovement movement))
-                manager.TryReproduce(transform.position, resources, movement.MovementDirection);
+            gameObject.SetActive(false);
+            Destroy(gameObject);
+            return;
         }
+        TryFeed();
+    }
+
+    public void TryFeed()
+    {
+        if (!isActiveAndEnabled || Time.deltaTime <= 0f || resources == null || resources.IsDead || grassField == null) return;
+        if (feedingCounter != 0f) return;
+        float consumed = grassField.ConsumeGrass((Vector2)transform.position, ConsumptionPerSecond * FeedingInterval);
+        if (consumed <= 0f) return;
+        feedingCounter += consumed;
+        resources.Feed(consumed);
+        AfterFeeding?.Invoke(grassField);
+        if (manager != null && TryGetComponent(out HerbivoreMovement movement))
+            manager.TryReproduce(transform.position, resources, movement.MovementDirection);
     }
 
     private void OnDisable()
     {
-        elapsed = 0f;
+        feedingCounter = 0f;
     }
 }

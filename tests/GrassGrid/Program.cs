@@ -9,6 +9,7 @@ class Program
     static void Main()
     {
         TestTargeting();
+        TestDeathRecovery();
         TestBirthNeighborRange();
         TestFractionalGrass();
         TestResources();
@@ -95,6 +96,33 @@ class Program
         isolated.Step(3, 1, 1, true, false);
         Check(isolated[0, 0] == 0, "No spontaneous rebirth");
         Console.WriteLine("PASS: simulation, consumption, boundaries, cap=3, death and simultaneous rebirth rules.");
+    }
+
+    static void TestDeathRecovery()
+    {
+        var grid = new GrassGrid(1, 1, 1, 42);
+        grid.Step(1, 1, 0, true, false, 0, -2.5f);
+        Check(grid[0, 0] == -2.5f, "Configured death amount");
+        Check(grid.ConsumeAtWorldPosition(0, 0, 100, 1) == 0 && grid[0, 0] == -2.5f,
+            "Feeding cannot consume or reset recovering cells");
+        foreach (float expected in new[] { -1.5f, -0.5f, 0f })
+        {
+            grid.Step(1, 99, 0, false, false, 0, -2.5f);
+            Check(grid[0, 0] == expected, "Recovery adds one independently of growth and delays birth");
+        }
+        grid.Step(1, 1, 0, false, false, 0, -2.5f);
+        Check(grid[0, 0] == 1, "Birth resumes on the update after recovery");
+        var field = new GrassGrid(3, 3, 9, 42);
+        field.Step(1, 1, 1, true, false, 8, -3);
+        GrassTargeting.Candidate target;
+        Check(!GrassTargeting.TrySelect(field, 0, 0, 1, 0, 100, out target), "Recovering cells are not food targets");
+        field.Step(1, 1, 1, true, false, 8, -3);
+        field.Step(1, 1, 1, true, false, 8, -3);
+        field.ConsumeAtWorldPosition(0, 0, 100, 1);
+        field.Step(1, 1, 1, true, false, 8, -3);
+        field.Step(1, 1, 1, true, false, 8, -3);
+        Check(field[1, 1] == 0, "No spontaneous birth after all grass dies");
+        Console.WriteLine("PASS: configured death, fractional recovery, feeding protection and delayed rebirth.");
     }
 
     static void TestResources()
