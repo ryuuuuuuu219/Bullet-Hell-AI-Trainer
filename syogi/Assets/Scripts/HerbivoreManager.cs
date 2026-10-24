@@ -9,17 +9,35 @@ public sealed class HerbivoreManager : MonoBehaviour
     public int ActualSeed { get; private set; }
     private int spawnedCount;
 
-    public bool TryReproduce(Vector3 position, HerbivoreResources resources)
+    public int LivingCount
+    {
+        get
+        {
+            int count = 0;
+            foreach (Transform child in transform)
+            {
+                if (child.gameObject.activeInHierarchy
+                    && child.TryGetComponent(out HerbivoreFeeding animal)
+                    && animal.ResourceAmount > 0)
+                    count++;
+            }
+            return count;
+        }
+    }
+
+    public bool TryReproduce(Vector3 position, HerbivoreResources resources, Vector2 parentDirection)
     {
         if (herbivorePrefab == null || resources == null || !resources.TryReproduce()) return false;
-        Spawn(position);
+        GameObject child = Spawn(position);
+        child.GetComponent<HerbivoreMovement>().SetInitialDirection(-parentDirection);
         return true;
     }
 
-    private void Spawn(Vector3 position)
+    private GameObject Spawn(Vector3 position)
     {
         GameObject animal = Instantiate(herbivorePrefab, position, Quaternion.identity, transform);
         animal.name = "Herbivore " + (++spawnedCount);
+        return animal;
     }
 
     private void Start()

@@ -3,6 +3,9 @@ using System;
 public sealed class HerbivoreResources
 {
     public const double Initial = 10;
+    public const double InitialHealth = 30;
+    public const double MaximumHealth = 60;
+    public double Health { get; private set; } = InitialHealth;
     public const double Maximum = 50;
     public const double ReproductionThreshold = 40;
     public const double ReproductionCost = 30;
@@ -22,6 +25,7 @@ public sealed class HerbivoreResources
     {
         if (IsDead || float.IsNaN(actualConsumed) || float.IsInfinity(actualConsumed) || actualConsumed <= 0) return;
         Amount = Math.Min(Maximum, Amount + actualConsumed);
+        Health = Math.Min(MaximumHealth, Health + actualConsumed);
     }
 
     public bool TryReproduce()

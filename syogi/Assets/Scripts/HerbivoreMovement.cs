@@ -15,6 +15,12 @@ public sealed class HerbivoreMovement : MonoBehaviour
     private bool hasTarget;
     private float decisionElapsed;
 
+    // Called immediately after spawning, before Start chooses the first target.
+    public void SetInitialDirection(Vector2 direction)
+    {
+        movementDirection = direction.sqrMagnitude > 0f ? direction.normalized : Vector2.right;
+    }
+
     private void Awake()
     {
         feeding = GetComponent<HerbivoreFeeding>();

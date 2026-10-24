@@ -10,6 +10,7 @@ public sealed class HerbivoreFeeding : MonoBehaviour
     private HerbivoreResources resources;
     private HerbivoreManager manager;
     public double ResourceAmount => resources == null ? HerbivoreResources.Initial : resources.Amount;
+    public double Health => resources == null ? HerbivoreResources.InitialHealth : resources.Health;
     public GrassField Field => grassField;
     public event System.Action<GrassField> AfterFeeding;
 
@@ -54,7 +55,8 @@ public sealed class HerbivoreFeeding : MonoBehaviour
                 resources.Feed(consumed);
                 AfterFeeding?.Invoke(grassField);
             }
-            if (manager != null) manager.TryReproduce(transform.position, resources);
+            if (manager != null && TryGetComponent(out HerbivoreMovement movement))
+                manager.TryReproduce(transform.position, resources, movement.MovementDirection);
         }
     }
 

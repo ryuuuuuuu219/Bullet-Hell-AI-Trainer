@@ -130,6 +130,7 @@ GameObject:
   - component: {fileID: 1001}
   - component: {fileID: 1005}
   - component: {fileID: 1006}
+  - component: {fileID: 1007}
   m_Layer: 0
   m_Name: Scene Navigation
   m_TagString: Untagged
@@ -196,6 +197,25 @@ MonoBehaviour:
   elapsedSeconds: 0
   score: 0
   isClearThreshold: 80
+--- !u!114 &1007
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 1000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 31bb40fc5df948e69eef984eed8b166f, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
+  sceneNavigation: {fileID: 1005}
+  targetCamera: {fileID: 330585545}
+  herbivoreManager: {fileID: 2100000032}
+  populationFont: {fileID: 12800000, guid: c4732cddaa37ed941a873274ec8e4bd4, type: 3}
+  minimumSize: 50
+  maximumSize: 2000
+  zoomFactor: 1.25
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -215,18 +235,6 @@ GameObject:
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
   m_IsActive: 1
---- !u!114 &330585547
-MonoBehaviour:
-  m_ObjectHideFlags: 0
-  m_CorrespondingSourceObject: {fileID: 0}
-  m_PrefabInstance: {fileID: 0}
-  m_PrefabAsset: {fileID: 0}
-  m_GameObject: {fileID: 330585543}
-  m_Enabled: 1
-  m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: d4c708180b3b4cc4b4830e375efbbdf9, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
 --- !u!81 &330585544
 AudioListener:
   m_ObjectHideFlags: 0
@@ -245,7 +253,7 @@ Camera:
   m_Enabled: 1
   serializedVersion: 2
   m_ClearFlags: 2
-  m_BackGroundColor: {r: 0, g: 0, b: 0, a: 0}
+  m_BackGroundColor: {r: 0.6886792, g: 0.4255518, b: 0.4255518, a: 0}
   m_projectionMatrixMode: 1
   m_GateFitMode: 2
   m_FOVAxisMode: 0
@@ -301,6 +309,18 @@ Transform:
   m_Children: []
   m_Father: {fileID: 0}
   m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &330585547
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 330585543}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: d4c708180b3b4cc4b4830e375efbbdf9, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: 
 --- !u!1 &2020685535
 GameObject:
   m_ObjectHideFlags: 0
@@ -729,8 +749,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9258e9773d1942b18afa0a278a345a96, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   initialSpawnCount: 150
   randomizeSeed: 1
   seed: 1
@@ -783,8 +803,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 517b3d8498fb4ae090de24e26f913d69, type: 3}
-  m_Name:
-  m_EditorClassIdentifier:
+  m_Name: 
+  m_EditorClassIdentifier: 
   herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
   initialCount: 50
   randomizeSeed: 1
