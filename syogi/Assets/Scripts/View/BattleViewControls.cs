@@ -16,10 +16,42 @@ public sealed class BattleViewControls : MonoBehaviour
 
     private Button zoomInButton;
     private Button zoomOutButton;
+    private static readonly float[] SimulationSpeeds = { 1f, 2f, 4f, 8f };
+    private int simulationSpeedIndex;
+    private Text simulationSpeedText;
     private Text populationText;
-    private int displayedPopulation = -1;
-    private int displayedCarnivores = -1;
-    private int displayedElapsedSeconds = -1;
+
+    [TextArea(8, 30)]
+    public string eventlog = string.Empty;
+    [Min(0.1f)] public float loggingInterval = 15f;
+    public float loggingTimer = 0f;
+    private GrassField loggingGrassField;
+    private bool logHeaderWritten;
+    private float loggingRealElapsed;
+
+    private void OnEnable() => ResetSimulationSpeed();
+
+    // Time.timeScale is global: do not carry battle acceleration into other scenes.
+    private void OnDisable() => ResetSimulationSpeed();
+
+    private void ResetSimulationSpeed()
+    {
+        simulationSpeedIndex = 0;
+        ApplySimulationSpeed();
+    }
+
+    private void CycleSimulationSpeed()
+    {
+        simulationSpeedIndex = (simulationSpeedIndex + 1) % SimulationSpeeds.Length;
+        ApplySimulationSpeed();
+    }
+
+    private void ApplySimulationSpeed()
+    {
+        float speed = SimulationSpeeds[simulationSpeedIndex];
+        Time.timeScale = speed;
+        if (simulationSpeedText != null) simulationSpeedText.text = $"Speed x{speed:0}";
+    }
 
     private void Start()
     {
@@ -53,6 +85,10 @@ public sealed class BattleViewControls : MonoBehaviour
         zoomOutButton = CreateButton(canvasObject.transform, "-", 192f, 48f, font);
         zoomInButton.onClick.AddListener(() => Zoom(1f / zoomFactor));
         zoomOutButton.onClick.AddListener(() => Zoom(zoomFactor));
+        Button speedButton = CreateButton(canvasObject.transform, "Speed x1", 256f, 160f, font);
+        simulationSpeedText = speedButton.GetComponentInChildren<Text>();
+        speedButton.onClick.AddListener(CycleSimulationSpeed);
+        ApplySimulationSpeed();
         RefreshButtons();
         CreatePopulationText(canvasObject.transform, populationFont != null ? populationFont : font);
     }
@@ -72,24 +108,76 @@ public sealed class BattleViewControls : MonoBehaviour
         populationText.color = Color.white;
         populationText.raycastTarget = false;
         obj.GetComponent<Outline>().effectColor = Color.black;
-        UpdatePopulation();
+        populationText.text = UpdatePopulation();
     }
 
     private void LateUpdate()
     {
-        if (populationText != null) UpdatePopulation();
+        if (populationText != null) populationText.text = UpdatePopulation();
+        loggingRealElapsed += Time.unscaledDeltaTime;
+        if (Time.deltaTime <= 0f) return;
+        float interval = float.IsNaN(loggingInterval) || float.IsInfinity(loggingInterval)
+            ? 15f : Mathf.Max(0.1f, loggingInterval);
+        if (float.IsNaN(loggingTimer) || float.IsInfinity(loggingTimer)) loggingTimer = 0f;
+        loggingTimer -= Time.deltaTime;
+        if (loggingTimer <= 0f)
+        {
+            // Record the actual state once, not invented intermediate samples after a long frame.
+            loggingTimer = interval - ((-loggingTimer) % interval);
+            AppendPopulationLog();
+        }
     }
 
-    private void UpdatePopulation()
+    private void AppendPopulationLog()
     {
-        int count = herbivoreManager != null ? herbivoreManager.LivingCount : 0;
+        if (loggingGrassField == null) loggingGrassField = FindAnyObjectByType<GrassField>();
+        if (!logHeaderWritten)
+        {
+            eventlog += "\n--- 生態系観測ログ（時間は秒、NAは参照なし） ---\n"
+                + $"seed 草={ (loggingGrassField != null ? loggingGrassField.ActualSeed.ToString() : "NA") }"
+                + $" 草食={ (herbivoreManager != null ? herbivoreManager.ActualSeed.ToString() : "NA") }"
+                + $" 肉食={ (carnivoreManager != null ? carnivoreManager.ActualSeed.ToString() : "NA") }\n"
+                + "simulation_s,real_s,speed,grass_cells,grass_total,recovering_cells,empty_cells,herbivores,herbivore_food,carnivores,carnivore_food\n";
+            logHeaderWritten = true;
+        }
+
+        int livingGrass = 0, recovering = 0, empty = 0;
+        double grassTotal = 0;
+        GrassGrid grid = loggingGrassField != null ? loggingGrassField.Grid : null;
+        if (grid != null)
+        {
+            for (int y = 0; y < grid.Height; y++)
+            for (int x = 0; x < grid.Width; x++)
+            {
+                float amount = grid[x, y];
+                if (amount > 0) { livingGrass++; grassTotal += amount; }
+                else if (amount < 0) recovering++;
+                else empty++;
+            }
+        }
+
+        int herbivores = 0, carnivores = 0;
+        double herbivoreFood = 0, carnivoreFood = 0;
+        foreach (AnimalBody body in AnimalBody.Active)
+        {
+            if (body == null || !body.IsAlive) continue;
+            if (body.IsHerbivore) { herbivores++; herbivoreFood += body.Resources.Amount; }
+            else { carnivores++; carnivoreFood += body.Resources.Amount; }
+        }
+        var culture = System.Globalization.CultureInfo.InvariantCulture;
+        string grassValues = grid == null ? "NA,NA,NA,NA"
+            : $"{livingGrass},{grassTotal.ToString("F3", culture)},{recovering},{empty}";
+        eventlog += string.Format(culture, "{0:F3},{1:F3},{2:0.###},{3},{4},{5:F3},{6},{7:F3}\n",
+            Time.timeSinceLevelLoad, loggingRealElapsed, Time.timeScale, grassValues,
+            herbivores, herbivoreFood, carnivores, carnivoreFood);
+    }
+
+    private string UpdatePopulation()
+    {
+        int herbivores = herbivoreManager != null ? herbivoreManager.LivingCount : 0;
         int carnivores = carnivoreManager != null ? carnivoreManager.LivingCount : 0;
         int elapsedSeconds = Mathf.FloorToInt(Time.timeSinceLevelLoad);
-        if (count == displayedPopulation && carnivores == displayedCarnivores && elapsedSeconds == displayedElapsedSeconds) return;
-        displayedPopulation = count;
-        displayedCarnivores = carnivores;
-        displayedElapsedSeconds = elapsedSeconds;
-        populationText.text = $"経過時間：{elapsedSeconds / 3600:00}:{elapsedSeconds / 60 % 60:00}:{elapsedSeconds % 60:00}\n草食動物：{count}\n肉食動物：{carnivores}";
+        return $"経過時間：{elapsedSeconds / 3600:00}:{elapsedSeconds / 60 % 60:00}:{elapsedSeconds % 60:00}\n草食動物：{herbivores}\n肉食動物：{carnivores}";
     }
 
     private static Button CreateButton(Transform parent, string label, float left, float width, Font font)

@@ -1,4 +1,5 @@
-using System;
+﻿using System;
+using UnityEngine;
 
 // Pure simulation: every cell reads the same previous generation.
 public sealed class GrassGrid
@@ -19,7 +20,7 @@ public sealed class GrassGrid
         next = new float[current.Length];
         if (initialCount < 0 || initialCount > current.Length)
             throw new ArgumentOutOfRangeException("initialCount");
-        var random = new Random(seed);
+        var random = new System.Random(seed);
         var indices = new int[current.Length];
         for (int i = 0; i < indices.Length; i++) indices[i] = i;
         for (int i = 0; i < initialCount; i++)
@@ -96,7 +97,10 @@ public sealed class GrassGrid
                     else if (nx < 0 || nx >= Width || ny < 0 || ny >= Height) continue;
                     if (current[ny * Width + nx] > 0) neighbors++;
                 }
-                next[index] = neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum ? InitialAmount : 0;
+                    next[index] = (neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum) ||
+                            0.001f < UnityEngine.Random.RandomRange(0, 1)
+                        ? 
+                        InitialAmount : 0;
             }
             // A mature cell dies on this tick; it cannot also be reborn on this tick.
             else if (amount >= maximum) next[index] = deathAmount;
