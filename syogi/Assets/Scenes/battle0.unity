@@ -163,8 +163,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 6a210a03fcc54c7a8f680551d669dc3a, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   sceneNames:
   - main menu
   - CardSet
@@ -187,8 +187,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 8a59090b73e04a15812a6583f75fd407, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   sceneNavigation: {fileID: 1005}
   transitionDelaySeconds: 10
   autoFinishAfterDelay: 0
@@ -207,11 +207,12 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 31bb40fc5df948e69eef984eed8b166f, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   sceneNavigation: {fileID: 1005}
   targetCamera: {fileID: 330585545}
   herbivoreManager: {fileID: 2100000032}
+  carnivoreManager: {fileID: 2100000042}
   populationFont: {fileID: 12800000, guid: c4732cddaa37ed941a873274ec8e4bd4, type: 3}
   minimumSize: 50
   maximumSize: 2000
@@ -319,8 +320,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: d4c708180b3b4cc4b4830e375efbbdf9, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
 --- !u!1 &2020685535
 GameObject:
   m_ObjectHideFlags: 0
@@ -349,7 +350,7 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 4916c81b74d5f2a4780ca715903218f6, type: 3}
-  m_Name: 
+  m_Name:
   m_EditorClassIdentifier: Assembly-CSharp::player
   moveSpeed: 500
   size: 30
@@ -561,8 +562,8 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: eeaf8d7baec7cd34fa7554c9705d931b, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
 --- !u!1 &2100000010
 GameObject:
   m_ObjectHideFlags: 0
@@ -749,9 +750,9 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 9258e9773d1942b18afa0a278a345a96, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
-  initialSpawnCount: 150
+  m_Name:
+  m_EditorClassIdentifier:
+  initialSpawnCount: 500
   randomizeSeed: 1
   seed: 1
   updateInterval: 60
@@ -804,10 +805,58 @@ MonoBehaviour:
   m_Enabled: 1
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 517b3d8498fb4ae090de24e26f913d69, type: 3}
-  m_Name: 
-  m_EditorClassIdentifier: 
+  m_Name:
+  m_EditorClassIdentifier:
   herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
   initialCount: 50
+  randomizeSeed: 1
+  seed: 1
+--- !u!1 &2100000040
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2100000041}
+  - component: {fileID: 2100000042}
+  m_Layer: 0
+  m_Name: Carnivore Manager
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!4 &2100000041
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000040}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
+--- !u!114 &2100000042
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 2100000040}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: b01f06a226de438a8dcbdd386107aef4, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  carnivorePrefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
+  initialCount: 15
   randomizeSeed: 1
   seed: 1
 --- !u!1660057539 &9223372036854775807
@@ -821,3 +870,4 @@ SceneRoots:
   - {fileID: 2100000011}
   - {fileID: 2100000021}
   - {fileID: 2100000031}
+  - {fileID: 2100000041}

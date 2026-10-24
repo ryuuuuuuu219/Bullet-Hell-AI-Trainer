@@ -4,8 +4,8 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../syogi/Assets/Scripts/CardData.cs" Link="CardData.cs" />
-    <Compile Include="../../syogi/Assets/Scripts/BarrageDefinition.cs" Link="BarrageDefinition.cs" />
-    <Compile Include="../../syogi/Assets/Scripts/CardInventory.cs" Link="CardInventory.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Cards/CardData.cs" Link="CardData.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Barrage/BarrageDefinition.cs" Link="BarrageDefinition.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Cards/CardInventory.cs" Link="CardInventory.cs" />
   </ItemGroup>
 </Project>

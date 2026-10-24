@@ -8,6 +8,7 @@ public sealed class BattleViewControls : MonoBehaviour
     [SerializeField] private SceneNavigation sceneNavigation;
     [SerializeField] private Camera targetCamera;
     [SerializeField] private HerbivoreManager herbivoreManager;
+    [SerializeField] private CarnivoreManager carnivoreManager;
     [SerializeField] private Font populationFont;
     [SerializeField, Min(1f)] private float minimumSize = 50f;
     [SerializeField, Min(1f)] private float maximumSize = 2000f;
@@ -17,6 +18,8 @@ public sealed class BattleViewControls : MonoBehaviour
     private Button zoomOutButton;
     private Text populationText;
     private int displayedPopulation = -1;
+    private int displayedCarnivores = -1;
+    private int displayedElapsedSeconds = -1;
 
     private void Start()
     {
@@ -61,7 +64,7 @@ public sealed class BattleViewControls : MonoBehaviour
         RectTransform rect = obj.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = new Vector2(16f, -72f);
-        rect.sizeDelta = new Vector2(360f, 40f);
+        rect.sizeDelta = new Vector2(420f, 110f);
         populationText = obj.GetComponent<Text>();
         populationText.font = font;
         populationText.fontSize = 24;
@@ -80,9 +83,13 @@ public sealed class BattleViewControls : MonoBehaviour
     private void UpdatePopulation()
     {
         int count = herbivoreManager != null ? herbivoreManager.LivingCount : 0;
-        if (count == displayedPopulation) return;
+        int carnivores = carnivoreManager != null ? carnivoreManager.LivingCount : 0;
+        int elapsedSeconds = Mathf.FloorToInt(Time.timeSinceLevelLoad);
+        if (count == displayedPopulation && carnivores == displayedCarnivores && elapsedSeconds == displayedElapsedSeconds) return;
         displayedPopulation = count;
-        populationText.text = $"個体数：{count}";
+        displayedCarnivores = carnivores;
+        displayedElapsedSeconds = elapsedSeconds;
+        populationText.text = $"経過時間：{elapsedSeconds / 3600:00}:{elapsedSeconds / 60 % 60:00}:{elapsedSeconds % 60:00}\n草食動物：{count}\n肉食動物：{carnivores}";
     }
 
     private static Button CreateButton(Transform parent, string label, float left, float width, Font font)

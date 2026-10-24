@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 114000}
   - component: {fileID: 114001}
   - component: {fileID: 114002}
+  - component: {fileID: 114003}
   - component: {fileID: 2074502236574295271}
   m_Layer: 0
   m_Name: Herbivore
@@ -125,7 +126,7 @@ LineRenderer:
   - {x: 78.46282, y: -15.607225, z: 0}
   m_Parameters:
     serializedVersion: 3
-    widthMultiplier: 2
+    widthMultiplier: 10
     widthCurve:
       serializedVersion: 2
       m_Curve:
@@ -294,7 +295,7 @@ MonoBehaviour:
   m_OnCullStateChanged:
     m_PersistentCalls:
       m_Calls: []
-  m_text: "HP: 30.0/60\n資源: 10.0/50"
+  m_text: "HP: 30.0/60\n\u8CC7\u6E90: 10.0/50"
   m_isRightToLeft: 0
   m_fontAsset: {fileID: 11400000, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
   m_sharedMaterial: {fileID: 5564924448460782022, guid: 7d8e9bb23b906a043b1713a73dd4bce1, type: 2}
@@ -366,3 +367,15 @@ MonoBehaviour:
   m_hasFontAssetChanged: 0
   m_baseMaterial: {fileID: 0}
   m_maskOffset: {x: 0, y: 0, z: 0, w: 0}
+--- !u!114 &114003
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 8bbe7880e66841cd81ee23157a3302ec, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:

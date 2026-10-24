@@ -4,8 +4,9 @@
     <TargetFramework>net10.0</TargetFramework>
   </PropertyGroup>
   <ItemGroup>
-    <Compile Include="../../syogi/Assets/Scripts/GrassGrid.cs" Link="GrassGrid.cs" />
-    <Compile Include="../../syogi/Assets/Scripts/GrassTargeting.cs" Link="GrassTargeting.cs" />
-    <Compile Include="../../syogi/Assets/Scripts/HerbivoreResources.cs" Link="HerbivoreResources.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Animals/AnimalResources.cs" Link="AnimalResources.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Grass/GrassGrid.cs" Link="GrassGrid.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Grass/GrassTargeting.cs" Link="GrassTargeting.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Herbivores/HerbivoreResources.cs" Link="HerbivoreResources.cs" />
   </ItemGroup>
 </Project>

@@ -1,6 +1,7 @@
 using UnityEngine;
 
 [DefaultExecutionOrder(10)]
+[RequireComponent(typeof(AnimalBody))]
 public sealed class HerbivoreFeeding : MonoBehaviour
 {
     [SerializeField] private GrassField grassField;
@@ -22,6 +23,7 @@ public sealed class HerbivoreFeeding : MonoBehaviour
     private void Awake()
     {
         resources = new HerbivoreResources();
+        GetComponent<AnimalBody>().Initialize(resources, true);
         manager = GetComponentInParent<HerbivoreManager>();
         if (grassField == null) grassField = FindAnyObjectByType<GrassField>();
         if (grassField == null)
