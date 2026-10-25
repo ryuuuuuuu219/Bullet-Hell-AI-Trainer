@@ -13,6 +13,9 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     public const double InitialHealth = 50;
     [SerializeField, Min(1)] private int foodLayer = 1;
     [SerializeField] private Vector2 movementDirection = Vector2.right;
+    [SerializeField, Min(0)] private float separationRadius = 200f;
+    [SerializeField, Min(0)] private float separationStrength = 50f;
+    [SerializeField, Min(0)] private float separationMaxSpeed = 50f;
     public Vector2 MovementDirection => movementDirection;
     public AnimalResources Resources { get; private set; }
     public AnimalBody Body { get; private set; }
@@ -46,16 +49,23 @@ public sealed class CarnivoreAnimal : MonoBehaviour
 
     private void Start() => ChooseTarget();
 
+    private bool CanPursue(AnimalBody candidate) => candidate != null && candidate.IsAlive && candidate.IsHerbivore &&
+        !AnimalTactics.Abandon(Resources.Health, candidate.Resources.Health, Resources.Amount, candidate.Resources.Amount) &&
+        Body.CanDetect(candidate);
+
+    private void DropTarget() { target = null; hadTarget = false; IsStopped = false; }
+    private void LateUpdate() => DrawOutline();
+
     private void ChooseTarget()
     {
-        if (target != null && target.IsAlive) return;
+        if (CanPursue(target)) return;
         target = null;
         hadTarget = false;
         IsStopped = false;
-        float nearest = SearchRadius * SearchRadius;
+        float nearest = Body.SearchDistance * Body.SearchDistance;
         foreach (AnimalBody candidate in AnimalBody.Active)
         {
-            if (!candidate.IsAlive || !candidate.IsHerbivore) continue;
+            if (!CanPursue(candidate)) continue;
             float distance = ((Vector2)(candidate.transform.position - transform.position)).sqrMagnitude;
             if (distance > nearest) continue;
             nearest = distance;
@@ -67,8 +77,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private void Update()
     {
         float remaining = Time.deltaTime;
-        if (remaining <= 0) return;
-        Resources.Maintain(remaining);
+        if (remaining <= 0 || Body.IsSleeping || !Body.IsAlive) return;
+        if (target != null && !CanPursue(target)) DropTarget();
         if (Resources.IsDead) { Body.Die(); return; }
         while (remaining > 0)
         {
@@ -82,14 +92,16 @@ public sealed class CarnivoreAnimal : MonoBehaviour
             }
             MoveAndShoot(dt);
         }
-        DrawOutline();
+        if (manager != null) manager.TryReproduce(this);
     }
 
     private void MoveAndShoot(float dt)
     {
+        if (target != null && !CanPursue(target)) DropTarget();
         Vector2 position = transform.position;
         float half = GrassField.FieldSize * 0.5f;
-        float margin = 2f * Speed / (AngularSpeed * Mathf.Deg2Rad) + AnimalBody.Radius;
+        float speed = Mathf.Max(0, Body.Traits.walkingSpeed);
+        float margin = 2f * speed / (AngularSpeed * Mathf.Deg2Rad) + Body.Radius;
         bool boundary = Mathf.Abs(position.x) >= half - margin || Mathf.Abs(position.y) >= half - margin;
         bool aliveTarget = target != null && target.IsAlive;
         Vector2 desired = movementDirection;
@@ -116,13 +128,16 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         }
         if (!IsStopped)
         {
-            position += movementDirection * (Speed * dt);
-            position.x = Mathf.Clamp(position.x, -half, half - 0.001f);
-            position.y = Mathf.Clamp(position.y, -half, half - 0.001f);
-            transform.position = new Vector3(position.x, position.y, transform.position.z);
+            position += movementDirection * (speed * dt);
         }
+        // Separation is a position correction, including while stopped to shoot.
+        position += SeparationVelocity() * dt;
+        position.x = Mathf.Clamp(position.x, -half, half - 0.001f);
+        position.y = Mathf.Clamp(position.y, -half, half - 0.001f);
+        transform.position = new Vector3(position.x, position.y, transform.position.z);
         shotElapsed = Mathf.Min(1f, shotElapsed + dt);
         // No angle gate or lead aiming: fire along the current heading.
+        if (target != null && !CanPursue(target)) { DropTarget(); aliveTarget = false; }
         bool canShoot = !boundary && aliveTarget &&
             ((Vector2)target.transform.position - position).sqrMagnitude <= Range * Range;
         if (canShoot && shotElapsed >= 1f)
@@ -139,14 +154,30 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         for (int i = 0; i < outline.positionCount; i++)
         {
             float angle = heading + i * Mathf.PI * 2f / outline.positionCount;
-            outline.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * AnimalBody.Radius);
+            outline.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * Body.Radius);
         }
+    }
+
+    private Vector2 SeparationVelocity()
+    {
+        double x = 0, y = 0;
+        Vector2 position = transform.position;
+        foreach (AnimalBody other in AnimalBody.Active)
+        {
+            if (other == Body || !other.IsAlive || other.IsHerbivore || other.SpeciesId != Body.SpeciesId) continue;
+            Vector2 delta = position - (Vector2)other.transform.position;
+            CarnivoreSpacing.Repulsion(delta.x, delta.y, Body.SeparationId, other.SeparationId,
+                separationRadius, separationStrength, out double rx, out double ry);
+            x += rx;
+            y += ry;
+        }
+        CarnivoreSpacing.Limit(ref x, ref y, separationMaxSpeed);
+        return new Vector2((float)x, (float)y);
     }
 
     public void ConsumeKill(double amount)
     {
-        if (!Body.IsAlive) return;
+        if (!Body.IsAlive || Body.IsSleeping) return;
         Resources.Feed(amount);
-        if (manager != null) manager.TryReproduce(this);
     }
 }

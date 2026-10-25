@@ -10,6 +10,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
     public const double PowerDecayPerSecond = 10;
     private CarnivoreAnimal owner;
     private AnimalBody ownerBody;
+    public int SpeciesId { get; private set; }
     private Vector2 direction;
     private double power = InitialPower;
     private readonly HashSet<AnimalBody> hitBodies = new HashSet<AnimalBody>();
@@ -28,6 +29,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
         var bullet = obj.AddComponent<CarnivoreProjectile>();
         bullet.owner = owner;
         bullet.ownerBody = owner.Body;
+        bullet.SpeciesId = owner.Body.SpeciesId;
         bullet.direction = direction.normalized;
         var line = obj.AddComponent<LineRenderer>();
         line.sharedMaterial = material;
@@ -57,7 +59,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
             if (body == ownerBody || !body.IsAlive || hitBodies.Contains(body)) continue;
             Vector2 center = body.transform.position;
             if (ProjectileSweep.TryHit(start.x, start.y, end.x, end.y, center.x, center.y,
-                AnimalBody.Radius + Radius, out double fraction))
+                body.Radius + Radius, out double fraction))
                 contacts.Add(new Contact { Body = body, Fraction = fraction, Order = contacts.Count });
         }
         contacts.Sort((a, b) =>
@@ -75,7 +77,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
             previousFraction = contact.Fraction;
             if (power <= 0) { Destroy(gameObject); return; }
             hitBodies.Add(contact.Body);
-            power = contact.Body.Hit(power, owner);
+            power = contact.Body.Hit(power, owner, SpeciesId);
             if (power <= 0) { Destroy(gameObject); return; }
         }
         power = System.Math.Max(0, power - PowerDecayPerSecond * flightSeconds * (1 - previousFraction));

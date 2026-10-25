@@ -514,6 +514,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   initialSpawnCount: 150
+  startupSettings: {fileID: 11400000, guid: 75bc2da0596946789a7da73d78ca348c, type: 2}
   randomizeSeed: 1
   seed: 1
   updateInterval: 15
@@ -569,6 +570,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
+  startupSettings: {fileID: 11400000, guid: 75bc2da0596946789a7da73d78ca348c, type: 2}
   initialCount: 50
   randomizeSeed: 0
   seed: 1
@@ -617,6 +619,7 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   carnivorePrefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
+  startupSettings: {fileID: 11400000, guid: 75bc2da0596946789a7da73d78ca348c, type: 2}
   initialCount: 15
   randomizeSeed: 0
   seed: 1

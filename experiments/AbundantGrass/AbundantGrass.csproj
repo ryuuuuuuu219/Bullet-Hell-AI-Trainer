@@ -1,0 +1,8 @@
+<Project Sdk="Microsoft.NET.Sdk">
+<PropertyGroup><OutputType>Exe</OutputType><TargetFramework>net10.0</TargetFramework><ImplicitUsings>enable</ImplicitUsings></PropertyGroup>
+<ItemGroup>
+<Compile Include="../../syogi/Assets/Scripts/Animals/AnimalTraits.cs" Link="AnimalTraits.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Animals/AnimalResources.cs" Link="AnimalResources.cs" />
+<Compile Include="../../syogi/Assets/Scripts/Herbivores/HerbivoreResources.cs" Link="HerbivoreResources.cs" />
+<Compile Include="../../syogi/Assets/Scripts/Carnivores/ProjectileSweep.cs" Link="ProjectileSweep.cs" />
+</ItemGroup></Project>

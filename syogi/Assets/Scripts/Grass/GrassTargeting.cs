@@ -10,7 +10,7 @@ public static class GrassTargeting
     }
 
     public static bool TrySelect(GrassGrid grid, double x, double y,
-        double directionX, double directionY, double cellSize, out Candidate best)
+        double directionX, double directionY, double cellSize, out Candidate best, double searchRadius = double.PositiveInfinity)
     {
         best = default(Candidate);
         int cx, cy;
@@ -19,14 +19,17 @@ public static class GrassTargeting
         if (length <= 0) { directionX = 1; directionY = 0; }
         else { directionX /= length; directionY /= length; }
         bool found = false;
-        for (int iy = Math.Max(0, cy - 5); iy <= Math.Min(grid.Height - 1, cy + 5); iy++)
-        for (int ix = Math.Max(0, cx - 5); ix <= Math.Min(grid.Width - 1, cx + 5); ix++)
+        int cells = double.IsPositiveInfinity(searchRadius) ? 5 :
+            (int)Math.Min(Math.Max(grid.Width, grid.Height), Math.Ceiling(Math.Max(0, searchRadius) / cellSize));
+        for (int iy = Math.Max(0, cy - cells); iy <= Math.Min(grid.Height - 1, cy + cells); iy++)
+        for (int ix = Math.Max(0, cx - cells); ix <= Math.Min(grid.Width - 1, cx + cells); ix++)
         {
             if (grid[ix, iy] <= 0) continue;
             double tx = (ix + 0.5 - grid.Width / 2.0) * cellSize;
             double ty = (iy + 0.5 - grid.Height / 2.0) * cellSize;
             double dx = tx - x, dy = ty - y;
             double distanceSquared = dx * dx + dy * dy;
+            if (searchRadius < 0 || distanceSquared > searchRadius * searchRadius) continue;
             double dot = Math.Max(-1, Math.Min(1, (dx * directionX + dy * directionY) / Math.Sqrt(distanceSquared)));
             double weight = grid[ix, iy] / 10.0;
             double score = weight * ((dot + 1) * 0.4 + 0.2);

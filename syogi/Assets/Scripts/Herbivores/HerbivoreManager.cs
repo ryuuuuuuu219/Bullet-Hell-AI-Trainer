@@ -2,12 +2,17 @@ using UnityEngine;
 
 public sealed class HerbivoreManager : MonoBehaviour
 {
+    [SerializeField, Tooltip("指定時は起動時にこのアセットの値を使用。未指定時は下の従来設定を使用。")]
+    private AquariumStartupSettings startupSettings;
     [SerializeField] private GameObject herbivorePrefab;
     [SerializeField, Min(0)] private int initialCount = 50;
     [SerializeField] private bool randomizeSeed = true;
     [SerializeField] private int seed = 1;
     public int ActualSeed { get; private set; }
     private int spawnedCount;
+    private readonly AnimalTraits defaultTraits = AnimalTraits.HerbivoreDefaults();
+    public AnimalTraits Traits => startupSettings != null && startupSettings.herbivores != null
+        ? startupSettings.herbivores.traits ?? defaultTraits : defaultTraits;
 
     public int LivingCount
     {
@@ -25,11 +30,16 @@ public sealed class HerbivoreManager : MonoBehaviour
         }
     }
 
-    public bool TryReproduce(Vector3 position, HerbivoreResources resources, Vector2 parentDirection)
+    public bool TryReproduce(AnimalBody parent, Vector2 parentDirection)
     {
-        if (herbivorePrefab == null || resources == null || !resources.TryReproduce()) return false;
-        GameObject child = Spawn(position);
-        child.GetComponent<HerbivoreMovement>().SetInitialDirection(-parentDirection);
+        if (herbivorePrefab == null || parent == null || !parent.IsAlive || parent.IsSleeping || parent.IsRunning ||
+            !parent.Resources.TryReproduce(parent.Traits, parent.Activity.ActiveAge)) return false;
+        for (int i = 0; i < parent.Traits.offspringCount; i++)
+        {
+            GameObject child = Spawn(parent.transform.position);
+            child.GetComponent<AnimalBody>().Resources.SetBirthResources(parent.Traits.offspringResources);
+            child.GetComponent<HerbivoreMovement>().SetInitialDirection(-parentDirection);
+        }
         return true;
     }
 
@@ -42,6 +52,15 @@ public sealed class HerbivoreManager : MonoBehaviour
 
     private void Start()
     {
+        if (startupSettings != null && startupSettings.herbivores != null)
+        {
+            var settings = startupSettings.herbivores;
+            herbivorePrefab = settings.prefab;
+            initialCount = settings.initialCount;
+            randomizeSeed = settings.randomizeSeed;
+            seed = settings.seed;
+        }
+
         if (herbivorePrefab == null)
         {
             Debug.LogError("HerbivoreManager requires a herbivore prefab.", this);

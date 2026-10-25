@@ -7,6 +7,8 @@ public sealed class CarnivoreStatusUI : MonoBehaviour
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Vector2 worldOffset = new Vector2(88f, 88f);
     private CarnivoreAnimal animal;
+    private AnimalBody body;
+    private bool shownSleeping;
     private Camera viewCamera;
     private RectTransform labelRect;
     private int shownHealth = -1;
@@ -15,6 +17,7 @@ public sealed class CarnivoreStatusUI : MonoBehaviour
     private void Awake()
     {
         animal = GetComponent<CarnivoreAnimal>();
+        body = GetComponent<AnimalBody>();
         if (statusText == null)
         {
             Debug.LogError("Carnivore status text is not assigned.", this);
@@ -47,9 +50,14 @@ public sealed class CarnivoreStatusUI : MonoBehaviour
 
         int health = Mathf.RoundToInt((float)animal.Resources.Health * 10f);
         int resource = Mathf.RoundToInt((float)animal.Resources.Amount * 10f);
-        if (health == shownHealth && resource == shownResource) return;
+        bool sleeping = body != null && body.IsSleeping;
+        if (health == shownHealth && resource == shownResource && sleeping == shownSleeping) return;
         shownHealth = health;
         shownResource = resource;
-        statusText.SetText("HP: {0:1}/100\n資源: {1:1}/50", health / 10f, resource / 10f);
+        shownSleeping = sleeping;
+        labelRect.sizeDelta = new Vector2(160f, sleeping ? 72f : 48f);
+        statusText.SetText(sleeping
+            ? "HP: {0:1}/100\n資源: {1:1}/50\n休眠中zzz・・・"
+            : "HP: {0:1}/100\n資源: {1:1}/50", health / 10f, resource / 10f);
     }
 }

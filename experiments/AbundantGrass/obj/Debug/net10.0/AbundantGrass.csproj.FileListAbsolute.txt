@@ -1,0 +1,15 @@
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\bin\Debug\net10.0\AbundantGrass.exe
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\bin\Debug\net10.0\AbundantGrass.deps.json
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\bin\Debug\net10.0\AbundantGrass.runtimeconfig.json
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\bin\Debug\net10.0\AbundantGrass.dll
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\bin\Debug\net10.0\AbundantGrass.pdb
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.GeneratedMSBuildEditorConfig.editorconfig
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.AssemblyInfoInputs.cache
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.AssemblyInfo.cs
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.csproj.CoreCompileInputs.cache
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.sourcelink.json
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.dll
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\refint\AbundantGrass.dll
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.pdb
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\AbundantGrass.genruntimeconfig.cache
+C:\Bullet-Hell-AI-Trainer\experiments\AbundantGrass\obj\Debug\net10.0\ref\AbundantGrass.dll

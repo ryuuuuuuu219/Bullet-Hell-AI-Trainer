@@ -2,6 +2,8 @@ using UnityEngine;
 
 public sealed class GrassField : MonoBehaviour
 {
+    [SerializeField, Tooltip("指定時は起動時にこのアセットの値を使用。未指定時は下の従来設定を使用。")]
+    private AquariumStartupSettings startupSettings;
     public const int FieldSize = 10000;
     public const int CellSize = 100;
     public const int CellCount = FieldSize / CellSize;
@@ -18,6 +20,20 @@ public sealed class GrassField : MonoBehaviour
     [SerializeField] private bool growthEnabled = true;
     [SerializeField] private bool wrapBoundary;
     public GrassGrid Grid { get; private set; }
+    public double GrassBetween(Vector3 from, Vector3 to)
+    {
+        if (Grid == null) return 0;
+        return GrassSightLine.Sum(Grid.Width, Grid.Height,
+            from.x / (double)CellSize + Grid.Width / 2.0, from.y / (double)CellSize + Grid.Height / 2.0,
+            to.x / (double)CellSize + Grid.Width / 2.0, to.y / (double)CellSize + Grid.Height / 2.0,
+            ReadGrass);
+    }
+    private double ReadGrass(int x, int y) => Grid[x, y];
+    public float GrassCoverage(Vector3 position)
+    {
+        if (Grid == null || !Grid.TryWorldToCell(position.x, position.y, CellSize, out int x, out int y)) return 0;
+        return Mathf.Clamp01(Grid[x, y] / Mathf.Max(1, maxGrass));
+    }
     public int ActualSeed { get; private set; }
     private float elapsed;
     private Texture2D texture;
@@ -47,6 +63,29 @@ public sealed class GrassField : MonoBehaviour
 
     private void Awake()
     {
+        var daylight = GetComponent<AquariumDayNight>();
+        if (daylight == null) daylight = gameObject.AddComponent<AquariumDayNight>();
+        if (startupSettings != null)
+        {
+            daylight.periodSeconds = startupSettings.dayNightPeriodSeconds;
+            daylight.phaseDegrees = startupSettings.dayNightPhaseDegrees;
+        }
+        if (startupSettings != null && startupSettings.grass != null)
+        {
+            var settings = startupSettings.grass;
+            initialSpawnCount = settings.initialSpawnCount;
+            randomizeSeed = settings.randomizeSeed;
+            seed = settings.seed;
+            updateInterval = settings.updateInterval;
+            maxGrass = settings.maxGrass;
+            deathAmount = settings.deathAmount;
+            increaseAmount = settings.increaseAmount;
+            birthNeighborMinimum = settings.birthNeighborMinimum;
+            birthNeighborMaximum = settings.birthNeighborMaximum;
+            growthEnabled = settings.growthEnabled;
+            wrapBoundary = settings.wrapBoundary;
+        }
+
         ActualSeed = randomizeSeed ? System.Environment.TickCount : seed;
         Grid = new GrassGrid(CellCount, CellCount, Mathf.Clamp(initialSpawnCount, 0, CellCount * CellCount), ActualSeed);
         texture = new Texture2D(CellCount, CellCount, TextureFormat.RGBA32, false);
