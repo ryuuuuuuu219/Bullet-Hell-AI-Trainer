@@ -1,4 +1,4 @@
-using UnityEngine;
+﻿using UnityEngine;
 
 [DefaultExecutionOrder(30)]
 [RequireComponent(typeof(AnimalBody), typeof(LineRenderer))]
@@ -137,10 +137,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         transform.position = new Vector3(position.x, position.y, transform.position.z);
         shotElapsed = Mathf.Min(1f, shotElapsed + dt);
         // No angle gate or lead aiming: fire along the current heading.
-        if (target != null && !CanPursue(target)) { DropTarget(); aliveTarget = false; }
-        bool canShoot = !boundary && aliveTarget &&
-            ((Vector2)target.transform.position - position).sqrMagnitude <= Range * Range;
-        if (canShoot && shotElapsed >= 1f)
+        if (target != null && !CanPursue(target)) { DropTarget(); }
+        if (shotElapsed >= 1f)
         {
             shotElapsed = 0f;
             CarnivoreProjectile.Fire(this, movementDirection, outline.sharedMaterial);
