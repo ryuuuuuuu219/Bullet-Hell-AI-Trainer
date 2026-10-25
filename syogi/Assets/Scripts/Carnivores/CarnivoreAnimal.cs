@@ -4,10 +4,12 @@ using UnityEngine;
 [RequireComponent(typeof(AnimalBody), typeof(LineRenderer))]
 public sealed class CarnivoreAnimal : MonoBehaviour
 {
-    public const float Speed = 120f;
+    public const float Speed = 105f;
     public const float AngularSpeed = 180f;
     public const float SearchRadius = 1000f;
     public const float Range = 200f;
+    public const float StopDistance = 150f;
+    public const float ResumeDistance = 200f;
     public const double InitialHealth = 50;
     [SerializeField, Min(1)] private int foodLayer = 1;
     [SerializeField] private Vector2 movementDirection = Vector2.right;
@@ -49,6 +51,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         if (target != null && target.IsAlive) return;
         target = null;
         hadTarget = false;
+        IsStopped = false;
         float nearest = SearchRadius * SearchRadius;
         foreach (AnimalBody candidate in AnimalBody.Active)
         {
@@ -90,13 +93,21 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         bool boundary = Mathf.Abs(position.x) >= half - margin || Mathf.Abs(position.y) >= half - margin;
         bool aliveTarget = target != null && target.IsAlive;
         Vector2 desired = movementDirection;
-        IsStopped = false;
-        if (boundary || (hadTarget && !aliveTarget)) desired = -position;
+        if (boundary || (hadTarget && !aliveTarget))
+        {
+            IsStopped = false;
+            desired = -position;
+        }
         else if (aliveTarget)
         {
             desired = (Vector2)target.transform.position - position;
-            IsStopped = desired.sqrMagnitude <= Range * Range;
+            if (IsStopped)
+            {
+                if (desired.sqrMagnitude >= ResumeDistance * ResumeDistance) IsStopped = false;
+            }
+            else if (desired.sqrMagnitude <= StopDistance * StopDistance) IsStopped = true;
         }
+        else IsStopped = false;
         if (desired.sqrMagnitude > 0)
         {
             float turn = Mathf.Clamp(Vector2.SignedAngle(movementDirection, desired), -AngularSpeed * dt, AngularSpeed * dt);
@@ -112,7 +123,9 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         }
         shotElapsed = Mathf.Min(1f, shotElapsed + dt);
         // No angle gate or lead aiming: fire along the current heading.
-        if (IsStopped && shotElapsed >= 1f)
+        bool canShoot = !boundary && aliveTarget &&
+            ((Vector2)target.transform.position - position).sqrMagnitude <= Range * Range;
+        if (canShoot && shotElapsed >= 1f)
         {
             shotElapsed = 0f;
             CarnivoreProjectile.Fire(this, movementDirection, outline.sharedMaterial);

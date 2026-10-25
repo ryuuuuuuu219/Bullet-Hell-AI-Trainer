@@ -98,7 +98,7 @@ public sealed class GrassGrid
                     if (current[ny * Width + nx] > 0) neighbors++;
                 }
                     next[index] = (neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum) ||
-                            0.001f < UnityEngine.Random.RandomRange(0, 1)
+                            0.001f < UnityEngine.Random.Range(0, 1)
                         ? 
                         InitialAmount : 0;
             }

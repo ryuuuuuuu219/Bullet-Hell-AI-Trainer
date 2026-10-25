@@ -136,11 +136,13 @@ class Program
         animal.Feed(29);
         Check(!animal.TryReproduce() && animal.Amount == 39, "No reproduction below 40");
         animal.Feed(1);
-        Check(animal.TryReproduce() && animal.Amount == 10, "Reproduction at 40 costs 30");
+        Check(animal.TryReproduce() && animal.Amount == 30, "Reproduction at 40 costs newborn resources10");
         Check(!animal.TryReproduce(), "No repeated reproduction without new resources");
         animal.Feed(100);
         Check(animal.Amount == 50, "Resource cap");
-        Check(animal.TryReproduce() && animal.Amount == 20, "Reproduction from cap");
+        Check(animal.TryReproduce() && animal.Amount == 40, "Reproduction from cap");
+        Check(animal.TryReproduce() && animal.Amount == 30, "Second eligible reproduction reaches30");
+        Check(!animal.TryReproduce(), "Below threshold after second birth");
         animal = new HerbivoreResources();
         for (int i = 0; i < 500; i++) animal.Maintain(0.1);
         Check(animal.IsDead && animal.Amount == 0, "Starvation after 50 seconds including roundoff");

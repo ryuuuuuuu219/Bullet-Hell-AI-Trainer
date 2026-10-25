@@ -6,7 +6,7 @@ The battle0 scene starts a 100 by 100 grass grid over world XY [-5000, 5000], Z=
 Cells are 100 units wide. Initial population is 150 distinct random cells, amount 1.
 The grass world scale is 10 times the original v0.3 dimensions; the existing
 white frame matches the field at [-5000, 5000].
-Every 10 seconds of game time, a snapshot-based step births amount 1 in empty
+Every 15 seconds of game time, a snapshot-based step births amount 1 in empty
 cells with exactly 1 occupied Moore neighbor (neighbor amount > 0, count == 1)
 and increases immature grass by 1.
 The maximum amount is now 3. A cell already at the maximum before an update
@@ -104,9 +104,9 @@ Every animal, including offspring, starts with 10 resources (maximum 50).
 Maintenance costs 0.2 resources per second of game time while moving or stopped.
 An actual consumed grass amount adds the same amount of resources; empty cells
 provide nothing. At each meal attempt, resources >=40 trigger one birth costing
-the parent 30. The manager creates a fresh prefab at the parent's world position;
+the parent 10. The manager creates a fresh prefab at the parent's world position;
 the newborn gets 10 resources and its own randomized feeding phase, not a copy
-of the parent's runtime state. Thus reproduction removes 20 net resources.
+of the parent's runtime state. Thus reproduction preserves total parent-plus-child resources.
 Animals spawned by HerbivoreManager use that manager for reproduction.
 At zero resources, the object is immediately disabled and destroyed; maintenance
 is applied before a coincident meal, so a dead animal cannot revive by eating.

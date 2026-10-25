@@ -6,11 +6,11 @@ public sealed class CarnivoreProjectile : MonoBehaviour
 {
     public const float Speed = 250f;
     public const float Radius = 5f;
-    public const double InitialPower = 10;
+    public const double InitialPower = 15;
+    public const double PowerDecayPerSecond = 10;
     private CarnivoreAnimal owner;
     private AnimalBody ownerBody;
     private Vector2 direction;
-    private float travelled;
     private double power = InitialPower;
     private readonly HashSet<AnimalBody> hitBodies = new HashSet<AnimalBody>();
     private readonly List<Contact> contacts = new List<Contact>();
@@ -47,7 +47,8 @@ public sealed class CarnivoreProjectile : MonoBehaviour
     private void Update()
     {
         if (Time.deltaTime <= 0) return;
-        float distance = Mathf.Min(Speed * Time.deltaTime, CarnivoreAnimal.Range - travelled);
+        float distance = Speed * Time.deltaTime;
+        double flightSeconds = distance / Speed;
         Vector2 start = transform.position;
         Vector2 end = start + direction * distance;
         contacts.Clear();
@@ -65,15 +66,20 @@ public sealed class CarnivoreProjectile : MonoBehaviour
             return order != 0 ? order : a.Order.CompareTo(b.Order);
         });
         // Snapshot permits deaths and births to change the registry during hits.
+        double previousFraction = 0;
         foreach (Contact contact in contacts)
         {
             if (contact.Body == null || !contact.Body.IsAlive) continue;
+            // Decay only up to each contact, so damage is independent of frame length.
+            power = System.Math.Max(0, power - PowerDecayPerSecond * flightSeconds * (contact.Fraction - previousFraction));
+            previousFraction = contact.Fraction;
+            if (power <= 0) { Destroy(gameObject); return; }
             hitBodies.Add(contact.Body);
             power = contact.Body.Hit(power, owner);
             if (power <= 0) { Destroy(gameObject); return; }
         }
-        travelled += distance;
+        power = System.Math.Max(0, power - PowerDecayPerSecond * flightSeconds * (1 - previousFraction));
+        if (power <= 0) { Destroy(gameObject); return; }
         transform.position = new Vector3(end.x, end.y, transform.position.z);
-        if (travelled >= CarnivoreAnimal.Range) Destroy(gameObject);
     }
 }

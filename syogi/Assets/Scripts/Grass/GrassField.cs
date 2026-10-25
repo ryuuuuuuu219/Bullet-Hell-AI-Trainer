@@ -8,7 +8,7 @@ public sealed class GrassField : MonoBehaviour
     [SerializeField, Min(0)] private int initialSpawnCount = 150;
     [SerializeField] private bool randomizeSeed = true;
     [SerializeField] private int seed = 1;
-    [SerializeField, Min(0.01f)] private float updateInterval = 10f;
+    [SerializeField, Min(0.01f)] private float updateInterval = 15f;
     [SerializeField, Min(1)] private float maxGrass = 3f;
     [SerializeField, Tooltip("枯死後の草量（0以下）。負の間は更新ごとに+1し、0で止まります。")]
     private float deathAmount = -1f;

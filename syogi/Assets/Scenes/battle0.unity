@@ -217,6 +217,9 @@ MonoBehaviour:
   minimumSize: 50
   maximumSize: 2000
   zoomFactor: 1.25
+  eventlog: 
+  loggingInterval: 15
+  loggingTimer: 0
 --- !u!1 &330585543
 GameObject:
   m_ObjectHideFlags: 0
@@ -510,15 +513,15 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 9258e9773d1942b18afa0a278a345a96, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  initialSpawnCount: 500
+  initialSpawnCount: 150
   randomizeSeed: 1
   seed: 1
-  updateInterval: 60
-  maxGrass: 2
-  deathAmount: -10
+  updateInterval: 15
+  maxGrass: 3
+  deathAmount: -1
   increaseAmount: 1
   birthNeighborMinimum: 1
-  birthNeighborMaximum: 2
+  birthNeighborMaximum: 1
   growthEnabled: 1
   wrapBoundary: 0
 --- !u!1 &2100000030
@@ -567,7 +570,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
   initialCount: 50
-  randomizeSeed: 1
+  randomizeSeed: 0
   seed: 1
 --- !u!1 &2100000040
 GameObject:
@@ -615,7 +618,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   carnivorePrefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
   initialCount: 15
-  randomizeSeed: 1
+  randomizeSeed: 0
   seed: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

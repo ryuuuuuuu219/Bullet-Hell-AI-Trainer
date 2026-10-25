@@ -6,7 +6,7 @@ public class AnimalResources
     public const double Initial = 10;
     public const double Maximum = 50;
     public const double ReproductionThreshold = 40;
-    public const double ReproductionCost = 30;
+    public const double ReproductionCost = Initial;
     public const double MaintenancePerSecond = 0.2;
     public double Health { get; private set; }
     public double HealthLimit { get; }

@@ -51,8 +51,10 @@ static class Program
         Equal(predator.Amount, 50, "resource clamp");
         Equal(predator.Health, 85, "heal full transferred amount independently of resource cap");
         Check(predator.TryReproduce(), "reproduce after capped transfer");
-        Equal(predator.Amount, 20, "reproduction cost30");
+        Equal(predator.Amount, 40, "reproduction cost10");
         Equal(predator.Health, 85, "no HP cost for birth");
+        Check(predator.TryReproduce(), "second birth allowed at threshold40");
+        Equal(predator.Amount, 30, "second birth costs10");
         Check(!predator.TryReproduce(), "no second birth below threshold");
         predator.Feed(100);
         Equal(predator.Health, 100, "HP cap100");
