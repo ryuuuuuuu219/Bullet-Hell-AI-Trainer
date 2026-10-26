@@ -14,7 +14,7 @@ public sealed class DropCarbon : MonoBehaviour
     {
         contact = GetComponent<CircleCollider2D>();
         contact.isTrigger = true;
-        contact.radius = 10f;
+        contact.radius = 60f;
         physicsBody = GetComponent<Rigidbody2D>();
         physicsBody.gravityScale = 0;
         physicsBody.constraints = RigidbodyConstraints2D.FreezeRotation;

@@ -42,13 +42,14 @@ public class AnimalResources
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
             throw new ArgumentOutOfRangeException(nameof(seconds));
         if (IsDead || seconds == 0) return;
-        // Integrate the linearly decreasing carbon amount, independent of frame size.
-        double aliveSeconds = Math.Min(seconds, Amount / MaintenancePerSecond);
-        double recovery = (Amount - MaintenancePerSecond * aliveSeconds / 2) * aliveSeconds *
+        // Sleeping preserves carbon; awake recovery integrates its gradual depletion.
+        double maintenance = sleeping ? 0 : MaintenancePerSecond;
+        double aliveSeconds = sleeping ? seconds : Math.Min(seconds, Amount / maintenance);
+        double recovery = (Amount - maintenance * aliveSeconds / 2) * aliveSeconds *
             RecoveryPerCarbonPerSecond * (sleeping ? SleepingRecoveryMultiplier : 1);
         Health = Math.Min(HealthLimit, Health + recovery);
         Stamina = Math.Min(MaximumStamina, Stamina + recovery);
-        Maintain(seconds);
+        if (!sleeping) Maintain(seconds);
     }
 
     public void SpendStamina(double amount)

@@ -13,7 +13,7 @@ public sealed class AnimalTraits
     public double reproductionStaminaCost = 10;
     public double movementStaminaPerSecond = 0.2;
     public double shootingStaminaCost = 1;
-    public float activeLightMinimum = 0;
+    public float activeLightMinimum = 0.4f;
     public float activeLightMaximum = 1;
     public float searchDistance = 1000;
     public float nightSearchMultiplier = 0.5f;
@@ -21,12 +21,12 @@ public sealed class AnimalTraits
     public float grassOcclusionPerUnit = 0.1f;
     public float walkingSpeed = 105;
     public float runningSpeed = 150;
-    public double runningCostPerSecond = 0.1;
+    public double runningCostPerSecond = 10;
     public float escapeHoldSeconds = 2;
 
-    public static AnimalTraits HerbivoreDefaults() => new AnimalTraits { searchDistance = 500, walkingSpeed = 80 };
+    public static AnimalTraits HerbivoreDefaults() => new AnimalTraits { activeLightMinimum = 0.2f, searchDistance = 500, walkingSpeed = 80, runningCostPerSecond = 15 };
     public AnimalTraits Copy() => (AnimalTraits)MemberwiseClone();
-    public bool IsActive(double light) => light >= activeLightMinimum && light <= activeLightMaximum;
+    public bool IsActive(double light) => light > activeLightMinimum && light <= activeLightMaximum;
     public double SearchRadius(double light) => Math.Max(0, searchDistance) *
         (Math.Max(0, nightSearchMultiplier) + (1 - Math.Max(0, nightSearchMultiplier)) * Math.Max(0, Math.Min(1, light)));
     public double DetectionRadius(double light, double grassCoverage, double targetConcealment) => SearchRadius(light) *

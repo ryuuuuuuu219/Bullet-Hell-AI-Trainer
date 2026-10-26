@@ -11,6 +11,15 @@ static class Program
 
     static void TestActivityAndReproduction()
     {
+        foreach (var defaults in new[] { AnimalTraits.HerbivoreDefaults(), new AnimalTraits() })
+        {
+            Check(!defaults.IsActive(0), "darkness sleeps");
+            Check(!defaults.IsActive(defaults.activeLightMinimum), "sleep threshold is inclusive");
+            Check(defaults.IsActive(defaults.activeLightMinimum + 0.0001), "wake above threshold");
+            Check(defaults.IsActive(1), "full daylight is active");
+        }
+        Equal(AnimalTraits.HerbivoreDefaults().activeLightMinimum, (double)0.2f, "herbivore sleep threshold");
+        Equal(new AnimalTraits().activeLightMinimum, (double)0.4f, "carnivore sleep threshold");
         TestCarbonDrops();
         var traits = AnimalTraits.HerbivoreDefaults();
         traits.activeLightMinimum = 0.25f;
@@ -23,18 +32,18 @@ static class Program
         Equal(resources.Amount, 48, "awake maintenance");
         activity.Step(100, 0, true, traits, resources);
         Equal(activity.ActiveAge, 10, "sleep freezes maturity");
-        Equal(resources.Amount, 28, "sleep still pays carbon maintenance");
+        Equal(resources.Amount, 48, "sleep preserves carbon");
         Check(activity.IsSleeping && !activity.IsRunning, "threat cannot wake sleeper");
-        activity.Step(1, 0.25, true, traits, resources);
-        Check(!activity.IsSleeping && activity.IsRunning, "inclusive activity boundary and immediate escape");
-        Equal(resources.Amount, 27.8, "running cost does not consume carbon");
+        activity.Step(1, 0.2501, true, traits, resources);
+        Check(!activity.IsSleeping && activity.IsRunning, "above activity boundary and immediate escape");
+        Equal(resources.Amount, 47.8, "running cost does not consume carbon");
         activity.Step(100, 1, false, traits, resources);
         Equal(activity.EscapeRemaining, 2, "sleep freezes escape timer");
         activity.Step(1, 0.75, false, traits, resources);
         Check(activity.IsRunning, "escape persists after threat lost");
         activity.Step(2, 0.5, false, traits, resources);
         Check(!activity.IsRunning, "escape expires after hold");
-        Equal(resources.Amount, 7.2, "carbon maintenance continues in both sleep intervals");
+        Equal(resources.Amount, 47.2, "carbon maintenance only during awake intervals");
         Equal(activity.ActiveAge, 14, "only awake duration counted");
         Check(!resources.TryReproduce(traits, activity.ActiveAge), "immature cannot reproduce");
         resources.Feed(100);
@@ -69,19 +78,28 @@ static class Program
     static void TestCarbonDrops()
     {
         var pieces = new System.Collections.Generic.List<double>(CarbonDecomposition.Split(48));
-        Check(string.Join(",", pieces) == "30,10,3,3,1,1", "descending 3/1 decomposition");
-        foreach (double amount in new[] { 0, 0.01, 0.3, 12.3456789, 49.999999, 0.000000000001 })
+        Check(string.Join(",", pieces) == "30,10,8", "descending 3/1 decomposition with one remainder");
+        foreach (double amount in new[] { 0, 0.01, 0.3, 9.999999, 10, 12.3456789, 20, 30, 49.999999, 50, 100, 348, 0.000000000001 })
         {
             double total = 0;
+            int remainders = 0;
             foreach (double piece in CarbonDecomposition.Split(amount))
             {
                 Check(piece > 0, "positive particle");
+                if (piece < 10)
+                {
+                    remainders++;
+                    total += piece;
+                    continue;
+                }
+                Check(remainders == 0 && piece % 10 == 0, "whole denominations precede remainder");
                 double unit = Math.Pow(10, Math.Floor(Math.Log10(piece) + 1e-10));
                 double coefficient = piece / unit;
                 Check(Math.Abs(coefficient - 1) < 1e-8 || Math.Abs(coefficient - 3) < 1e-8, "1 or 3 denomination");
                 total += piece;
             }
-            Check(Math.Abs(total - amount) <= Math.Max(1e-28, amount * 1e-12), "carbon conservation");
+            Check(remainders <= 1, "at most one remainder particle");
+            Equal(total, amount, "remainder preserves carbon");
         }
         var animal = new AnimalResources(30);
         animal.Hit(5, out _);
@@ -105,11 +123,16 @@ static class Program
         awake.Advance(1, false);
         asleep.Advance(1, true);
         Equal(awake.Amount, 9.8, "awake carbon maintenance");
-        Equal(asleep.Amount, 9.8, "sleep carbon maintenance");
+        Equal(asleep.Amount, 10, "sleep has no carbon maintenance");
         Equal(awake.Health, 31.98, "HP recovery integrates carbon times 0.2");
         Equal(awake.Stamina, 51.98, "SP uses same recovery rate");
-        Equal(asleep.Health, 35.94, "sleep HP recovery times three");
-        Equal(asleep.Stamina, 55.94, "sleep SP recovery times three");
+        Equal(asleep.Health, 36, "sleep HP recovery times three");
+        Equal(asleep.Stamina, 56, "sleep SP recovery times three");
+        var sleepingSteps = new AnimalResources(30);
+        for (int i = 0; i < 10; i++) sleepingSteps.Advance(0.1, true);
+        Equal(sleepingSteps.Health, asleep.Health, "sleep recovery independent of frame partition");
+        Equal(sleepingSteps.Stamina, asleep.Stamina, "sleep SP recovery independent of frame partition");
+        Equal(sleepingSteps.Amount, 10, "partitioned sleep preserves carbon");
         var steps = new AnimalResources(30);
         for (int i = 0; i < 10; i++) steps.Advance(0.1, false);
         Equal(steps.Health, awake.Health, "passive recovery independent of frame partition");
@@ -124,7 +147,10 @@ static class Program
         Equal(exhausted.ReleaseCarbon(), 10, "SP death releases surviving carbon");
         var starved = new AnimalResources(30);
         starved.Advance(50, true);
-        Check(starved.IsDead, "sleep starvation still kills");
+        Check(!starved.IsDead, "long sleep cannot starve a living animal");
+        Equal(starved.Amount, 10, "long sleep preserves carbon");
+        starved.Advance(50, false);
+        Check(starved.IsDead, "awake maintenance resumes and starvation kills");
         Equal(starved.ReleaseCarbon(), 0, "starvation has no carbon drop");
         var parent = new AnimalResources(30);
         parent.Feed(30);
@@ -153,7 +179,7 @@ static class Program
         accelerated.Maintain(2);
         AccelerationSkill.Consume(accelerationTraits, accelerated, 2);
         Equal(accelerated.Amount, 9.6, "acceleration does not consume carbon");
-        Equal(accelerated.Stamina, 49.8, "acceleration charges SP");
+        Equal(accelerated.Stamina, 30, "carnivore acceleration costs ten SP per second");
         AccelerationSkill.Consume(accelerationTraits, accelerated, 1000);
         Check(accelerated.IsDead, "acceleration can exhaust SP");
         TestNewEconomy();

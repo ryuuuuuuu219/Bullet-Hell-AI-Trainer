@@ -25,8 +25,13 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private AnimalBody target;
     private bool hadTarget;
     private float decisionElapsed;
+    private float perceptionRemaining;
+    private float separationRemaining;
+    private Vector2 cachedSeparationVelocity;
     private SkillSwitch skills;
     private LineRenderer outline;
+    private readonly System.Collections.Generic.List<AnimalBody> separationCandidates =
+        new System.Collections.Generic.List<AnimalBody>();
 
     private void Awake()
     {
@@ -79,9 +84,14 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private void Update()
     {
         float remaining = Time.deltaTime;
-        if (remaining <= 0 || Body.IsSleeping || !Body.IsAlive) return;
+        if (remaining <= 0 || !Body.IsAlive) return;
+        if (Body.IsSleeping)
+        {
+            perceptionRemaining = separationRemaining = 0;
+            cachedSeparationVelocity = Vector2.zero;
+            return;
+        }
         skills.ApplyAccelerationCost(Body.Traits, Resources, remaining);
-        if (target != null && !CanPursue(target)) DropTarget();
         if (Resources.IsDead) { Body.Die(); return; }
         while (remaining > 0)
         {
@@ -101,7 +111,18 @@ public sealed class CarnivoreAnimal : MonoBehaviour
 
     private void MoveAndShoot(float dt)
     {
-        if (target != null && !CanPursue(target)) DropTarget();
+        perceptionRemaining -= dt;
+        if (perceptionRemaining <= 0)
+        {
+            perceptionRemaining += 0.2f;
+            if (target != null && !CanPursue(target)) DropTarget();
+        }
+        separationRemaining -= dt;
+        if (separationRemaining <= 0)
+        {
+            separationRemaining += 0.2f;
+            cachedSeparationVelocity = SeparationVelocity();
+        }
         Vector2 position = transform.position;
         float half = GrassField.FieldSize * 0.5f;
         float speed = skills.MovementSpeed(Body.Traits);
@@ -138,12 +159,12 @@ public sealed class CarnivoreAnimal : MonoBehaviour
             position += movementDirection * (speed * dt);
         }
         // Separation is a position correction, including while stopped to shoot.
-        position += SeparationVelocity() * dt;
+        position += cachedSeparationVelocity * dt;
         position.x = Mathf.Clamp(position.x, -half, half - 0.001f);
         position.y = Mathf.Clamp(position.y, -half, half - 0.001f);
         transform.position = new Vector3(position.x, position.y, transform.position.z);
+        Body.SyncSpatialPosition();
         // No angle gate or lead aiming: fire along the current heading.
-        if (target != null && !CanPursue(target)) { DropTarget(); }
         skills.StepShooting(this, movementDirection, outline.sharedMaterial, dt);
     }
 
@@ -162,7 +183,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     {
         double x = 0, y = 0;
         Vector2 position = transform.position;
-        foreach (AnimalBody other in AnimalBody.Active)
+        AnimalBody.QuerySpatial(position, position, separationRadius, false, separationCandidates);
+        foreach (AnimalBody other in separationCandidates)
         {
             if (other == Body || !other.IsAlive || other.IsHerbivore || other.SpeciesId != Body.SpeciesId) continue;
             Vector2 delta = position - (Vector2)other.transform.position;

@@ -6,6 +6,33 @@ public sealed class AnimalBody : MonoBehaviour
 {
     private static readonly List<AnimalBody> active = new List<AnimalBody>();
     private static int nextSeparationId;
+    private static readonly SpatialGrid<AnimalBody> spatialGrid = new SpatialGrid<AnimalBody>(200);
+    private static int spatialFrame = -1;
+    private static float maximumBodyRadius;
+
+    public void SyncSpatialPosition()
+    {
+        if (!isActiveAndEnabled || Resources == null) return;
+        Vector3 position = transform.position;
+        spatialGrid.Update(this, position.x, position.y);
+        // Health can recover between queries. Bound by the health limit, not current HP.
+        maximumBodyRadius = Mathf.Max(maximumBodyRadius, (float)AnimalTactics.Radius(Resources.HealthLimit));
+    }
+
+    public static void QuerySpatial(Vector2 start, Vector2 end, float padding,
+        bool includeBodyRadius, List<AnimalBody> results)
+    {
+        if (spatialFrame != Time.frameCount)
+        {
+            spatialFrame = Time.frameCount;
+            foreach (AnimalBody body in active) body.SyncSpatialPosition();
+        }
+        padding = Mathf.Max(0, padding) + (includeBodyRadius ? maximumBodyRadius : 0);
+        spatialGrid.Query(Mathf.Min(start.x, end.x) - padding, Mathf.Min(start.y, end.y) - padding,
+            Mathf.Max(start.x, end.x) + padding, Mathf.Max(start.y, end.y) + padding, results);
+        // Match Active order, including equal-time hits and floating-point force sums.
+        results.Sort((a, b) => a.SeparationId.CompareTo(b.SeparationId));
+    }
     public int SeparationId { get; private set; }
     public static IReadOnlyList<AnimalBody> Active => active;
     public float Radius => (float)AnimalTactics.Radius(Resources == null ? 0 : Resources.Health);
@@ -26,6 +53,8 @@ public sealed class AnimalBody : MonoBehaviour
     private float drawnRadius = -1;
     private CircleCollider2D absorptionCollider;
     private bool dying;
+    private AnimalBody sensedThreat;
+    private float nextThreatScan;
 
     private void LateUpdate()
     {
@@ -54,19 +83,27 @@ public sealed class AnimalBody : MonoBehaviour
     {
         if (Resources != null && Resources.IsDead) { Die(); return; }
         if (!IsAlive || Time.deltaTime <= 0) return;
-        AnimalBody threat = null;
-        float nearest = float.PositiveInfinity;
-        if (IsHerbivore && !IsSleeping)
+        if (!IsHerbivore || IsSleeping)
         {
+            sensedThreat = null;
+            nextThreatScan = 0;
+        }
+        else if (Time.time >= nextThreatScan)
+        {
+            nextThreatScan = Time.time + 0.2f;
+            sensedThreat = null;
+            float nearest = float.PositiveInfinity;
             foreach (AnimalBody other in active)
             {
                 if (other == this || other.IsHerbivore || !CanDetect(other)) continue;
                 float distance = ((Vector2)(transform.position - other.transform.position)).sqrMagnitude;
                 if (distance >= nearest) continue;
                 nearest = distance;
-                threat = other;
+                sensedThreat = other;
             }
         }
+        // Death is immediate; detection/occlusion is sampled every 0.2 simulation seconds.
+        AnimalBody threat = sensedThreat != null && sensedThreat.IsAlive ? sensedThreat : null;
         if (threat != null)
         {
             Vector2 away = (Vector2)(transform.position - threat.transform.position);
@@ -77,14 +114,21 @@ public sealed class AnimalBody : MonoBehaviour
     }
 
     [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
-    private static void ResetRegistry() { active.Clear(); nextSeparationId = 0; }
+    private static void ResetRegistry()
+    {
+        active.Clear(); nextSeparationId = 0;
+        spatialGrid.Clear(); spatialFrame = -1; maximumBodyRadius = 0;
+    }
     private void OnEnable()
     {
+        sensedThreat = null;
+        nextThreatScan = 0;
         if (active.Contains(this)) return;
         SeparationId = ++nextSeparationId;
         active.Add(this);
+        SyncSpatialPosition();
     }
-    private void OnDisable() => active.Remove(this);
+    private void OnDisable() { active.Remove(this); spatialGrid.Remove(this); }
     public void Initialize(AnimalResources resources, bool herbivore)
     {
         Resources = resources;
@@ -99,6 +143,7 @@ public sealed class AnimalBody : MonoBehaviour
             : (carnivoreManager == null ? new AnimalTraits() : carnivoreManager.Traits)).Copy();
         grass = FindAnyObjectByType<GrassField>();
         if (speciesId == 0) speciesId = herbivore ? 1 : 2;
+        SyncSpatialPosition();
     }
 
     public double Hit(double power, CarnivoreAnimal attacker, int projectileSpeciesId)

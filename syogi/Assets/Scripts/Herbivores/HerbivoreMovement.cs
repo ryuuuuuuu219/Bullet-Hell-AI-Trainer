@@ -141,5 +141,6 @@ public sealed class HerbivoreMovement : MonoBehaviour
         next.x = Mathf.Clamp(next.x, -half, half - 0.001f);
         next.y = Mathf.Clamp(next.y, -half, half - 0.001f);
         transform.position = new Vector3(next.x, next.y, transform.position.z);
+        body.SyncSpatialPosition();
     }
 }

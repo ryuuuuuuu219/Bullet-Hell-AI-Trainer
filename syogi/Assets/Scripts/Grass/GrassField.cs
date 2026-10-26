@@ -41,6 +41,7 @@ public sealed class GrassField : MonoBehaviour
     private GameObject display;
     private Color32[] pixels;
     private bool displayDirty;
+    private float nextDisplayRefresh;
 
     /// <summary>
     /// Consumes grass at continuous world XY coordinates (Unity main thread).
@@ -57,8 +58,8 @@ public sealed class GrassField : MonoBehaviour
 
     private void LateUpdate()
     {
-        // Batch consumption by multiple animals into one texture upload.
-        if (displayDirty) RefreshDisplay();
+        // Only the display is throttled; the simulation grid changes immediately.
+        if (displayDirty && Time.unscaledTime >= nextDisplayRefresh) RefreshDisplay();
     }
 
     private void Awake()
@@ -117,7 +118,7 @@ public sealed class GrassField : MonoBehaviour
                 Mathf.Clamp(birthNeighborMaximum, Mathf.Clamp(birthNeighborMinimum, 0, 8), 8),
                 float.IsNaN(deathAmount) || float.IsInfinity(deathAmount) ? -1f : Mathf.Min(0f, deathAmount));
         }
-        RefreshDisplay();
+        displayDirty = true;
     }
 
     private void RefreshDisplay()
@@ -133,6 +134,7 @@ public sealed class GrassField : MonoBehaviour
         texture.SetPixels32(pixels);
         texture.Apply(false, false);
         displayDirty = false;
+        nextDisplayRefresh = Time.unscaledTime + 0.2f;
     }
 
     private void OnDestroy()

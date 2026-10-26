@@ -20,6 +20,7 @@ public sealed class BattleViewControls : MonoBehaviour
     private int simulationSpeedIndex;
     private Text simulationSpeedText;
     private Text populationText;
+    private float nextPopulationRefresh;
 
     [TextArea(8, 30)]
     public string eventlog = string.Empty;
@@ -113,7 +114,11 @@ public sealed class BattleViewControls : MonoBehaviour
 
     private void LateUpdate()
     {
-        if (populationText != null) populationText.text = UpdatePopulation();
+        if (populationText != null && Time.unscaledTime >= nextPopulationRefresh)
+        {
+            nextPopulationRefresh = Time.unscaledTime + 0.2f;
+            populationText.text = UpdatePopulation();
+        }
         loggingRealElapsed += Time.unscaledDeltaTime;
         if (Time.deltaTime <= 0f) return;
         float interval = float.IsNaN(loggingInterval) || float.IsInfinity(loggingInterval)

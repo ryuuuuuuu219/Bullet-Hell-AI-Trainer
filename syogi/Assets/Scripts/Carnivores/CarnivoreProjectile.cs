@@ -6,7 +6,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
 {
     public const float Speed = 250f;
     public const float Radius = 5f;
-    public const double InitialPower = 15;
+    public const double InitialPower = 25;
     public const double PowerDecayPerSecond = 10;
     private CarnivoreAnimal owner;
     private AnimalBody ownerBody;
@@ -15,6 +15,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
     private double power = InitialPower;
     private readonly HashSet<AnimalBody> hitBodies = new HashSet<AnimalBody>();
     private readonly List<Contact> contacts = new List<Contact>();
+    private readonly List<AnimalBody> candidates = new List<AnimalBody>();
     private struct Contact
     {
         public AnimalBody Body;
@@ -54,7 +55,8 @@ public sealed class CarnivoreProjectile : MonoBehaviour
         Vector2 start = transform.position;
         Vector2 end = start + direction * distance;
         contacts.Clear();
-        foreach (AnimalBody body in AnimalBody.Active)
+        AnimalBody.QuerySpatial(start, end, Radius, true, candidates);
+        foreach (AnimalBody body in candidates)
         {
             if (body == ownerBody || !body.IsAlive || hitBodies.Contains(body)) continue;
             Vector2 center = body.transform.position;

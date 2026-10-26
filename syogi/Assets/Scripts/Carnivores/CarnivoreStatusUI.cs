@@ -4,6 +4,7 @@ using UnityEngine;
 [RequireComponent(typeof(CarnivoreAnimal))]
 public sealed class CarnivoreStatusUI : MonoBehaviour
 {
+    private const float VisibilityDistance = 500f;
     [SerializeField] private TextMeshProUGUI statusText;
     [SerializeField] private Vector2 worldOffset = new Vector2(88f, 88f);
     private CarnivoreAnimal animal;
@@ -14,6 +15,7 @@ public sealed class CarnivoreStatusUI : MonoBehaviour
     private int shownHealth = -1;
     private int shownResource = -1;
     private int shownStamina = -1;
+    private float nextTextRefresh;
 
     private void Awake()
     {
@@ -43,12 +45,22 @@ public sealed class CarnivoreStatusUI : MonoBehaviour
     private void LateUpdate()
     {
         if (viewCamera == null) viewCamera = Camera.main;
+        // Ignore camera depth: the animals move on the XY plane.
+        bool visible = viewCamera != null &&
+            ((Vector2)(transform.position - viewCamera.transform.position)).sqrMagnitude <=
+            VisibilityDistance * VisibilityDistance;
+        bool becameVisible = visible && !statusText.enabled;
+        if (statusText.enabled != visible) statusText.enabled = visible;
+        if (!visible) return;
+
         // Keep the label upright and readable while the camera pans or zooms.
         labelRect.position = transform.position + (Vector3)worldOffset;
         labelRect.rotation = Quaternion.identity;
         if (viewCamera != null && viewCamera.orthographic && viewCamera.pixelHeight > 0)
             labelRect.localScale = Vector3.one * (2f * viewCamera.orthographicSize / viewCamera.pixelHeight);
 
+        if (!becameVisible && Time.unscaledTime < nextTextRefresh) return;
+        nextTextRefresh = Time.unscaledTime + 0.2f;
         int health = Mathf.RoundToInt((float)animal.Resources.Health * 10f);
         int resource = Mathf.RoundToInt((float)animal.Resources.Amount * 10f);
         int stamina = Mathf.RoundToInt((float)body.Resources.Stamina * 10f);

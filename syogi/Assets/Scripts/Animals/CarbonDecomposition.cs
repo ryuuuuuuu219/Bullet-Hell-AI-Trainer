@@ -4,14 +4,14 @@ using System.Collections.Generic;
 public static class CarbonDecomposition
 {
     // Decimal arithmetic avoids repeated binary subtraction producing tiny spurious particles.
-    // Conversion uses decimal's precision; values below its smallest unit round to zero.
+    // Stop splitting at tens, then emit the entire remainder as one particle.
     public static IEnumerable<double> Split(double carbon)
     {
         if (double.IsNaN(carbon) || double.IsInfinity(carbon) || carbon <= 0 || carbon > (double)decimal.MaxValue)
             yield break;
         decimal remaining = (decimal)carbon;
         decimal unit = 100000m;
-        while (remaining > 0 && unit > 0)
+        while (remaining >= 10 && unit >= 10)
         {
             while (remaining >= unit * 3)
             {
@@ -25,5 +25,6 @@ public static class CarbonDecomposition
             }
             unit /= 10;
         }
+        if (remaining > 0) yield return (double)remaining;
     }
 }

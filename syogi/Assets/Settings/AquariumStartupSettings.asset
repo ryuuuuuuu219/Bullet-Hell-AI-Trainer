@@ -38,7 +38,7 @@ MonoBehaviour:
       reproductionStaminaCost: 10
       movementStaminaPerSecond: 0.2
       shootingStaminaCost: 1
-      activeLightMinimum: 0
+      activeLightMinimum: 0.2
       activeLightMaximum: 1
       searchDistance: 500
       nightSearchMultiplier: 0.5
@@ -46,7 +46,7 @@ MonoBehaviour:
       grassOcclusionPerUnit: 0.1
       walkingSpeed: 80
       runningSpeed: 150
-      runningCostPerSecond: 0.1
+      runningCostPerSecond: 15
       escapeHoldSeconds: 2
   carnivores:
     prefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
@@ -62,7 +62,7 @@ MonoBehaviour:
       reproductionStaminaCost: 10
       movementStaminaPerSecond: 0.2
       shootingStaminaCost: 1
-      activeLightMinimum: 0
+      activeLightMinimum: 0.4
       activeLightMaximum: 1
       searchDistance: 1000
       nightSearchMultiplier: 0.5
@@ -70,7 +70,7 @@ MonoBehaviour:
       grassOcclusionPerUnit: 0.1
       walkingSpeed: 105
       runningSpeed: 150
-      runningCostPerSecond: 0.1
+      runningCostPerSecond: 10
       escapeHoldSeconds: 2
   dayNightPeriodSeconds: 120
   dayNightPhaseDegrees: 0

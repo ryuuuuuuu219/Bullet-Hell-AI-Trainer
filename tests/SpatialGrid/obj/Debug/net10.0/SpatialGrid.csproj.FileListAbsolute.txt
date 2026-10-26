@@ -1,0 +1,15 @@
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\bin\Debug\net10.0\SpatialGrid.exe
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\bin\Debug\net10.0\SpatialGrid.deps.json
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\bin\Debug\net10.0\SpatialGrid.runtimeconfig.json
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\bin\Debug\net10.0\SpatialGrid.dll
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\bin\Debug\net10.0\SpatialGrid.pdb
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.GeneratedMSBuildEditorConfig.editorconfig
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.AssemblyInfoInputs.cache
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.AssemblyInfo.cs
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.csproj.CoreCompileInputs.cache
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.sourcelink.json
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.dll
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\refint\SpatialGrid.dll
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.pdb
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\SpatialGrid.genruntimeconfig.cache
+C:\Bullet-Hell-AI-Trainer\tests\SpatialGrid\obj\Debug\net10.0\ref\SpatialGrid.dll
