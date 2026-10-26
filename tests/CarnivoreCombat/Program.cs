@@ -66,6 +66,17 @@ static class Program
 
     static void Main()
     {
+        var accelerationTraits = new AnimalTraits();
+        Equal(AccelerationSkill.Speed(accelerationTraits, false), 105, "skill off preserves walking speed");
+        Equal(AccelerationSkill.Speed(accelerationTraits, true), 150, "skill on uses running speed");
+        accelerationTraits.runningSpeed = 80;
+        Equal(AccelerationSkill.Speed(accelerationTraits, true), 105, "acceleration cannot slow down walking");
+        var accelerated = new AnimalResources(50);
+        accelerated.Maintain(2);
+        AccelerationSkill.Consume(accelerationTraits, accelerated, 2);
+        Equal(accelerated.Amount, 9.4, "acceleration cost adds to maintenance exactly once");
+        AccelerationSkill.Consume(accelerationTraits, accelerated, 100);
+        Check(accelerated.IsDead, "acceleration can exhaust resources");
         TacticsTests.Run();
         TestActivityAndReproduction();
         var herbivore = new HerbivoreResources();

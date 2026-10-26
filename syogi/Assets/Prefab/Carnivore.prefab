@@ -13,6 +13,7 @@ GameObject:
   - component: {fileID: 114000}
   - component: {fileID: 114002}
   - component: {fileID: 114003}
+  - component: {fileID: 114004}
   - component: {fileID: 2074502236574295271}
   m_Layer: 0
   m_Name: Carnivore
@@ -337,3 +338,17 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bbe7880e66841cd81ee23157a3302ec, type: 3}
   m_Name:
   m_EditorClassIdentifier:
+--- !u!114 &114004
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 44a728363e014cd8b84631a652101e74, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  accel: 0
+  shoot: 1

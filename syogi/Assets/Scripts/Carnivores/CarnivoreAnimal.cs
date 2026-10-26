@@ -2,6 +2,7 @@
 
 [DefaultExecutionOrder(30)]
 [RequireComponent(typeof(AnimalBody), typeof(LineRenderer))]
+[RequireComponent(typeof(SkillSwitch))]
 public sealed class CarnivoreAnimal : MonoBehaviour
 {
     public const float Speed = 105f;
@@ -24,7 +25,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private AnimalBody target;
     private bool hadTarget;
     private float decisionElapsed;
-    private float shotElapsed;
+    private SkillSwitch skills;
     private LineRenderer outline;
 
     private void Awake()
@@ -33,6 +34,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         Body = GetComponent<AnimalBody>();
         Body.Initialize(Resources, false);
         manager = GetComponentInParent<CarnivoreManager>();
+        skills = GetComponent<SkillSwitch>();
         outline = GetComponent<LineRenderer>();
         outline.useWorldSpace = false;
         outline.loop = true;
@@ -78,6 +80,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     {
         float remaining = Time.deltaTime;
         if (remaining <= 0 || Body.IsSleeping || !Body.IsAlive) return;
+        skills.ApplyAccelerationCost(Body.Traits, Resources, remaining);
         if (target != null && !CanPursue(target)) DropTarget();
         if (Resources.IsDead) { Body.Die(); return; }
         while (remaining > 0)
@@ -100,7 +103,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         if (target != null && !CanPursue(target)) DropTarget();
         Vector2 position = transform.position;
         float half = GrassField.FieldSize * 0.5f;
-        float speed = Mathf.Max(0, Body.Traits.walkingSpeed);
+        float speed = skills.MovementSpeed(Body.Traits);
         float margin = 2f * speed / (AngularSpeed * Mathf.Deg2Rad) + Body.Radius;
         bool boundary = Mathf.Abs(position.x) >= half - margin || Mathf.Abs(position.y) >= half - margin;
         bool aliveTarget = target != null && target.IsAlive;
@@ -135,14 +138,9 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         position.x = Mathf.Clamp(position.x, -half, half - 0.001f);
         position.y = Mathf.Clamp(position.y, -half, half - 0.001f);
         transform.position = new Vector3(position.x, position.y, transform.position.z);
-        shotElapsed = Mathf.Min(1f, shotElapsed + dt);
         // No angle gate or lead aiming: fire along the current heading.
         if (target != null && !CanPursue(target)) { DropTarget(); }
-        if (shotElapsed >= 1f)
-        {
-            shotElapsed = 0f;
-            CarnivoreProjectile.Fire(this, movementDirection, outline.sharedMaterial);
-        }
+        skills.StepShooting(this, movementDirection, outline.sharedMaterial, dt);
     }
 
     private void DrawOutline()
