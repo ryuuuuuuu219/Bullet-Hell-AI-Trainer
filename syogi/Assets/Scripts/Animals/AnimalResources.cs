@@ -7,7 +7,7 @@ public class AnimalResources
     public const double Maximum = 50;
     public const double ReproductionThreshold = 40;
     public const double ReproductionCost = Initial;
-    public const double MaintenancePerSecond = 0.2;
+    public const double MaintenancePerSecond = 0.05;
     public const double InitialStamina = 50;
     public const double MaximumStamina = 100;
     public const double RecoveryPerCarbonPerSecond = 0.2;

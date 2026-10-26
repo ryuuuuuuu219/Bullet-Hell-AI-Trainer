@@ -29,21 +29,21 @@ static class Program
         var activity = new AnimalActivity();
         activity.Step(10, 0.5, false, traits, resources);
         Equal(activity.ActiveAge, 10, "awake time advances maturity");
-        Equal(resources.Amount, 48, "awake maintenance");
+        Equal(resources.Amount, 49.5, "awake maintenance");
         activity.Step(100, 0, true, traits, resources);
         Equal(activity.ActiveAge, 10, "sleep freezes maturity");
-        Equal(resources.Amount, 48, "sleep preserves carbon");
+        Equal(resources.Amount, 49.5, "sleep preserves carbon");
         Check(activity.IsSleeping && !activity.IsRunning, "threat cannot wake sleeper");
         activity.Step(1, 0.2501, true, traits, resources);
         Check(!activity.IsSleeping && activity.IsRunning, "above activity boundary and immediate escape");
-        Equal(resources.Amount, 47.8, "running cost does not consume carbon");
+        Equal(resources.Amount, 49.45, "running cost does not consume carbon");
         activity.Step(100, 1, false, traits, resources);
         Equal(activity.EscapeRemaining, 2, "sleep freezes escape timer");
         activity.Step(1, 0.75, false, traits, resources);
         Check(activity.IsRunning, "escape persists after threat lost");
         activity.Step(2, 0.5, false, traits, resources);
         Check(!activity.IsRunning, "escape expires after hold");
-        Equal(resources.Amount, 47.2, "carbon maintenance only during awake intervals");
+        Equal(resources.Amount, 49.3, "carbon maintenance only during awake intervals");
         Equal(activity.ActiveAge, 14, "only awake duration counted");
         Check(!resources.TryReproduce(traits, activity.ActiveAge), "immature cannot reproduce");
         resources.Feed(100);
@@ -122,10 +122,10 @@ static class Program
         Equal(awake.Stamina, 50, "uniform initial SP");
         awake.Advance(1, false);
         asleep.Advance(1, true);
-        Equal(awake.Amount, 9.8, "awake carbon maintenance");
+        Equal(awake.Amount, 9.95, "awake carbon maintenance");
         Equal(asleep.Amount, 10, "sleep has no carbon maintenance");
-        Equal(awake.Health, 31.98, "HP recovery integrates carbon times 0.2");
-        Equal(awake.Stamina, 51.98, "SP uses same recovery rate");
+        Equal(awake.Health, 31.995, "HP recovery integrates carbon times 0.2");
+        Equal(awake.Stamina, 51.995, "SP uses same recovery rate");
         Equal(asleep.Health, 36, "sleep HP recovery times three");
         Equal(asleep.Stamina, 56, "sleep SP recovery times three");
         var sleepingSteps = new AnimalResources(30);
@@ -149,7 +149,7 @@ static class Program
         starved.Advance(50, true);
         Check(!starved.IsDead, "long sleep cannot starve a living animal");
         Equal(starved.Amount, 10, "long sleep preserves carbon");
-        starved.Advance(50, false);
+        starved.Advance(200, false);
         Check(starved.IsDead, "awake maintenance resumes and starvation kills");
         Equal(starved.ReleaseCarbon(), 0, "starvation has no carbon drop");
         var parent = new AnimalResources(30);
@@ -178,7 +178,7 @@ static class Program
         var accelerated = new AnimalResources(50);
         accelerated.Maintain(2);
         AccelerationSkill.Consume(accelerationTraits, accelerated, 2);
-        Equal(accelerated.Amount, 9.6, "acceleration does not consume carbon");
+        Equal(accelerated.Amount, 9.9, "acceleration does not consume carbon");
         Equal(accelerated.Stamina, 30, "carnivore acceleration costs ten SP per second");
         AccelerationSkill.Consume(accelerationTraits, accelerated, 1000);
         Check(accelerated.IsDead, "acceleration can exhaust SP");
@@ -212,7 +212,7 @@ static class Program
         prey.Hit(27, out _);
         double power = prey.Hit(10, out stolen);
         Equal(power, 7, "piercing uses previous HP of three");
-        Equal(stolen, 9, "transfer current, not initial food");
+        Equal(stolen, 9.75, "transfer current, not initial food");
         var next = new AnimalResources(50);
         Equal(next.Hit(power, out _), 0, "remaining bullet absorbed by next target");
         Equal(next.Health, 43, "remaining power damages next target");
@@ -236,8 +236,8 @@ static class Program
         var child = new AnimalResources(50);
         Equal(child.Health, 50, "child initial HP");
         Equal(child.Amount, 10, "child initial resources");
-        child.Maintain(50);
-        Check(child.IsDead, "starvation after fifty seconds");
+        child.Maintain(200);
+        Check(child.IsDead, "starvation after two hundred awake seconds");
         Equal(child.Hit(10, out stolen), 10, "starved target does not absorb bullet");
         Equal(stolen, 0, "starved target yields no food");
         herbivore = new HerbivoreResources();
@@ -281,15 +281,15 @@ static class Program
         foreach (bool left in new[] { false, true })
         foreach (double sample in new[] { 0.0, 0.5, 1.0 })
         {
-            Check(CarnivoreSpacing.TryBirthPosition(10, 20, 0.6, 0.8, 80, sample, left, 5000,
+            Check(CarnivoreSpacing.TryBirthPosition(10, 20, 0.6, 0.8, 80, sample, left, 2000,
                 out double bx, out double by), "lateral birth succeeds");
             double dx = bx - 10, dy = by - 20;
             Equal(dx * 0.6 + dy * 0.8, 0, "birth perpendicular to parent heading");
             Equal(Math.Sqrt(dx * dx + dy * dy), 80 * (1.5 + sample), "birth distance 120 to 200");
         }
-        Check(CarnivoreSpacing.TryBirthPosition(0, 4990, 1, 0, 80, 1, true, 5000,
-            out double edgeX, out double edgeY) && edgeY == 4790, "outside candidate uses opposite side");
-        Check(!CarnivoreSpacing.TryBirthPosition(4999, 4999, 1, 1, 80, 1, true, 5000,
+        Check(CarnivoreSpacing.TryBirthPosition(0, 1990, 1, 0, 80, 1, true, 2000,
+            out double edgeX, out double edgeY) && edgeY == 1790, "outside candidate uses opposite side");
+        Check(!CarnivoreSpacing.TryBirthPosition(1999, 1999, 1, 1, 80, 1, true, 2000,
             out _, out _), "corner can reject both sides before food charge");
         CarnivoreSpacing.Repulsion(100, 0, 1, 2, 200, 50, out double rx, out double ry);
         Equal(rx, 25, "linear falloff at half radius"); Equal(ry, 0, "push away");

@@ -26,7 +26,10 @@ public sealed class DropCarbon : MonoBehaviour
         {
             var obj = new GameObject("Carbon " + part);
             Vector2 offset = Random.insideUnitCircle * 100f;
-            obj.transform.position = position + new Vector3(offset.x, offset.y, 0);
+            float half = GrassField.FieldSize * 0.5f;
+            obj.transform.position = new Vector3(
+                Mathf.Clamp(position.x + offset.x, -half, half - 0.001f),
+                Mathf.Clamp(position.y + offset.y, -half, half - 0.001f), position.z);
             var drop = obj.AddComponent<DropCarbon>();
             drop.carbon = part;
             var line = obj.AddComponent<LineRenderer>();
