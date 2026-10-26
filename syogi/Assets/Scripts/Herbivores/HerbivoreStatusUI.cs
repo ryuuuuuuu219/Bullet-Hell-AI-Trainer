@@ -13,6 +13,7 @@ public sealed class HerbivoreStatusUI : MonoBehaviour
     private RectTransform labelRect;
     private int shownHealth = -1;
     private int shownResource = -1;
+    private int shownStamina = -1;
 
     private void Awake()
     {
@@ -50,14 +51,16 @@ public sealed class HerbivoreStatusUI : MonoBehaviour
 
         int health = Mathf.RoundToInt((float)animal.Health * 10f);
         int resource = Mathf.RoundToInt((float)animal.ResourceAmount * 10f);
-        bool sleeping = body != null && body.IsSleeping;
-        if (health == shownHealth && resource == shownResource && sleeping == shownSleeping) return;
+        int stamina = Mathf.RoundToInt((float)body.Resources.Stamina * 10f);
+        bool sleeping = body.IsSleeping;
+        if (health == shownHealth && resource == shownResource && stamina == shownStamina && sleeping == shownSleeping) return;
         shownHealth = health;
         shownResource = resource;
+        shownStamina = stamina;
         shownSleeping = sleeping;
-        labelRect.sizeDelta = new Vector2(160f, sleeping ? 72f : 48f);
+        labelRect.sizeDelta = new Vector2(160f, sleeping ? 96f : 72f);
         statusText.SetText(sleeping
-            ? "HP: {0:1}/60\n資源: {1:1}/50\n休眠中zzz・・・"
-            : "HP: {0:1}/60\n資源: {1:1}/50", health / 10f, resource / 10f);
+            ? "HP: {0:1}/60\n炭素: {1:1}/50\nSP: {2:1}/100\n休眠中zzz・・・"
+            : "HP: {0:1}/60\n炭素: {1:1}/50\nSP: {2:1}/100", health / 10f, resource / 10f, stamina / 10f);
     }
 }

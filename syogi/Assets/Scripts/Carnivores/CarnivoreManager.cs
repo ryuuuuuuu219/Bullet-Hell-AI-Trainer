@@ -75,5 +75,6 @@ public sealed class CarnivoreManager : MonoBehaviour
         if (!parent.Resources.TryReproduce(parent.Body.Traits, parent.Body.Activity.ActiveAge)) return;
         for (int i = 0; i < parent.Body.Traits.offspringCount; i++)
             Spawn(new Vector3((float)x, (float)y, position.z), -direction, parent.Body.Traits.offspringResources);
+        if (parent.Resources.IsDead) parent.Body.Die();
     }
 }

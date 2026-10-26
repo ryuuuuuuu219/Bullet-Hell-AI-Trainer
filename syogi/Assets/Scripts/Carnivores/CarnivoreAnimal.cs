@@ -94,6 +94,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
                 ChooseTarget();
             }
             MoveAndShoot(dt);
+            if (!Body.IsAlive) return;
         }
         if (manager != null) manager.TryReproduce(this);
     }
@@ -131,6 +132,9 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         }
         if (!IsStopped)
         {
+            if (speed > 0)
+                Resources.SpendStamina(System.Math.Max(0, Body.Traits.movementStaminaPerSecond) * dt);
+            if (Resources.IsDead) { Body.Die(); return; }
             position += movementDirection * (speed * dt);
         }
         // Separation is a position correction, including while stopped to shoot.

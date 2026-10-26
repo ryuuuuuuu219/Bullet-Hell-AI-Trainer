@@ -7,6 +7,6 @@ public static class AccelerationSkill
 
     public static void Consume(AnimalTraits traits, AnimalResources resources, double seconds)
     {
-        resources.Spend(Math.Max(0, traits.runningCostPerSecond) * seconds);
+        resources.SpendStamina(Math.Max(0, traits.runningCostPerSecond) * seconds);
     }
 }

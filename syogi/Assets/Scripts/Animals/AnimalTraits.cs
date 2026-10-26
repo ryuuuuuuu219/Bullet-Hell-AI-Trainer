@@ -8,8 +8,11 @@ public sealed class AnimalTraits
     public double maturitySeconds = 30;
     public int offspringCount = 1;
     public double offspringResources = 10;
-    // Parent consumption / total resources given to offspring.
+    // Reserved for a later economy; MVP transfers exactly the offspring carbon.
     public double reproductionCostRatio = 1;
+    public double reproductionStaminaCost = 10;
+    public double movementStaminaPerSecond = 0.2;
+    public double shootingStaminaCost = 1;
     public float activeLightMinimum = 0;
     public float activeLightMaximum = 1;
     public float searchDistance = 1000;
@@ -31,10 +34,10 @@ public sealed class AnimalTraits
     public double DetectionRadius(double light, double grassCoverage, double targetConcealment, double interveningGrass)
         => DetectionRadius(light, grassCoverage, targetConcealment) /
            (1 + Math.Max(0, grassOcclusionPerUnit) * Math.Max(0, interveningGrass));
-    public double BirthCost => offspringCount * offspringResources * reproductionCostRatio;
+    public double BirthCost => offspringCount * offspringResources;
     public bool ValidReproduction => offspringCount > 0 && Finite(reproductionThreshold) && reproductionThreshold >= 0 &&
         Finite(maturitySeconds) && maturitySeconds >= 0 && Finite(offspringResources) && offspringResources > 0 &&
-        offspringResources <= AnimalResources.Maximum && Finite(reproductionCostRatio) && reproductionCostRatio >= 0 &&
+        offspringResources <= AnimalResources.Maximum && Finite(reproductionStaminaCost) && reproductionStaminaCost >= 0 &&
         Finite(BirthCost);
     private static bool Finite(double value) => !double.IsNaN(value) && !double.IsInfinity(value);
 }
@@ -53,12 +56,12 @@ public sealed class AnimalActivity
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
             throw new ArgumentOutOfRangeException(nameof(seconds));
         IsSleeping = !traits.IsActive(light);
+        resources.Advance(seconds, IsSleeping);
         if (IsSleeping || resources.IsDead || seconds == 0) return;
         threatDetected = threat;
         ActiveAge += seconds;
         double runningSeconds = threat ? seconds : Math.Min(seconds, EscapeRemaining);
         EscapeRemaining = threat ? Math.Max(0, traits.escapeHoldSeconds) : Math.Max(0, EscapeRemaining - seconds);
-        resources.Maintain(seconds);
-        resources.Spend(Math.Max(0, traits.runningCostPerSecond) * runningSeconds);
+        resources.SpendStamina(Math.Max(0, traits.runningCostPerSecond) * runningSeconds);
     }
 }

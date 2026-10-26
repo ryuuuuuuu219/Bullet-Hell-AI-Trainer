@@ -11,6 +11,7 @@ static class Program
 
     static void TestActivityAndReproduction()
     {
+        TestCarbonDrops();
         var traits = AnimalTraits.HerbivoreDefaults();
         traits.activeLightMinimum = 0.25f;
         traits.activeLightMaximum = 0.75f;
@@ -22,28 +23,29 @@ static class Program
         Equal(resources.Amount, 48, "awake maintenance");
         activity.Step(100, 0, true, traits, resources);
         Equal(activity.ActiveAge, 10, "sleep freezes maturity");
-        Equal(resources.Amount, 48, "sleep has no maintenance or running cost");
+        Equal(resources.Amount, 28, "sleep still pays carbon maintenance");
         Check(activity.IsSleeping && !activity.IsRunning, "threat cannot wake sleeper");
         activity.Step(1, 0.25, true, traits, resources);
         Check(!activity.IsSleeping && activity.IsRunning, "inclusive activity boundary and immediate escape");
-        Equal(resources.Amount, 47.7, "running maintenance plus extra cost");
+        Equal(resources.Amount, 27.8, "running cost does not consume carbon");
         activity.Step(100, 1, false, traits, resources);
         Equal(activity.EscapeRemaining, 2, "sleep freezes escape timer");
         activity.Step(1, 0.75, false, traits, resources);
         Check(activity.IsRunning, "escape persists after threat lost");
         activity.Step(2, 0.5, false, traits, resources);
         Check(!activity.IsRunning, "escape expires after hold");
-        Equal(resources.Amount, 46.9, "only remaining escape time charged across long step");
+        Equal(resources.Amount, 7.2, "carbon maintenance continues in both sleep intervals");
         Equal(activity.ActiveAge, 14, "only awake duration counted");
         Check(!resources.TryReproduce(traits, activity.ActiveAge), "immature cannot reproduce");
+        resources.Feed(100);
         traits.offspringCount = 3;
         traits.offspringResources = 5;
         traits.reproductionCostRatio = 2;
         Check(resources.TryReproduce(traits, 30), "maturity boundary permits litter");
-        Equal(resources.Amount, 16.9, "whole litter cost charged once");
+        Equal(resources.Amount, 35, "MVP transfers only offspring carbon regardless of reserved ratio");
         Check(!resources.TryReproduce(traits, 31), "threshold prevents second litter");
         resources.Feed(100);
-        traits.offspringCount = 6;
+        traits.offspringCount = 11;
         Check(!resources.TryReproduce(traits, 100), "cannot afford litter despite threshold");
         Equal(resources.Amount, 50, "failed litter has no cost");
         traits.offspringResources = double.NaN;
@@ -64,6 +66,82 @@ static class Program
         Console.WriteLine("PASS activity, dormancy, escape cost, maturity and configurable litters");
     }
 
+    static void TestCarbonDrops()
+    {
+        var pieces = new System.Collections.Generic.List<double>(CarbonDecomposition.Split(48));
+        Check(string.Join(",", pieces) == "30,10,3,3,1,1", "descending 3/1 decomposition");
+        foreach (double amount in new[] { 0, 0.01, 0.3, 12.3456789, 49.999999, 0.000000000001 })
+        {
+            double total = 0;
+            foreach (double piece in CarbonDecomposition.Split(amount))
+            {
+                Check(piece > 0, "positive particle");
+                double unit = Math.Pow(10, Math.Floor(Math.Log10(piece) + 1e-10));
+                double coefficient = piece / unit;
+                Check(Math.Abs(coefficient - 1) < 1e-8 || Math.Abs(coefficient - 3) < 1e-8, "1 or 3 denomination");
+                total += piece;
+            }
+            Check(Math.Abs(total - amount) <= Math.Max(1e-28, amount * 1e-12), "carbon conservation");
+        }
+        var animal = new AnimalResources(30);
+        animal.Hit(5, out _);
+        Equal(animal.AbsorbCarbon(45), 40, "capacity limits accepted carbon");
+        Equal(animal.Health, 25, "carbon does not heal HP");
+        Equal(animal.AbsorbCarbon(1), 0, "full animal leaves particle untouched");
+        Equal(animal.ReleaseCarbon(), 50, "death releases remaining carbon");
+        Equal(animal.ReleaseCarbon(), 0, "carbon cannot be released twice");
+        Equal(animal.AbsorbCarbon(1), 0, "dead animal cannot absorb");
+        var victim = new AnimalResources(30);
+        victim.Hit(30, out double dropped);
+        Equal(dropped, 10, "lethal hit extracts drop carbon");
+        Equal(victim.ReleaseCarbon(), 0, "lethal hit cannot duplicate drop carbon");
+    }
+
+    static void TestNewEconomy()
+    {
+        var awake = new AnimalResources(30);
+        var asleep = new AnimalResources(30);
+        Equal(awake.Stamina, 50, "uniform initial SP");
+        awake.Advance(1, false);
+        asleep.Advance(1, true);
+        Equal(awake.Amount, 9.8, "awake carbon maintenance");
+        Equal(asleep.Amount, 9.8, "sleep carbon maintenance");
+        Equal(awake.Health, 31.98, "HP recovery integrates carbon times 0.2");
+        Equal(awake.Stamina, 51.98, "SP uses same recovery rate");
+        Equal(asleep.Health, 35.94, "sleep HP recovery times three");
+        Equal(asleep.Stamina, 55.94, "sleep SP recovery times three");
+        var steps = new AnimalResources(30);
+        for (int i = 0; i < 10; i++) steps.Advance(0.1, false);
+        Equal(steps.Health, awake.Health, "passive recovery independent of frame partition");
+        Equal(steps.Stamina, awake.Stamina, "SP recovery independent of frame partition");
+        asleep.Advance(20, true);
+        Equal(asleep.Stamina, 100, "SP cap");
+        Equal(asleep.Health, 60, "HP cap");
+        var exhausted = new AnimalResources(30);
+        exhausted.SpendStamina(50);
+        exhausted.Advance(1, true);
+        Check(exhausted.IsDead, "SP zero cannot recover or resurrect");
+        Equal(exhausted.ReleaseCarbon(), 10, "SP death releases surviving carbon");
+        var starved = new AnimalResources(30);
+        starved.Advance(50, true);
+        Check(starved.IsDead, "sleep starvation still kills");
+        Equal(starved.ReleaseCarbon(), 0, "starvation has no carbon drop");
+        var parent = new AnimalResources(30);
+        parent.Feed(30);
+        var traits = new AnimalTraits();
+        parent.SpendStamina(41);
+        Check(!parent.TryReproduce(traits, 30), "insufficient SP blocks birth atomically");
+        Equal(parent.Amount, 40, "failed birth preserves carbon");
+        Equal(parent.Stamina, 9, "failed birth preserves SP");
+        var terminalParent = new AnimalResources(30);
+        terminalParent.Feed(30);
+        terminalParent.SpendStamina(40);
+        Check(terminalParent.TryReproduce(traits, 30), "exact birth SP can be paid");
+        Check(terminalParent.IsDead, "exact birth payment exhausts parent");
+        Equal(terminalParent.ReleaseCarbon() + traits.offspringResources, 40, "birth plus death conserves carbon");
+        Console.WriteLine("PASS carbon maintenance, HP/SP recovery, sleep multiplier, stamina death and birth conservation");
+    }
+
     static void Main()
     {
         var accelerationTraits = new AnimalTraits();
@@ -74,9 +152,11 @@ static class Program
         var accelerated = new AnimalResources(50);
         accelerated.Maintain(2);
         AccelerationSkill.Consume(accelerationTraits, accelerated, 2);
-        Equal(accelerated.Amount, 9.4, "acceleration cost adds to maintenance exactly once");
-        AccelerationSkill.Consume(accelerationTraits, accelerated, 100);
-        Check(accelerated.IsDead, "acceleration can exhaust resources");
+        Equal(accelerated.Amount, 9.6, "acceleration does not consume carbon");
+        Equal(accelerated.Stamina, 49.8, "acceleration charges SP");
+        AccelerationSkill.Consume(accelerationTraits, accelerated, 1000);
+        Check(accelerated.IsDead, "acceleration can exhaust SP");
+        TestNewEconomy();
         TacticsTests.Run();
         TestActivityAndReproduction();
         var herbivore = new HerbivoreResources();
@@ -113,18 +193,19 @@ static class Program
         Console.WriteLine("PASS carnivore combat and piercing arithmetic");
 
         predator = new AnimalResources(50);
-        predator.Feed(35); // food45, HP85
-        predator.Hit(20, out _); // HP65
-        predator.Feed(20); // food clamp50, HP85 (not just +5)
+        predator.Feed(35); // carbon45, HP50
+        predator.Hit(20, out _); // HP30
+        predator.Feed(20); // carbon clamp50, HP remains30
         Equal(predator.Amount, 50, "resource clamp");
-        Equal(predator.Health, 85, "heal full transferred amount independently of resource cap");
+        Equal(predator.Health, 30, "feeding cannot instantly heal");
         Check(predator.TryReproduce(), "reproduce after capped transfer");
         Equal(predator.Amount, 40, "reproduction cost10");
-        Equal(predator.Health, 85, "no HP cost for birth");
+        Equal(predator.Health, 30, "no HP cost for birth");
         Check(predator.TryReproduce(), "second birth allowed at threshold40");
         Equal(predator.Amount, 30, "second birth costs10");
         Check(!predator.TryReproduce(), "no second birth below threshold");
         predator.Feed(100);
+        predator.Advance(10, false);
         Equal(predator.Health, 100, "HP cap100");
         var child = new AnimalResources(50);
         Equal(child.Health, 50, "child initial HP");
@@ -136,7 +217,7 @@ static class Program
         herbivore = new HerbivoreResources();
         herbivore.Hit(25, out _);
         herbivore.Feed(1);
-        Equal(herbivore.Health, 6, "grass feeding heals actual consumption");
+        Equal(herbivore.Health, 5, "grass adds carbon only");
         Console.WriteLine("PASS healing, caps, reproduction, starvation and grass recovery");
 
         Check(ProjectileSweep.TryHit(0, 0, 200, 0, 150, 0, 85, out double t), "sweep prevents tunnelling");

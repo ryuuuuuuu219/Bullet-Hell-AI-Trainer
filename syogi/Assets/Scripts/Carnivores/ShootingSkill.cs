@@ -8,6 +8,8 @@ public static class ShootingSkill
         elapsed = Mathf.Min(1f, elapsed + seconds);
         if (elapsed < 1f) return;
         elapsed = 0f;
+        owner.Resources.SpendStamina(System.Math.Max(0, owner.Body.Traits.shootingStaminaCost));
+        if (owner.Resources.IsDead) { owner.Body.Die(); return; }
         CarnivoreProjectile.Fire(owner, direction, material);
     }
 }

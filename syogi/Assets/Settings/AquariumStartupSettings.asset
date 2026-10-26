@@ -35,6 +35,9 @@ MonoBehaviour:
       offspringCount: 1
       offspringResources: 10
       reproductionCostRatio: 1
+      reproductionStaminaCost: 10
+      movementStaminaPerSecond: 0.2
+      shootingStaminaCost: 1
       activeLightMinimum: 0
       activeLightMaximum: 1
       searchDistance: 500
@@ -56,6 +59,9 @@ MonoBehaviour:
       offspringCount: 1
       offspringResources: 10
       reproductionCostRatio: 1
+      reproductionStaminaCost: 10
+      movementStaminaPerSecond: 0.2
+      shootingStaminaCost: 1
       activeLightMinimum: 0
       activeLightMaximum: 1
       searchDistance: 1000

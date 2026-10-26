@@ -24,9 +24,12 @@ public sealed class AnimalBody : MonoBehaviour
     private GrassField grass;
     private LineRenderer outline;
     private float drawnRadius = -1;
+    private CircleCollider2D absorptionCollider;
+    private bool dying;
 
     private void LateUpdate()
     {
+        if (absorptionCollider != null) absorptionCollider.radius = Radius;
         if (!IsHerbivore || !IsAlive || outline == null || drawnRadius == Radius) return;
         drawnRadius = Radius;
         for (int i = 0; i < outline.positionCount; i++)
@@ -87,6 +90,9 @@ public sealed class AnimalBody : MonoBehaviour
         Resources = resources;
         IsHerbivore = herbivore;
         outline = GetComponent<LineRenderer>();
+        absorptionCollider = gameObject.AddComponent<CircleCollider2D>();
+        absorptionCollider.isTrigger = true;
+        absorptionCollider.radius = Radius;
         var herbivoreManager = GetComponentInParent<HerbivoreManager>();
         var carnivoreManager = GetComponentInParent<CarnivoreManager>();
         Traits = (herbivore ? (herbivoreManager == null ? AnimalTraits.HerbivoreDefaults() : herbivoreManager.Traits)
@@ -101,15 +107,22 @@ public sealed class AnimalBody : MonoBehaviour
         double remaining = Resources.Hit(power, projectileSpeciesId, SpeciesId, out double stolen);
         if (Resources.IsDead)
         {
-            Die(); // Immediately remove it so another bullet cannot claim this kill.
-            if (attacker != null) attacker.ConsumeKill(stolen);
+            Die(stolen); // Immediately remove it so another bullet cannot claim this kill.
         }
         return remaining;
     }
 
     public void Die()
     {
+        Die(Resources == null ? 0 : Resources.ReleaseCarbon());
+    }
+
+    private void Die(double carbon)
+    {
+        if (dying) return;
+        dying = true;
         gameObject.SetActive(false);
+        DropCarbon.Scatter(transform.position, carbon, outline == null ? null : outline.sharedMaterial);
         Destroy(gameObject);
     }
 }

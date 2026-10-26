@@ -40,6 +40,7 @@ public sealed class HerbivoreManager : MonoBehaviour
             child.GetComponent<AnimalBody>().Resources.SetBirthResources(parent.Traits.offspringResources);
             child.GetComponent<HerbivoreMovement>().SetInitialDirection(-parentDirection);
         }
+        if (parent.Resources.IsDead) parent.Die();
         return true;
     }
 

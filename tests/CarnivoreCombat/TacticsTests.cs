@@ -17,6 +17,8 @@ static class TacticsTests
         double injured = AnimalTactics.Radius(body.Health);
         Check(injured < before, "damage shrinks radius");
         body.Feed(20);
+        Equal(AnimalTactics.Radius(body.Health), injured, "feeding alone does not heal");
+        body.Advance(1, false);
         Check(AnimalTactics.Radius(body.Health) > injured, "healing grows radius");
         Check(ProjectileSweep.TryHit(0, 70, 200, 70, 100, 0, before + 5, out _), "full health hit");
         Check(!ProjectileSweep.TryHit(0, 70, 200, 70, 100, 0, injured + 5, out _), "injured small target misses same bullet");

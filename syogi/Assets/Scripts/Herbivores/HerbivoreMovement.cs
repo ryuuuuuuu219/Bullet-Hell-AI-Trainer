@@ -88,6 +88,7 @@ public sealed class HerbivoreMovement : MonoBehaviour
             float dt = Mathf.Min(remaining, 0.02f);
             remaining -= dt;
             MoveStep(dt);
+            if (!body.IsAlive) break;
             if (!body.IsRunning && HasGrassHere())
             {
                 IsStopped = true;
@@ -100,6 +101,9 @@ public sealed class HerbivoreMovement : MonoBehaviour
 
     private void MoveStep(float dt)
     {
+        if (CurrentSpeed > 0)
+            body.Resources.SpendStamina(System.Math.Max(0, body.Traits.movementStaminaPerSecond) * dt);
+        if (body.Resources.IsDead) { body.Die(); return; }
         if (evasionRandom == null)
         {
             var manager = GetComponentInParent<HerbivoreManager>();

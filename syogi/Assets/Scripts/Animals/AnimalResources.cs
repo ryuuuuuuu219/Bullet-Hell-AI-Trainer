@@ -1,6 +1,6 @@
 using System;
 
-// Shared economy; HP remains independent of stored food. MVP animal armor is 0.
+// Carbon fuels passive recovery; stamina pays for actions. MVP animal armor is 0.
 public class AnimalResources
 {
     public const double Initial = 10;
@@ -8,10 +8,15 @@ public class AnimalResources
     public const double ReproductionThreshold = 40;
     public const double ReproductionCost = Initial;
     public const double MaintenancePerSecond = 0.2;
+    public const double InitialStamina = 50;
+    public const double MaximumStamina = 100;
+    public const double RecoveryPerCarbonPerSecond = 0.2;
+    public const double SleepingRecoveryMultiplier = 3;
+    public double Stamina { get; private set; } = InitialStamina;
     public double Health { get; private set; }
     public double HealthLimit { get; }
     public double Amount { get; private set; } = Initial;
-    public bool IsDead => Amount <= 0 || Health <= 0;
+    public bool IsDead => Amount <= 0 || Health <= 0 || Stamina <= 0;
 
     public AnimalResources(double initialHealth)
     {
@@ -29,9 +34,45 @@ public class AnimalResources
 
     public void Feed(double actualConsumed)
     {
-        if (IsDead || double.IsNaN(actualConsumed) || double.IsInfinity(actualConsumed) || actualConsumed <= 0) return;
-        Amount = Math.Min(Maximum, Amount + actualConsumed);
-        Health = Math.Min(HealthLimit, Health + actualConsumed);
+        AbsorbCarbon(actualConsumed);
+    }
+
+    public void Advance(double seconds, bool sleeping)
+    {
+        if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
+            throw new ArgumentOutOfRangeException(nameof(seconds));
+        if (IsDead || seconds == 0) return;
+        // Integrate the linearly decreasing carbon amount, independent of frame size.
+        double aliveSeconds = Math.Min(seconds, Amount / MaintenancePerSecond);
+        double recovery = (Amount - MaintenancePerSecond * aliveSeconds / 2) * aliveSeconds *
+            RecoveryPerCarbonPerSecond * (sleeping ? SleepingRecoveryMultiplier : 1);
+        Health = Math.Min(HealthLimit, Health + recovery);
+        Stamina = Math.Min(MaximumStamina, Stamina + recovery);
+        Maintain(seconds);
+    }
+
+    public void SpendStamina(double amount)
+    {
+        if (double.IsNaN(amount) || double.IsInfinity(amount) || amount < 0)
+            throw new ArgumentOutOfRangeException(nameof(amount));
+        Stamina = Math.Max(0, Stamina - amount);
+        if (Stamina < 1e-10) Stamina = 0;
+    }
+
+    // Carbon pickup does not heal. Return the amount accepted so overflow stays in the particle.
+    public double AbsorbCarbon(double carbon)
+    {
+        if (IsDead || double.IsNaN(carbon) || double.IsInfinity(carbon) || carbon <= 0) return 0;
+        double accepted = Math.Min(carbon, Math.Max(0, Maximum - Amount));
+        Amount += accepted;
+        return accepted;
+    }
+
+    public double ReleaseCarbon()
+    {
+        double carbon = Amount;
+        Amount = 0;
+        return carbon;
     }
 
     // Both subtractions use the values BEFORE impact.
@@ -60,9 +101,7 @@ public class AnimalResources
 
     public bool TryReproduce()
     {
-        if (IsDead || Amount < ReproductionThreshold) return false;
-        Amount -= ReproductionCost;
-        return true;
+        return TryReproduce(new AnimalTraits(), double.MaxValue);
     }
 
     public void SetBirthResources(double amount)
@@ -81,12 +120,13 @@ public class AnimalResources
 
     public bool CanReproduce(AnimalTraits traits, double activeAge) => !IsDead && traits != null &&
         traits.ValidReproduction && activeAge >= traits.maturitySeconds &&
-        Amount >= traits.reproductionThreshold && Amount >= traits.BirthCost;
+        Amount >= traits.reproductionThreshold && Amount >= traits.BirthCost && Stamina >= traits.reproductionStaminaCost;
 
     public bool TryReproduce(AnimalTraits traits, double activeAge)
     {
         if (!CanReproduce(traits, activeAge)) return false;
         Spend(traits.BirthCost);
+        SpendStamina(traits.reproductionStaminaCost);
         return true;
     }
 }
