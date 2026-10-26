@@ -97,10 +97,10 @@ public sealed class GrassGrid
                     else if (nx < 0 || nx >= Width || ny < 0 || ny >= Height) continue;
                     if (current[ny * Width + nx] > 0) neighbors++;
                 }
-                    next[index] = (neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum) ||
-                            0.001f < UnityEngine.Random.Range(0, 1)
-                        ? 
-                        InitialAmount : 0;
+                // Empty cells can also sprout spontaneously with a 0.1% chance per tick.
+                next[index] = (neighbors >= birthNeighborMinimum && neighbors <= birthNeighborMaximum) ||
+                    UnityEngine.Random.Range(0f, 1f) < 0.001f
+                    ? InitialAmount : 0;
             }
             // A mature cell dies on this tick; it cannot also be reborn on this tick.
             else if (amount >= maximum) next[index] = deathAmount;

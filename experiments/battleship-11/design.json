@@ -1,0 +1,1019 @@
+{
+  "schema_version": 1,
+  "source": "codex-clipboard-9d62c91d-5100-427a-af6b-1bf310f6ec8e.png",
+  "status": "geometric reconstruction from image; not a Unity runtime implementation",
+  "assumptions": [
+    "Blue tiles are squares.",
+    "Orange tiles are equilateral triangles.",
+    "All tile edges have length 1.",
+    "Tile junctions visible in the image are intended exact junctions."
+  ],
+  "coordinate_system": {
+    "origin": "center of the central hexagon",
+    "x": "right",
+    "y": "up",
+    "z": 0,
+    "angles": "degrees, counterclockwise from +X",
+    "vertex_winding": "counterclockwise",
+    "unit": "one tile edge"
+  },
+  "image_alignment_estimate": {
+    "origin_px": [
+      205,
+      146
+    ],
+    "pixels_per_unit": 50,
+    "mapping": "pixel_x = 205 + 50*x; pixel_y = 146 - 50*y",
+    "status": "approximate visual alignment, not pixel-precise tracing"
+  },
+  "counts": {
+    "squares": 7,
+    "equilateral_triangles": 13,
+    "parts": 20,
+    "outline_corners": 11
+  },
+  "vertices": [
+    {
+      "id": "V01",
+      "position": [
+        -1.8660254038,
+        -0.5
+      ]
+    },
+    {
+      "id": "V02",
+      "position": [
+        -1.8660254038,
+        0.5
+      ]
+    },
+    {
+      "id": "V03",
+      "position": [
+        -1.3660254038,
+        -1.3660254038
+      ]
+    },
+    {
+      "id": "V04",
+      "position": [
+        -1.3660254038,
+        1.3660254038
+      ]
+    },
+    {
+      "id": "V05",
+      "position": [
+        -1,
+        0
+      ]
+    },
+    {
+      "id": "V06",
+      "position": [
+        -0.8660254038,
+        -2.2320508076
+      ]
+    },
+    {
+      "id": "V07",
+      "position": [
+        -0.5,
+        -0.8660254038
+      ]
+    },
+    {
+      "id": "V08",
+      "position": [
+        -0.5,
+        0.8660254038
+      ]
+    },
+    {
+      "id": "V09",
+      "position": [
+        -0.5,
+        1.8660254038
+      ]
+    },
+    {
+      "id": "V10",
+      "position": [
+        0,
+        -2.7320508076
+      ]
+    },
+    {
+      "id": "V11",
+      "position": [
+        0,
+        -1.7320508076
+      ]
+    },
+    {
+      "id": "V12",
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "id": "V13",
+      "position": [
+        0.5,
+        -0.8660254038
+      ]
+    },
+    {
+      "id": "V14",
+      "position": [
+        0.5,
+        0.8660254038
+      ]
+    },
+    {
+      "id": "V15",
+      "position": [
+        0.5,
+        1.8660254038
+      ]
+    },
+    {
+      "id": "V16",
+      "position": [
+        0.8660254038,
+        -2.2320508076
+      ]
+    },
+    {
+      "id": "V17",
+      "position": [
+        1,
+        0
+      ]
+    },
+    {
+      "id": "V18",
+      "position": [
+        1.3660254038,
+        -1.3660254038
+      ]
+    },
+    {
+      "id": "V19",
+      "position": [
+        1.3660254038,
+        1.3660254038
+      ]
+    },
+    {
+      "id": "V20",
+      "position": [
+        1.8660254038,
+        -0.5
+      ]
+    },
+    {
+      "id": "V21",
+      "position": [
+        1.8660254038,
+        0.5
+      ]
+    }
+  ],
+  "outline": [
+    {
+      "id": "B01",
+      "vertex_id": "V09",
+      "position": [
+        -0.5,
+        1.8660254038
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 210.0
+    },
+    {
+      "id": "B02",
+      "vertex_id": "V04",
+      "position": [
+        -1.3660254038,
+        1.3660254038
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 240.0
+    },
+    {
+      "id": "B03",
+      "vertex_id": "V02",
+      "position": [
+        -1.8660254038,
+        0.5
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 270.0
+    },
+    {
+      "id": "B04",
+      "vertex_id": "V01",
+      "position": [
+        -1.8660254038,
+        -0.5
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 2.0,
+      "next_edge_heading_deg": 300.0
+    },
+    {
+      "id": "B05",
+      "vertex_id": "V06",
+      "position": [
+        -0.8660254038,
+        -2.2320508076
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 330.0
+    },
+    {
+      "id": "B06",
+      "vertex_id": "V10",
+      "position": [
+        0,
+        -2.7320508076
+      ],
+      "interior_angle_deg": 120.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 30.0
+    },
+    {
+      "id": "B07",
+      "vertex_id": "V16",
+      "position": [
+        0.8660254038,
+        -2.2320508076
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 2.0,
+      "next_edge_heading_deg": 60.0
+    },
+    {
+      "id": "B08",
+      "vertex_id": "V20",
+      "position": [
+        1.8660254038,
+        -0.5
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 90.0
+    },
+    {
+      "id": "B09",
+      "vertex_id": "V21",
+      "position": [
+        1.8660254038,
+        0.5
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 120.0
+    },
+    {
+      "id": "B10",
+      "vertex_id": "V19",
+      "position": [
+        1.3660254038,
+        1.3660254038
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 150.0
+    },
+    {
+      "id": "B11",
+      "vertex_id": "V15",
+      "position": [
+        0.5,
+        1.8660254038
+      ],
+      "interior_angle_deg": 150.0,
+      "next_edge_length": 1.0,
+      "next_edge_heading_deg": 180.0
+    }
+  ],
+  "parts": [
+    {
+      "id": "P01",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V17",
+        "V14"
+      ],
+      "centroid": [
+        0.5,
+        0.2886751346
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        0.0,
+        120.0,
+        240.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P02",
+        "P06",
+        "P07"
+      ],
+      "turret_mount_position": [
+        0.5,
+        0.2886751346
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P02",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V14",
+        "V08"
+      ],
+      "centroid": [
+        0.0,
+        0.5773502692
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        60.0,
+        180.0,
+        300.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P01",
+        "P03",
+        "P08"
+      ],
+      "turret_mount_position": [
+        0.0,
+        0.5773502692
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P03",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V08",
+        "V05"
+      ],
+      "centroid": [
+        -0.5,
+        0.2886751346
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        120.0,
+        240.0,
+        0.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P02",
+        "P04",
+        "P09"
+      ],
+      "turret_mount_position": [
+        -0.5,
+        0.2886751346
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P04",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V05",
+        "V07"
+      ],
+      "centroid": [
+        -0.5,
+        -0.2886751346
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        180.0,
+        300.0,
+        60.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P03",
+        "P05",
+        "P10"
+      ],
+      "turret_mount_position": [
+        -0.5,
+        -0.2886751346
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P05",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V07",
+        "V13"
+      ],
+      "centroid": [
+        0.0,
+        -0.5773502692
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        240.0,
+        0.0,
+        120.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P04",
+        "P06",
+        "P16"
+      ],
+      "turret_mount_position": [
+        0.0,
+        -0.5773502692
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P06",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V12",
+        "V13",
+        "V17"
+      ],
+      "centroid": [
+        0.5,
+        -0.2886751346
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        300.0,
+        60.0,
+        180.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P01",
+        "P05",
+        "P11"
+      ],
+      "turret_mount_position": [
+        0.5,
+        -0.2886751346
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P07",
+      "shape": "square",
+      "vertex_ids": [
+        "V17",
+        "V21",
+        "V19",
+        "V14"
+      ],
+      "centroid": [
+        1.1830127019,
+        0.6830127019
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        30.0,
+        120.0,
+        210.0,
+        300.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P01",
+        "P12",
+        "P13"
+      ],
+      "turret_mount_position": [
+        1.1830127019,
+        0.6830127019
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P08",
+      "shape": "square",
+      "vertex_ids": [
+        "V14",
+        "V15",
+        "V09",
+        "V08"
+      ],
+      "centroid": [
+        0.0,
+        1.3660254038
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        90.0,
+        180.0,
+        270.0,
+        0.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P02",
+        "P13",
+        "P14"
+      ],
+      "turret_mount_position": [
+        0.0,
+        1.3660254038
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P09",
+      "shape": "square",
+      "vertex_ids": [
+        "V08",
+        "V04",
+        "V02",
+        "V05"
+      ],
+      "centroid": [
+        -1.1830127019,
+        0.6830127019
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        150.0,
+        240.0,
+        330.0,
+        60.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P03",
+        "P14",
+        "P15"
+      ],
+      "turret_mount_position": [
+        -1.1830127019,
+        0.6830127019
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P10",
+      "shape": "square",
+      "vertex_ids": [
+        "V05",
+        "V01",
+        "V03",
+        "V07"
+      ],
+      "centroid": [
+        -1.1830127019,
+        -0.6830127019
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        210.0,
+        300.0,
+        30.0,
+        120.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P04",
+        "P15",
+        "P17"
+      ],
+      "turret_mount_position": [
+        -1.1830127019,
+        -0.6830127019
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P11",
+      "shape": "square",
+      "vertex_ids": [
+        "V13",
+        "V18",
+        "V20",
+        "V17"
+      ],
+      "centroid": [
+        1.1830127019,
+        -0.6830127019
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        330.0,
+        60.0,
+        150.0,
+        240.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P06",
+        "P12",
+        "P18"
+      ],
+      "turret_mount_position": [
+        1.1830127019,
+        -0.6830127019
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P12",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V17",
+        "V20",
+        "V21"
+      ],
+      "centroid": [
+        1.5773502692,
+        0.0
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        330.0,
+        90.0,
+        210.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P07",
+        "P11"
+      ],
+      "turret_mount_position": [
+        1.5773502692,
+        0.0
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P13",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V14",
+        "V19",
+        "V15"
+      ],
+      "centroid": [
+        0.7886751346,
+        1.3660254038
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        30.0,
+        150.0,
+        270.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P07",
+        "P08"
+      ],
+      "turret_mount_position": [
+        0.7886751346,
+        1.3660254038
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P14",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V08",
+        "V09",
+        "V04"
+      ],
+      "centroid": [
+        -0.7886751346,
+        1.3660254038
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        90.0,
+        210.0,
+        330.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P08",
+        "P09"
+      ],
+      "turret_mount_position": [
+        -0.7886751346,
+        1.3660254038
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P15",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V05",
+        "V02",
+        "V01"
+      ],
+      "centroid": [
+        -1.5773502692,
+        0.0
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        150.0,
+        270.0,
+        30.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P09",
+        "P10"
+      ],
+      "turret_mount_position": [
+        -1.5773502692,
+        0.0
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P16",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V07",
+        "V11",
+        "V13"
+      ],
+      "centroid": [
+        0.0,
+        -1.1547005384
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        300.0,
+        60.0,
+        180.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P05",
+        "P17",
+        "P18"
+      ],
+      "turret_mount_position": [
+        0.0,
+        -1.1547005384
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P17",
+      "shape": "square",
+      "vertex_ids": [
+        "V07",
+        "V03",
+        "V06",
+        "V11"
+      ],
+      "centroid": [
+        -0.6830127019,
+        -1.5490381057
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        210.0,
+        300.0,
+        30.0,
+        120.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P10",
+        "P16",
+        "P19"
+      ],
+      "turret_mount_position": [
+        -0.6830127019,
+        -1.5490381057
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P18",
+      "shape": "square",
+      "vertex_ids": [
+        "V11",
+        "V16",
+        "V18",
+        "V13"
+      ],
+      "centroid": [
+        0.6830127019,
+        -1.5490381057
+      ],
+      "interior_angles_deg": [
+        90,
+        90,
+        90,
+        90
+      ],
+      "edge_headings_deg": [
+        330.0,
+        60.0,
+        150.0,
+        240.0
+      ],
+      "area": 1.0,
+      "neighbors": [
+        "P11",
+        "P16",
+        "P20"
+      ],
+      "turret_mount_position": [
+        0.6830127019,
+        -1.5490381057
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P19",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V11",
+        "V06",
+        "V10"
+      ],
+      "centroid": [
+        -0.2886751346,
+        -2.2320508076
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        210.0,
+        330.0,
+        90.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P17",
+        "P20"
+      ],
+      "turret_mount_position": [
+        -0.2886751346,
+        -2.2320508076
+      ],
+      "turret_initial_heading_deg": null
+    },
+    {
+      "id": "P20",
+      "shape": "equilateral_triangle",
+      "vertex_ids": [
+        "V11",
+        "V10",
+        "V16"
+      ],
+      "centroid": [
+        0.2886751346,
+        -2.2320508076
+      ],
+      "interior_angles_deg": [
+        60,
+        60,
+        60
+      ],
+      "edge_headings_deg": [
+        270.0,
+        30.0,
+        150.0
+      ],
+      "area": 0.4330127019,
+      "neighbors": [
+        "P18",
+        "P19"
+      ],
+      "turret_mount_position": [
+        0.2886751346,
+        -2.2320508076
+      ],
+      "turret_initial_heading_deg": null
+    }
+  ],
+  "validation": {
+    "unit_tile_edges": true,
+    "maximum_pair_overlap_area": 0.0,
+    "tile_area_sum": 12.62916512459885,
+    "outline_area": 12.629165124598849,
+    "outline_angle_sum_deg": 1620.0,
+    "boundary_single_loop": true
+  },
+  "not_specified": [
+    "overall world scale",
+    "HP and armor",
+    "turret type assignment",
+    "turret initial headings",
+    "death and detachment rules"
+  ]
+}
