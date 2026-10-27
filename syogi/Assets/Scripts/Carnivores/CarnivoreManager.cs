@@ -14,6 +14,7 @@ public sealed class CarnivoreManager : MonoBehaviour
     public AnimalTraits Traits => startupSettings != null && startupSettings.carnivores != null
         ? startupSettings.carnivores.traits ?? defaultTraits : defaultTraits;
     private System.Random birthRandom;
+    private System.Random reproductionRandom;
     public int LivingCount
     {
         get
@@ -43,6 +44,7 @@ public sealed class CarnivoreManager : MonoBehaviour
         }
         ActualSeed = randomizeSeed ? System.Environment.TickCount : seed;
         birthRandom = new System.Random(ActualSeed);
+        reproductionRandom = new System.Random(ActualSeed);
         var random = new System.Random(ActualSeed);
         float half = GrassField.FieldSize * 0.5f;
         for (int i = 0; i < initialCount; i++)
@@ -72,9 +74,13 @@ public sealed class CarnivoreManager : MonoBehaviour
             parent.Body.Radius, birthRandom.NextDouble(), birthRandom.Next(2) == 0,
             GrassField.FieldSize * 0.5, out double x, out double y)) return;
         // Do not charge food if neither lateral position is inside the field.
-        if (!parent.Resources.TryReproduce(parent.Body.Traits, parent.Body.Activity.ActiveAge)) return;
-        for (int i = 0; i < parent.Body.Traits.offspringCount; i++)
+        if (reproductionRandom == null) reproductionRandom = new System.Random(seed);
+        double probability = parent.Body.Traits.BirthSurvivalProbability(AnimalBody.LivingSpeciesCount(parent.Body.SpeciesId));
+        if (!parent.Resources.TryReproduce(parent.Body.Traits, parent.Body.Activity.ActiveAge, probability,
+            reproductionRandom, out int livingOffspring, out double stillbornCarbon)) return;
+        for (int i = 0; i < livingOffspring; i++)
             Spawn(new Vector3((float)x, (float)y, position.z), -direction, parent.Body.Traits.offspringResources);
+        parent.Body.ScatterCarbon(stillbornCarbon);
         if (parent.Resources.IsDead) parent.Body.Die();
     }
 }

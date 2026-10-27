@@ -130,4 +130,20 @@ public class AnimalResources
         SpendStamina(traits.reproductionStaminaCost);
         return true;
     }
+
+    // A paid attempt can produce no living offspring. Carbon is allocated either
+    // to living children or to drops; SP is charged once for the entire litter.
+    public bool TryReproduce(AnimalTraits traits, double activeAge, double survivalProbability,
+        Random random, out int livingOffspring, out double stillbornCarbon)
+    {
+        livingOffspring = 0;
+        stillbornCarbon = 0;
+        if (random == null || double.IsNaN(survivalProbability) ||
+            survivalProbability < 0 || survivalProbability > 1) return false;
+        if (!TryReproduce(traits, activeAge)) return false;
+        for (int i = 0; i < traits.offspringCount; i++)
+            if (random.NextDouble() < survivalProbability) livingOffspring++;
+        stillbornCarbon = (traits.offspringCount - livingOffspring) * traits.offspringResources;
+        return true;
+    }
 }

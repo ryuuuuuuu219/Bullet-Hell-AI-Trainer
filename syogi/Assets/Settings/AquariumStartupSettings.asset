@@ -31,6 +31,7 @@ MonoBehaviour:
     seed: 1
     traits:
       reproductionThreshold: 40
+      reproductionPopulationBaseline: 300
       maturitySeconds: 30
       offspringCount: 1
       offspringResources: 10
@@ -55,6 +56,7 @@ MonoBehaviour:
     seed: 1
     traits:
       reproductionThreshold: 40
+      reproductionPopulationBaseline: 50
       maturitySeconds: 30
       offspringCount: 1
       offspringResources: 10

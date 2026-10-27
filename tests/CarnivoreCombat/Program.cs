@@ -11,6 +11,7 @@ static class Program
 
     static void TestActivityAndReproduction()
     {
+        TestStillbirth();
         foreach (var defaults in new[] { AnimalTraits.HerbivoreDefaults(), new AnimalTraits() })
         {
             Check(!defaults.IsActive(0), "darkness sleeps");
@@ -73,6 +74,63 @@ static class Program
         activity.Step(0.1, 0.5, true, traits, resources);
         Check(activity.IsRunning, "zero hold still runs while threat present");
         Console.WriteLine("PASS activity, dormancy, escape cost, maturity and configurable litters");
+    }
+
+    sealed class SequenceRandom : Random
+    {
+        private readonly double[] values;
+        private int index;
+        public SequenceRandom(params double[] values) { this.values = values; }
+        public override double NextDouble() => values[index++];
+    }
+
+    static void TestStillbirth()
+    {
+        var herbivoreTraits = AnimalTraits.HerbivoreDefaults();
+        var carnivoreTraits = new AnimalTraits();
+        Check(herbivoreTraits.reproductionPopulationBaseline == 300, "herbivore baseline 300");
+        Check(carnivoreTraits.reproductionPopulationBaseline == 50, "carnivore baseline 50");
+        foreach (var species in new[] { herbivoreTraits, carnivoreTraits })
+        {
+            int baseline = species.reproductionPopulationBaseline;
+            Equal(species.BirthSurvivalProbability(0), 1, "empty population probability");
+            Equal(species.BirthSurvivalProbability(baseline / 2), 0.5, "half baseline probability");
+            Equal(species.BirthSurvivalProbability(baseline), 0, "baseline all stillborn");
+            Equal(species.BirthSurvivalProbability(baseline + 10), 0, "above baseline clamps to zero");
+            Equal(species.BirthSurvivalProbability(1), 1 - 1.0 / baseline, "fractional division");
+            species.reproductionPopulationBaseline = 0;
+            Check(!species.ValidReproduction, "invalid baseline cannot charge parent");
+        }
+        var traits = new AnimalTraits { offspringCount = 3, offspringResources = 5 };
+        foreach (double probability in new[] { 0.0, 0.5, 1.0 })
+        {
+            var parent = new AnimalResources(30);
+            parent.Feed(40);
+            Check(parent.TryReproduce(traits, 30, probability,
+                new SequenceRandom(0, 0.5, 0.9), out int living, out double dropped), "paid litter resolves");
+            Check(living == (probability == 0 ? 0 : probability == 1 ? 3 : 1), "independent offspring outcomes");
+            Equal(parent.Amount, 35, "stillbirth does not refund carbon");
+            Equal(parent.Stamina, 40, "litter always pays SP once");
+            Equal(parent.Amount + living * traits.offspringResources + dropped, 50, "litter conserves carbon");
+            double particleTotal = 0;
+            foreach (double part in CarbonDecomposition.Split(dropped)) particleTotal += part;
+            Equal(particleTotal, dropped, "stillbirth drops conserve carbon");
+        }
+        var poor = new AnimalResources(30);
+        Check(!poor.TryReproduce(traits, 30, 0.5, new SequenceRandom(), out int none, out double noDrop),
+            "insufficient carbon does not roll or produce drops");
+        Check(none == 0 && noDrop == 0, "unpaid attempt has no offspring or drops");
+        Equal(poor.Amount, 10, "unpaid attempt preserves carbon");
+        Equal(poor.Stamina, 50, "unpaid attempt preserves SP");
+        traits.offspringCount = 5;
+        traits.offspringResources = 10;
+        var exhausted = new AnimalResources(30);
+        exhausted.Feed(40);
+        Check(exhausted.TryReproduce(traits, 30, 0, new Random(1), out none, out double allDropped),
+            "full carbon payment still resolves litter");
+        Check(exhausted.IsDead && none == 0, "parent depleted and litter stillborn");
+        Equal(allDropped + exhausted.ReleaseCarbon(), 50, "parent death cannot duplicate litter carbon");
+        Console.WriteLine("PASS stillbirth payment, per-child outcomes, carbon drops and depleted parent");
     }
 
     static void TestCarbonDrops()

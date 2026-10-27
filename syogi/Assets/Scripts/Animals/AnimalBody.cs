@@ -35,6 +35,13 @@ public sealed class AnimalBody : MonoBehaviour
     }
     public int SeparationId { get; private set; }
     public static IReadOnlyList<AnimalBody> Active => active;
+    public static int LivingSpeciesCount(int species)
+    {
+        int count = 0;
+        foreach (AnimalBody body in active)
+            if (body.IsAlive && body.SpeciesId == species) count++;
+        return count;
+    }
     public float Radius => (float)AnimalTactics.Radius(Resources == null ? 0 : Resources.Health);
     // Zero selects the current MVP default; explicit IDs allow future species.
     [SerializeField, Min(0)] private int speciesId;
@@ -162,12 +169,17 @@ public sealed class AnimalBody : MonoBehaviour
         Die(Resources == null ? 0 : Resources.ReleaseCarbon());
     }
 
+    public void ScatterCarbon(double carbon)
+    {
+        DropCarbon.Scatter(transform.position, carbon, outline == null ? null : outline.sharedMaterial, SpeciesId);
+    }
+
     private void Die(double carbon)
     {
         if (dying) return;
         dying = true;
         gameObject.SetActive(false);
-        DropCarbon.Scatter(transform.position, carbon, outline == null ? null : outline.sharedMaterial);
+        ScatterCarbon(carbon);
         Destroy(gameObject);
     }
 }

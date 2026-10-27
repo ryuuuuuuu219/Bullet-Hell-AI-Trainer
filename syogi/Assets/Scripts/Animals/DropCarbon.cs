@@ -4,6 +4,7 @@ using UnityEngine;
 public sealed class DropCarbon : MonoBehaviour
 {
     public double carbon;
+    public int SpeciesId { get; private set; }
     private float timer = 1f;
     private AnimalBody target;
     private bool isFeed;
@@ -20,7 +21,7 @@ public sealed class DropCarbon : MonoBehaviour
         physicsBody.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 
-    public static void Scatter(Vector3 position, double amount, Material material)
+    public static void Scatter(Vector3 position, double amount, Material material, int speciesId)
     {
         foreach (double part in CarbonDecomposition.Split(amount))
         {
@@ -32,6 +33,7 @@ public sealed class DropCarbon : MonoBehaviour
                 Mathf.Clamp(position.y + offset.y, -half, half - 0.001f), position.z);
             var drop = obj.AddComponent<DropCarbon>();
             drop.carbon = part;
+            drop.SpeciesId = speciesId;
             var line = obj.AddComponent<LineRenderer>();
             line.sharedMaterial = material;
             line.useWorldSpace = false;
@@ -55,7 +57,7 @@ public sealed class DropCarbon : MonoBehaviour
     {
         if (isFeed || Time.timeScale <= 0) return;
         var animal = other.GetComponentInParent<AnimalBody>();
-        if (animal == null || !animal.IsAlive) return;
+        if (animal == null || !animal.IsAlive || animal.SpeciesId == SpeciesId) return;
         double accepted = animal.Resources.AbsorbCarbon(carbon);
         carbon -= accepted;
         if (carbon > 0) return;

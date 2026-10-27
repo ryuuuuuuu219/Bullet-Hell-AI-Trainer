@@ -10,6 +10,7 @@ public sealed class HerbivoreManager : MonoBehaviour
     [SerializeField] private int seed = 1;
     public int ActualSeed { get; private set; }
     private int spawnedCount;
+    private System.Random reproductionRandom;
     private readonly AnimalTraits defaultTraits = AnimalTraits.HerbivoreDefaults();
     public AnimalTraits Traits => startupSettings != null && startupSettings.herbivores != null
         ? startupSettings.herbivores.traits ?? defaultTraits : defaultTraits;
@@ -33,13 +34,18 @@ public sealed class HerbivoreManager : MonoBehaviour
     public bool TryReproduce(AnimalBody parent, Vector2 parentDirection)
     {
         if (herbivorePrefab == null || parent == null || !parent.IsAlive || parent.IsSleeping || parent.IsRunning ||
-            !parent.Resources.TryReproduce(parent.Traits, parent.Activity.ActiveAge)) return false;
-        for (int i = 0; i < parent.Traits.offspringCount; i++)
+            !parent.Resources.CanReproduce(parent.Traits, parent.Activity.ActiveAge)) return false;
+        if (reproductionRandom == null) reproductionRandom = new System.Random(seed);
+        double probability = parent.Traits.BirthSurvivalProbability(AnimalBody.LivingSpeciesCount(parent.SpeciesId));
+        if (!parent.Resources.TryReproduce(parent.Traits, parent.Activity.ActiveAge, probability,
+            reproductionRandom, out int livingOffspring, out double stillbornCarbon)) return false;
+        for (int i = 0; i < livingOffspring; i++)
         {
             GameObject child = Spawn(parent.transform.position);
             child.GetComponent<AnimalBody>().Resources.SetBirthResources(parent.Traits.offspringResources);
             child.GetComponent<HerbivoreMovement>().SetInitialDirection(-parentDirection);
         }
+        parent.ScatterCarbon(stillbornCarbon);
         if (parent.Resources.IsDead) parent.Die();
         return true;
     }
@@ -69,6 +75,7 @@ public sealed class HerbivoreManager : MonoBehaviour
         }
 
         ActualSeed = randomizeSeed ? System.Environment.TickCount : seed;
+        reproductionRandom = new System.Random(ActualSeed);
         var random = new System.Random(ActualSeed);
         float halfSize = GrassField.FieldSize * 0.5f;
         for (int i = 0; i < initialCount; i++)
