@@ -20,20 +20,6 @@ public sealed class GrassField : MonoBehaviour
     [SerializeField] private bool growthEnabled = true;
     [SerializeField] private bool wrapBoundary;
     public GrassGrid Grid { get; private set; }
-    public double GrassBetween(Vector3 from, Vector3 to)
-    {
-        if (Grid == null) return 0;
-        return GrassSightLine.Sum(Grid.Width, Grid.Height,
-            from.x / (double)CellSize + Grid.Width / 2.0, from.y / (double)CellSize + Grid.Height / 2.0,
-            to.x / (double)CellSize + Grid.Width / 2.0, to.y / (double)CellSize + Grid.Height / 2.0,
-            ReadGrass);
-    }
-    private double ReadGrass(int x, int y) => Grid[x, y];
-    public float GrassCoverage(Vector3 position)
-    {
-        if (Grid == null || !Grid.TryWorldToCell(position.x, position.y, CellSize, out int x, out int y)) return 0;
-        return Mathf.Clamp01(Grid[x, y] / Mathf.Max(1, maxGrass));
-    }
     public int ActualSeed { get; private set; }
     private float elapsed;
     private Texture2D texture;

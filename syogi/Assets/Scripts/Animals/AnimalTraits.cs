@@ -18,8 +18,6 @@ public sealed class AnimalTraits
     public float activeLightMaximum = 1;
     public float searchDistance = 1000;
     public float nightSearchMultiplier = 0.5f;
-    public float maximumGrassConcealment = 0.5f;
-    public float grassOcclusionPerUnit = 0.1f;
     public float walkingSpeed = 105;
     public float runningSpeed = 150;
     public double runningCostPerSecond = 10;
@@ -32,11 +30,6 @@ public sealed class AnimalTraits
     public bool IsActive(double light) => light > activeLightMinimum && light <= activeLightMaximum;
     public double SearchRadius(double light) => Math.Max(0, searchDistance) *
         (Math.Max(0, nightSearchMultiplier) + (1 - Math.Max(0, nightSearchMultiplier)) * Math.Max(0, Math.Min(1, light)));
-    public double DetectionRadius(double light, double grassCoverage, double targetConcealment) => SearchRadius(light) *
-        (1 - Math.Max(0, Math.Min(1, grassCoverage)) * Math.Max(0, Math.Min(1, targetConcealment)));
-    public double DetectionRadius(double light, double grassCoverage, double targetConcealment, double interveningGrass)
-        => DetectionRadius(light, grassCoverage, targetConcealment) /
-           (1 + Math.Max(0, grassOcclusionPerUnit) * Math.Max(0, interveningGrass));
     public double BirthCost => offspringCount * offspringResources;
     public bool ValidReproduction => offspringCount > 0 && reproductionPopulationBaseline > 0 && Finite(reproductionThreshold) && reproductionThreshold >= 0 &&
         Finite(maturitySeconds) && maturitySeconds >= 0 && Finite(offspringResources) && offspringResources > 0 &&

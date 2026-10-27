@@ -25,37 +25,3 @@ public sealed class EvasionClock
         return turns;
     }
 }
-
-public static class GrassSightLine
-{
-    // Coordinates are continuous cell coordinates (0..width, 0..height).
-    // Count endpoints once. Corner-only contacts are not crossed cells; an edge
-    // belongs to the cell on its positive side, matching GrassGrid's half-open cells.
-    public static double Sum(int width, int height, double ax, double ay, double bx, double by,
-        Func<int, int, double> amount)
-    {
-        if (!(ax >= 0 && ax < width && bx >= 0 && bx < width &&
-              ay >= 0 && ay < height && by >= 0 && by < height)) return 0;
-        int x = (int)Math.Floor(ax), y = (int)Math.Floor(ay);
-        int endX = (int)Math.Floor(bx), endY = (int)Math.Floor(by);
-        double dx = bx - ax, dy = by - ay;
-        int sx = Math.Sign(dx), sy = Math.Sign(dy);
-        double stepX = sx == 0 ? double.PositiveInfinity : 1 / Math.Abs(dx);
-        double stepY = sy == 0 ? double.PositiveInfinity : 1 / Math.Abs(dy);
-        double nextX = sx == 0 ? double.PositiveInfinity : ((sx > 0 ? x + 1 : x) - ax) / dx;
-        double nextY = sy == 0 ? double.PositiveInfinity : ((sy > 0 ? y + 1 : y) - ay) / dy;
-        double sum = 0;
-        for (int count = 0; count <= width + height; count++)
-        {
-            sum += Math.Max(0, amount(x, y));
-            if (x == endX && y == endY) break;
-            // Once an end axis is reached it must not step past an endpoint on a grid line.
-            double tx = x == endX ? double.PositiveInfinity : nextX;
-            double ty = y == endY ? double.PositiveInfinity : nextY;
-            if (tx < ty) { x += sx; nextX += stepX; }
-            else if (ty < tx) { y += sy; nextY += stepY; }
-            else { x += sx; y += sy; nextX += stepX; nextY += stepY; }
-        }
-        return sum;
-    }
-}

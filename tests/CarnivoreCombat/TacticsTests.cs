@@ -41,25 +41,6 @@ static class TacticsTests
         Equal(clock.Step(2, true, () => 0.1), 0, "ten percent cutoff exclusive");
         Equal(clock.Step(2, true, () => 0), 1, "zero sample succeeds");
 
-        var grid = new double[4,4];
-        for (int y = 0; y < 4; y++) for (int x = 0; x < 4; x++) grid[x,y] = 1;
-        Func<int,int,double> amount = (x,y) => grid[x,y];
-        Equal(GrassSightLine.Sum(4,4,0.5,0.5,3.5,0.5,amount),4,"horizontal includes endpoints once");
-        Equal(GrassSightLine.Sum(4,4,3.5,0.5,0.5,0.5,amount),4,"reverse horizontal");
-        Equal(GrassSightLine.Sum(4,4,0.5,0.5,0.5,3.5,amount),4,"vertical");
-        Equal(GrassSightLine.Sum(4,4,0.5,0.5,3.5,3.5,amount),4,"diagonal skips corner-only contacts");
-        Equal(GrassSightLine.Sum(4,4,3.5,3.5,0.5,0.5,amount),4,"reverse diagonal");
-        Equal(GrassSightLine.Sum(4,4,1,1,1,1,amount),1,"coincident center counted once");
-        Equal(GrassSightLine.Sum(4,4,0,0,3,3,amount),4,"exact corner endpoints");
-        Equal(GrassSightLine.Sum(4,4,3,3,0,0,amount),4,"reverse exact corners");
-        grid[0,0]=0.25; grid[1,0]=-3; grid[2,0]=0; grid[3,0]=2.5;
-        Equal(GrassSightLine.Sum(4,4,0.5,0.5,3.5,0.5,amount),2.75,"sum amounts not cells; ignore dead grass");
-        Equal(GrassSightLine.Sum(4,4,4,0,0,0,amount),0,"outside field");
-        var traits = new AnimalTraits { grassOcclusionPerUnit = 0.5f };
-        Equal(traits.DetectionRadius(1,0,0,2),500,"intervening grass halves detection");
-        Equal(traits.DetectionRadius(1,1,0.5,2),250,"local hiding and intervening grass combine");
-        Check(600 > traits.DetectionRadius(1,0,0,2),"previous 600-distance target becomes lost");
-        Equal(traits.DetectionRadius(1,0,0,0),1000,"no grass unchanged");
-        Console.WriteLine("PASS HP radius, OR abandonment, evasion cadence and grass sightline totals");
+        Console.WriteLine("PASS HP radius, OR abandonment, evasion cadence");
     }
 }

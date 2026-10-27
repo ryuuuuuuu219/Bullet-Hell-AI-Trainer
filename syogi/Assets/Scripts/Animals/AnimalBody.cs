@@ -57,7 +57,6 @@ public sealed class AnimalBody : MonoBehaviour
     public bool IsRunning => !IsSleeping && Activity.IsRunning;
     public Vector2 EscapeDirection { get; private set; }
     public float SearchDistance => (float)Traits.SearchRadius(AquariumDayNight.CurrentLight);
-    private GrassField grass;
     private LineRenderer outline;
     private float drawnRadius = -1;
     private CircleCollider2D absorptionCollider;
@@ -81,10 +80,7 @@ public sealed class AnimalBody : MonoBehaviour
     {
         if (IsSleeping || candidate == null || !candidate.IsAlive) return false;
         float distanceSquared = ((Vector2)(candidate.transform.position - transform.position)).sqrMagnitude;
-        if (distanceSquared > SearchDistance * SearchDistance) return false;
-        float coverage = grass == null ? 0 : grass.GrassCoverage(candidate.transform.position);
-        double intervening = grass == null ? 0 : grass.GrassBetween(transform.position, candidate.transform.position);
-        double radius = Traits.DetectionRadius(AquariumDayNight.CurrentLight, coverage, candidate.Traits.maximumGrassConcealment, intervening);
+        float radius = SearchDistance;
         return distanceSquared <= radius * radius;
     }
 
@@ -111,7 +107,7 @@ public sealed class AnimalBody : MonoBehaviour
                 sensedThreat = other;
             }
         }
-        // Death is immediate; detection/occlusion is sampled every 0.2 simulation seconds.
+        // Death is immediate; detection is sampled every 0.2 simulation seconds.
         AnimalBody threat = sensedThreat != null && sensedThreat.IsAlive ? sensedThreat : null;
         if (threat != null)
         {
@@ -162,7 +158,6 @@ public sealed class AnimalBody : MonoBehaviour
         }
         Traits = Species.traits.Copy();
         speciesManager?.Population?.Register(this);
-        grass = FindAnyObjectByType<GrassField>();
         SyncSpatialPosition();
     }
 

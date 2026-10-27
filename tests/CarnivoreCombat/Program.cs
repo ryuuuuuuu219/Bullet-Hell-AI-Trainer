@@ -66,10 +66,6 @@ static class Program
         Equal(child.Health, 30, "allocation does not heal newborn");
         Equal(traits.SearchRadius(0), 250, "night sensing");
         Equal(traits.SearchRadius(1), 500, "day sensing");
-        Equal(traits.DetectionRadius(1, 1, 0.5), 250, "full grass conceals target");
-        Equal(traits.DetectionRadius(0, 1, 0.5), 125, "night and concealment combine");
-        Equal(traits.DetectionRadius(1, -1, 0.5), 500, "dead grass cannot increase detection");
-        Equal(traits.DetectionRadius(1, 2, 2), 0, "concealment clamps at zero distance");
         traits.escapeHoldSeconds = 0;
         activity.Step(0.1, 0.5, true, traits, resources);
         Check(activity.IsRunning, "zero hold still runs while threat present");

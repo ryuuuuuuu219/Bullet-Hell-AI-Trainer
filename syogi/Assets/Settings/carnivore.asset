@@ -28,8 +28,6 @@ MonoBehaviour:
     activeLightMaximum: 1
     searchDistance: 1000
     nightSearchMultiplier: 0.5
-    maximumGrassConcealment: 0.5
-    grassOcclusionPerUnit: 0.1
     walkingSpeed: 105
     runningSpeed: 150
     runningCostPerSecond: 10
