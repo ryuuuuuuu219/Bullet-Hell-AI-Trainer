@@ -238,6 +238,7 @@ static class Program
         Check(accelerated.IsDead, "acceleration can exhaust SP");
         TestNewEconomy();
         TacticsTests.Run();
+        PredatorAbilityTests.Run();
         TestActivityAndReproduction();
         var herbivore = new HerbivoreResources();
         Equal(herbivore.Hit(10, out double stolen), 0, "first bullet consumed");

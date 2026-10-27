@@ -1,0 +1,72 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: ca91df2f297046c18e0c47eeb745c2a6, type: 3}
+  m_Name: snake
+  m_EditorClassIdentifier:
+  speciesId: snake
+  displayName: 蛇型
+  traits:
+    reproductionThreshold: 40
+    reproductionPopulationBaseline: 15
+    maturitySeconds: 30
+    offspringCount: 1
+    offspringResources: 10
+    reproductionCostRatio: 1
+    reproductionStaminaCost: 10
+    movementStaminaPerSecond: 0.2
+    shootingStaminaCost: 1
+    activeLightMinimum: 0
+    activeLightMaximum: 0.3
+    includeActiveLightMinimum: 1
+    searchDistance: 1000
+    nightSearchMultiplier: 0.5
+    walkingSpeed: 480
+    runningSpeed: 150
+    runningCostPerSecond: 10
+    escapeHoldSeconds: 2
+  initialHealth: 10
+  pursuitSpeciesIds:
+  - carnivore
+  - dog
+  - yoshi
+  shoot: 1
+  accel: 0
+  shotInterval: 1
+  bulletSpeed: 120
+  bulletPower: 15
+  bulletPowerDecay: 10
+  angularSpeed: 120
+  stopDistance: 150
+  resumeDistance: 180
+  outlineVertices: 4
+  outlineRadiusScale: 0.2
+  outlineColor: {r: 1, g: 0, b: 0, a: 1}
+  proportionalNavigation: 0
+  navigationConstant: 2.8
+  reproduceOnHit: 0
+  smallHitbox: 1
+  hitboxRadius: 5
+  reflectProjectiles: 0
+  multiShot: 1
+  fullCircleShot: 0
+  shotCount: 5
+  shotSpacingDegrees: 8
+  projectileRange: 180
+  doubleOutline: 0
+  trail: 1
+  preferLowHealth: 0
+  abandonStrongerTargets: 0
+  fleeSpeciesIds: []
+  fleeNonHerbivores: 0
+  fleeShips: 1
+  isShip: 0
+  shipRank: 0

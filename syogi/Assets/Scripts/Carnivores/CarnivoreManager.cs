@@ -47,9 +47,9 @@ public sealed class CarnivoreManager : SpeciesManager
         Population.CheckExtinction();
     }
 
-    public void TryReproduce(CarnivoreAnimal parent)
+    public void TryReproduce(CarnivoreAnimal parent, bool fromHit = false)
     {
-        if (carnivorePrefab == null || parent == null || parent.Body.SpeciesId != SpeciesId || !parent.Body.IsAlive || parent.Body.IsSleeping ||
+        if (carnivorePrefab == null || parent == null || parent.Body.SpeciesId != SpeciesId || parent.Body.Species.reproduceOnHit != fromHit || !parent.Body.IsAlive || parent.Body.IsSleeping ||
             !parent.Resources.CanReproduce(parent.Body.Traits, parent.Body.Activity.ActiveAge)) return;
         if (birthRandom == null) birthRandom = new System.Random(seed);
         Vector3 position = parent.transform.position;

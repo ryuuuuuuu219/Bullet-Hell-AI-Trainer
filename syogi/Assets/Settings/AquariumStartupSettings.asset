@@ -39,8 +39,24 @@ MonoBehaviour:
       initialCount: 15
       randomizeSeed: 0
       seed: 1
+    - species: {fileID: 11400000, guid: 5c9185ea91934d3ea7b7d62156902688, type: 2}
+      initialCount: 5
+      randomizeSeed: 0
+      seed: 2
+    - species: {fileID: 11400000, guid: d69570f049e740fe811cbb49f8692f22, type: 2}
+      initialCount: 5
+      randomizeSeed: 0
+      seed: 3
   - name: Carnivores 2
-    species: []
+    species:
+    - species: {fileID: 11400000, guid: b79c8f92f8734cbe9122ead9c00e341f, type: 2}
+      initialCount: 5
+      randomizeSeed: 0
+      seed: 4
+    - species: {fileID: 11400000, guid: 33ad699f46aa4d1e98c0a6d2808702ad, type: 2}
+      initialCount: 5
+      randomizeSeed: 0
+      seed: 5
   - name: Carnivores 3
     species: []
   dayNightPeriodSeconds: 120

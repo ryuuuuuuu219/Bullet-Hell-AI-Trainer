@@ -29,6 +29,7 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private Vector2 cachedSeparationVelocity;
     private SkillSwitch skills;
     private LineRenderer outline;
+    private LineRenderer innerOutline;
     private readonly System.Collections.Generic.List<AnimalBody> separationCandidates =
         new System.Collections.Generic.List<AnimalBody>();
 
@@ -46,6 +47,33 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         outline.loop = true;
         outline.startColor = outline.endColor = Body.Species.outlineColor;
         outline.positionCount = Mathf.Max(3, Body.Species.outlineVertices);
+        outline.widthMultiplier *= Mathf.Max(0.01f, Body.Species.outlineRadiusScale);
+        if (Body.Species.doubleOutline)
+        {
+            var inner = new GameObject("Inner Outline");
+            inner.transform.SetParent(transform, false);
+            innerOutline = inner.AddComponent<LineRenderer>();
+            innerOutline.sharedMaterial = outline.sharedMaterial;
+            innerOutline.useWorldSpace = false;
+            innerOutline.loop = true;
+            innerOutline.positionCount = outline.positionCount;
+            innerOutline.widthMultiplier = outline.widthMultiplier;
+            innerOutline.startColor = innerOutline.endColor = Color.green;
+            innerOutline.sortingOrder = outline.sortingOrder + 1;
+        }
+        if (Body.Species.trail)
+        {
+            var trail = gameObject.AddComponent<TrailRenderer>();
+            trail.sharedMaterial = outline.sharedMaterial;
+            trail.time = 1;
+            trail.startWidth = 4;
+            trail.endWidth = 0;
+            trail.minVertexDistance = 5;
+            trail.startColor = Body.Species.outlineColor;
+            Color trailEnd = Body.Species.outlineColor;
+            trailEnd.a = 0;
+            trail.endColor = trailEnd;
+        }
         SetInitialDirection(movementDirection);
     }
 
@@ -58,8 +86,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     private void Start() => ChooseTarget();
 
     private bool CanPursue(AnimalBody candidate) => candidate != null && candidate.IsAlive && candidate != Body &&
-        Body.Species.Pursues(candidate.Identity.SpeciesId) &&
-        !AnimalTactics.Abandon(Resources.Health, candidate.Resources.Health, Resources.Amount, candidate.Resources.Amount) &&
+        Body.Species.PursuesSpecies(candidate.Species) &&
+        (!Body.Species.abandonStrongerTargets || !AnimalTactics.Abandon(Resources.Health, candidate.Resources.Health, Resources.Amount, candidate.Resources.Amount)) &&
         Body.CanDetect(candidate);
 
     private void DropTarget() { target = null; hadTarget = false; IsStopped = false; }
@@ -67,16 +95,23 @@ public sealed class CarnivoreAnimal : MonoBehaviour
 
     private void ChooseTarget()
     {
-        if (CanPursue(target)) return;
+        if (Body.IsRunning) { DropTarget(); return; }
         target = null;
         hadTarget = false;
         IsStopped = false;
         float nearest = Body.SearchDistance * Body.SearchDistance;
+        double lowestHealth = double.PositiveInfinity;
         foreach (AnimalBody candidate in AnimalBody.Active)
         {
             if (!CanPursue(candidate)) continue;
             float distance = ((Vector2)(candidate.transform.position - transform.position)).sqrMagnitude;
-            if (distance > nearest) continue;
+            if (Body.Species.preferLowHealth)
+            {
+                if (candidate.Resources.Health > lowestHealth ||
+                    (candidate.Resources.Health == lowestHealth && distance > nearest)) continue;
+                lowestHealth = candidate.Resources.Health;
+            }
+            else if (distance > nearest) continue;
             nearest = distance;
             target = candidate;
         }
@@ -128,15 +163,21 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         Vector2 position = transform.position;
         float half = GrassField.FieldSize * 0.5f;
         float speed = skills.MovementSpeed(Body.Traits);
+        if (Body.IsRunning) speed = Mathf.Max(speed, Body.Traits.runningSpeed);
         float angularSpeed = Mathf.Max(0.01f, Body.Species.angularSpeed);
         float margin = 2f * speed / (angularSpeed * Mathf.Deg2Rad) + Body.Radius;
         bool boundary = Mathf.Abs(position.x) >= half - margin || Mathf.Abs(position.y) >= half - margin;
         bool aliveTarget = target != null && target.IsAlive;
         Vector2 desired = movementDirection;
-        if (boundary || (hadTarget && !aliveTarget))
+        if (boundary || (hadTarget && !aliveTarget && !Body.IsRunning))
         {
             IsStopped = false;
             desired = -position;
+        }
+        else if (Body.IsRunning)
+        {
+            IsStopped = false;
+            desired = Body.EscapeDirection;
         }
         else if (aliveTarget)
         {
@@ -151,6 +192,14 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         if (desired.sqrMagnitude > 0)
         {
             float turn = Mathf.Clamp(Vector2.SignedAngle(movementDirection, desired), -angularSpeed * dt, angularSpeed * dt);
+            if (Body.Species.proportionalNavigation && aliveTarget && !boundary && !Body.IsRunning)
+            {
+                Vector2 relative = (Vector2)target.transform.position - position;
+                Vector2 relativeVelocity = target.ObservedVelocity - (IsStopped ? Vector2.zero : movementDirection * speed);
+                turn = (float)PredatorAbilities.NavigationTurn(relative.x, relative.y,
+                    relativeVelocity.x, relativeVelocity.y, IsStopped ? 0 : speed, Body.Species.navigationConstant,
+                    Vector2.SignedAngle(movementDirection, desired), angularSpeed, dt);
+            }
             float angle = Mathf.Atan2(movementDirection.y, movementDirection.x) + turn * Mathf.Deg2Rad;
             movementDirection = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
         }
@@ -178,7 +227,10 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         for (int i = 0; i < outline.positionCount; i++)
         {
             float angle = heading + i * Mathf.PI * 2f / outline.positionCount;
-            outline.SetPosition(i, new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) * Body.Radius);
+            Vector3 vertex = new Vector3(Mathf.Cos(angle), Mathf.Sin(angle), 0) *
+                (Body.Radius * Mathf.Max(0.01f, Body.Species.outlineRadiusScale));
+            outline.SetPosition(i, vertex);
+            if (innerOutline != null) innerOutline.SetPosition(i, vertex * 0.8f);
         }
     }
 
@@ -198,6 +250,12 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         }
         CarnivoreSpacing.Limit(ref x, ref y, separationMaxSpeed);
         return new Vector2((float)x, (float)y);
+    }
+
+    public void OnAttackHit()
+    {
+        if (Body.IsAlive && Body.Species.reproduceOnHit && manager != null)
+            manager.TryReproduce(this, true);
     }
 
     public void ConsumeKill(double amount)

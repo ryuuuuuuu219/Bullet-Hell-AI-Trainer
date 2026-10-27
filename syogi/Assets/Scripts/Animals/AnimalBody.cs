@@ -17,7 +17,7 @@ public sealed class AnimalBody : MonoBehaviour
         Vector3 position = transform.position;
         spatialGrid.Update(this, position.x, position.y);
         // Health can recover between queries. Bound by the health limit, not current HP.
-        maximumBodyRadius = Mathf.Max(maximumBodyRadius, (float)AnimalTactics.Radius(Resources.HealthLimit));
+        maximumBodyRadius = Mathf.Max(maximumBodyRadius, Mathf.Max(CollisionRadius, (float)AnimalTactics.Radius(Resources.HealthLimit)));
     }
 
     public static void QuerySpatial(Vector2 start, Vector2 end, float padding,
@@ -62,11 +62,17 @@ public sealed class AnimalBody : MonoBehaviour
     private CircleCollider2D absorptionCollider;
     private bool dying;
     private AnimalBody sensedThreat;
+    private readonly List<AnimalBody> threatCandidates = new List<AnimalBody>();
     private float nextThreatScan;
 
+    public float CollisionRadius => Species != null && Species.smallHitbox ? Mathf.Max(0.01f, Species.hitboxRadius) : Radius;
+    public Vector2 ObservedVelocity { get; private set; }
+    private Vector2 previousPosition;
     private void LateUpdate()
     {
-        if (absorptionCollider != null) absorptionCollider.radius = Radius;
+        if (Time.deltaTime > 0) ObservedVelocity = ((Vector2)transform.position - previousPosition) / Time.deltaTime;
+        previousPosition = transform.position;
+        if (absorptionCollider != null) absorptionCollider.radius = CollisionRadius;
         if (!IsHerbivore || !IsAlive || outline == null || drawnRadius == Radius) return;
         drawnRadius = Radius;
         for (int i = 0; i < outline.positionCount; i++)
@@ -88,7 +94,7 @@ public sealed class AnimalBody : MonoBehaviour
     {
         if (Resources != null && Resources.IsDead) { Die(); return; }
         if (!IsAlive || Time.deltaTime <= 0) return;
-        if (!IsHerbivore || IsSleeping)
+        if (IsSleeping || !Species.HasFleeTargets)
         {
             sensedThreat = null;
             nextThreatScan = 0;
@@ -98,9 +104,11 @@ public sealed class AnimalBody : MonoBehaviour
             nextThreatScan = Time.time + 0.2f;
             sensedThreat = null;
             float nearest = float.PositiveInfinity;
-            foreach (AnimalBody other in active)
+            Vector2 position = transform.position;
+            QuerySpatial(position, position, SearchDistance, false, threatCandidates);
+            foreach (AnimalBody other in threatCandidates)
             {
-                if (other == this || other.IsHerbivore || !CanDetect(other)) continue;
+                if (other == this || !Species.Fears(other.Species) || !CanDetect(other)) continue;
                 float distance = ((Vector2)(transform.position - other.transform.position)).sqrMagnitude;
                 if (distance >= nearest) continue;
                 nearest = distance;
@@ -126,6 +134,8 @@ public sealed class AnimalBody : MonoBehaviour
     }
     private void OnEnable()
     {
+        previousPosition = transform.position;
+        ObservedVelocity = Vector2.zero;
         sensedThreat = null;
         nextThreatScan = 0;
         if (active.Contains(this)) return;
@@ -146,7 +156,7 @@ public sealed class AnimalBody : MonoBehaviour
         outline = GetComponent<LineRenderer>();
         absorptionCollider = gameObject.AddComponent<CircleCollider2D>();
         absorptionCollider.isTrigger = true;
-        absorptionCollider.radius = Radius;
+        absorptionCollider.radius = CollisionRadius;
         speciesManager = GetComponentInParent<SpeciesManager>();
         Identity = GetComponent<SpeciesIdentity>();
         if (speciesManager != null) Identity.Initialize(speciesManager.Definition);
@@ -157,6 +167,7 @@ public sealed class AnimalBody : MonoBehaviour
             return;
         }
         Traits = Species.traits.Copy();
+        absorptionCollider.radius = CollisionRadius;
         speciesManager?.Population?.Register(this);
         SyncSpatialPosition();
     }

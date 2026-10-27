@@ -10,6 +10,7 @@ public sealed class BattleViewControls : MonoBehaviour
     [SerializeField] private HerbivoreManager herbivoreManager;
     [SerializeField] private CarnivoreManager carnivoreManager;
     [SerializeField] private Font populationFont;
+    [SerializeField] private SurvivalStageController survivalStage;
     [SerializeField, Min(1f)] private float minimumSize = 50f;
     [SerializeField, Min(1f)] private float maximumSize = 2000f;
     [SerializeField, Min(1.01f)] private float zoomFactor = 1.25f;
@@ -222,6 +223,7 @@ public sealed class BattleViewControls : MonoBehaviour
         foreach (var manager in SpeciesManager.Active)
             if (manager != null && manager.Definition != null)
                 text += $"\n{manager.Definition.displayName}：{manager.LivingCount}";
+        if (survivalStage != null) text += "\n\n" + survivalStage.Summary;
         return text;
     }
 

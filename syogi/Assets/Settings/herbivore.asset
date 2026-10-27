@@ -45,3 +45,8 @@ MonoBehaviour:
   resumeDistance: 200
   outlineVertices: 3
   outlineColor: {r: 1, g: 1, b: 1, a: 1}
+  fleeSpeciesIds: []
+  fleeNonHerbivores: 1
+  fleeShips: 0
+  isShip: 0
+  shipRank: 0

@@ -81,7 +81,7 @@ public class AnimalResources
         => HitWithDamageMultiplier(power, 1, out stolenResources);
 
     public double Hit(double power, string projectileSpeciesId, string targetSpeciesId, out double stolenResources)
-        => HitWithDamageMultiplier(power, projectileSpeciesId == targetSpeciesId ? 0.1 : 1,
+        => HitWithDamageMultiplier(power, !string.IsNullOrEmpty(projectileSpeciesId) && projectileSpeciesId == targetSpeciesId ? 0.1 : 1,
             out stolenResources);
 
     private double HitWithDamageMultiplier(double power, double damageMultiplier, out double stolenResources)

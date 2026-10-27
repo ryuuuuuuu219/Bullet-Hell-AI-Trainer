@@ -16,6 +16,7 @@ public sealed class AnimalTraits
     public double shootingStaminaCost = 1;
     public float activeLightMinimum = 0.4f;
     public float activeLightMaximum = 1;
+    public bool includeActiveLightMinimum;
     public float searchDistance = 1000;
     public float nightSearchMultiplier = 0.5f;
     public float walkingSpeed = 105;
@@ -27,7 +28,7 @@ public sealed class AnimalTraits
     public double BirthSurvivalProbability(int population) => reproductionPopulationBaseline > 0
         ? Math.Max(0, Math.Min(1, 1 - (double)population / reproductionPopulationBaseline)) : 0;
     public AnimalTraits Copy() => (AnimalTraits)MemberwiseClone();
-    public bool IsActive(double light) => light > activeLightMinimum && light <= activeLightMaximum;
+    public bool IsActive(double light) => (includeActiveLightMinimum ? light >= activeLightMinimum : light > activeLightMinimum) && light <= activeLightMaximum;
     public double SearchRadius(double light) => Math.Max(0, searchDistance) *
         (Math.Max(0, nightSearchMultiplier) + (1 - Math.Max(0, nightSearchMultiplier)) * Math.Max(0, Math.Min(1, light)));
     public double BirthCost => offspringCount * offspringResources;
