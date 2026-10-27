@@ -10,9 +10,11 @@ public sealed class CarnivoreProjectile : MonoBehaviour
     public const double PowerDecayPerSecond = 10;
     private CarnivoreAnimal owner;
     private AnimalBody ownerBody;
-    public int SpeciesId { get; private set; }
+    public string SpeciesId { get; private set; }
     private Vector2 direction;
     private double power = InitialPower;
+    private float speed = Speed;
+    private double decay = PowerDecayPerSecond;
     private readonly HashSet<AnimalBody> hitBodies = new HashSet<AnimalBody>();
     private readonly List<Contact> contacts = new List<Contact>();
     private readonly List<AnimalBody> candidates = new List<AnimalBody>();
@@ -31,6 +33,9 @@ public sealed class CarnivoreProjectile : MonoBehaviour
         bullet.owner = owner;
         bullet.ownerBody = owner.Body;
         bullet.SpeciesId = owner.Body.SpeciesId;
+        bullet.power = owner.Body.Species.bulletPower;
+        bullet.speed = Mathf.Max(0.01f, owner.Body.Species.bulletSpeed);
+        bullet.decay = System.Math.Max(0.01, owner.Body.Species.bulletPowerDecay);
         bullet.direction = direction.normalized;
         var line = obj.AddComponent<LineRenderer>();
         line.sharedMaterial = material;
@@ -50,8 +55,8 @@ public sealed class CarnivoreProjectile : MonoBehaviour
     private void Update()
     {
         if (Time.deltaTime <= 0) return;
-        float distance = Speed * Time.deltaTime;
-        double flightSeconds = distance / Speed;
+        float distance = speed * Time.deltaTime;
+        double flightSeconds = distance / speed;
         Vector2 start = transform.position;
         Vector2 end = start + direction * distance;
         contacts.Clear();
@@ -75,14 +80,14 @@ public sealed class CarnivoreProjectile : MonoBehaviour
         {
             if (contact.Body == null || !contact.Body.IsAlive) continue;
             // Decay only up to each contact, so damage is independent of frame length.
-            power = System.Math.Max(0, power - PowerDecayPerSecond * flightSeconds * (contact.Fraction - previousFraction));
+            power = System.Math.Max(0, power - decay * flightSeconds * (contact.Fraction - previousFraction));
             previousFraction = contact.Fraction;
             if (power <= 0) { Destroy(gameObject); return; }
             hitBodies.Add(contact.Body);
             power = contact.Body.Hit(power, owner, SpeciesId);
             if (power <= 0) { Destroy(gameObject); return; }
         }
-        power = System.Math.Max(0, power - PowerDecayPerSecond * flightSeconds * (1 - previousFraction));
+        power = System.Math.Max(0, power - decay * flightSeconds * (1 - previousFraction));
         if (power <= 0) { Destroy(gameObject); return; }
         transform.position = new Vector3(end.x, end.y, transform.position.z);
     }

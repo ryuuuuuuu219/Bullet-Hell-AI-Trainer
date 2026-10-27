@@ -315,39 +315,39 @@ static class Program
         Console.WriteLine("PASS swept contacts, overlaps, misses and range boundary");
 
         var ally = new AnimalResources(50);
-        Equal(ally.Hit(15, 2, 2, out stolen), 0, "healthy ally still absorbs bullet");
+        Equal(ally.Hit(15, "carnivore", "carnivore", out stolen), 0, "healthy ally still absorbs bullet");
         Equal(ally.Health, 48.5, "same species receives one tenth damage");
         Equal(stolen, 0, "surviving ally yields no resources");
         var otherSpecies = new AnimalResources(50);
-        otherSpecies.Hit(15, 2, 3, out _);
+        otherSpecies.Hit(15, "carnivore", "other", out _);
         Equal(otherSpecies.Health, 35, "different species takes full damage");
         ally = new AnimalResources(50);
         ally.Hit(49, out _);
-        power = ally.Hit(15, 2, 2, out stolen);
+        power = ally.Hit(15, "carnivore", "carnivore", out stolen);
         Check(ally.IsDead, "reduced damage can still kill weak ally");
         Equal(stolen, 10, "same species kill retains resource transfer");
         Equal(power, 14, "piercing power is not scaled by friendly damage reduction");
         prey = new HerbivoreResources();
-        prey.Hit(power, 2, 1, out _);
+        prey.Hit(power, "carnivore", "herbivore", out _);
         Equal(prey.Health, 16, "subsequent prey takes full remaining power");
         ally = new AnimalResources(50);
         ally.Hit(45, out _);
-        Equal(ally.Hit(15, 2, 2, out _), 10, "existing HP-based power consumption retained");
+        Equal(ally.Hit(15, "carnivore", "carnivore", out _), 10, "existing HP-based power consumption retained");
         Equal(ally.Health, 3.5, "surviving weak ally can be pierced");
         Console.WriteLine("PASS species damage reduction, piercing and kill transfer");
 
         foreach (bool left in new[] { false, true })
         foreach (double sample in new[] { 0.0, 0.5, 1.0 })
         {
-            Check(CarnivoreSpacing.TryBirthPosition(10, 20, 0.6, 0.8, 80, sample, left, 2000,
+            Check(CarnivoreSpacing.TryBirthPosition(10, 20, 0.6, 0.8, 80, sample, left, 4000,
                 out double bx, out double by), "lateral birth succeeds");
             double dx = bx - 10, dy = by - 20;
             Equal(dx * 0.6 + dy * 0.8, 0, "birth perpendicular to parent heading");
             Equal(Math.Sqrt(dx * dx + dy * dy), 80 * (1.5 + sample), "birth distance 120 to 200");
         }
-        Check(CarnivoreSpacing.TryBirthPosition(0, 1990, 1, 0, 80, 1, true, 2000,
-            out double edgeX, out double edgeY) && edgeY == 1790, "outside candidate uses opposite side");
-        Check(!CarnivoreSpacing.TryBirthPosition(1999, 1999, 1, 1, 80, 1, true, 2000,
+        Check(CarnivoreSpacing.TryBirthPosition(0, 3990, 1, 0, 80, 1, true, 4000,
+            out double edgeX, out double edgeY) && edgeY == 3790, "outside candidate uses opposite side");
+        Check(!CarnivoreSpacing.TryBirthPosition(3999, 3999, 1, 1, 80, 1, true, 4000,
             out _, out _), "corner can reject both sides before food charge");
         CarnivoreSpacing.Repulsion(100, 0, 1, 2, 200, 50, out double rx, out double ry);
         Equal(rx, 25, "linear falloff at half radius"); Equal(ry, 0, "push away");

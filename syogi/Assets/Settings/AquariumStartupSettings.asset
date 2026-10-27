@@ -24,55 +24,24 @@ MonoBehaviour:
     birthNeighborMaximum: 1
     growthEnabled: 1
     wrapBoundary: 0
-  herbivores:
-    prefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
-    initialCount: 50
-    randomizeSeed: 0
-    seed: 1
-    traits:
-      reproductionThreshold: 40
-      reproductionPopulationBaseline: 300
-      maturitySeconds: 30
-      offspringCount: 1
-      offspringResources: 10
-      reproductionCostRatio: 1
-      reproductionStaminaCost: 10
-      movementStaminaPerSecond: 0.2
-      shootingStaminaCost: 1
-      activeLightMinimum: 0.2
-      activeLightMaximum: 1
-      searchDistance: 500
-      nightSearchMultiplier: 0.5
-      maximumGrassConcealment: 0.5
-      grassOcclusionPerUnit: 0.1
-      walkingSpeed: 80
-      runningSpeed: 150
-      runningCostPerSecond: 15
-      escapeHoldSeconds: 2
-  carnivores:
-    prefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
-    initialCount: 15
-    randomizeSeed: 0
-    seed: 1
-    traits:
-      reproductionThreshold: 40
-      reproductionPopulationBaseline: 50
-      maturitySeconds: 30
-      offspringCount: 1
-      offspringResources: 10
-      reproductionCostRatio: 1
-      reproductionStaminaCost: 10
-      movementStaminaPerSecond: 0.2
-      shootingStaminaCost: 1
-      activeLightMinimum: 0.4
-      activeLightMaximum: 1
-      searchDistance: 1000
-      nightSearchMultiplier: 0.5
-      maximumGrassConcealment: 0.5
-      grassOcclusionPerUnit: 0.1
-      walkingSpeed: 105
-      runningSpeed: 150
-      runningCostPerSecond: 10
-      escapeHoldSeconds: 2
+  herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
+  carnivorePrefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
+  layers:
+  - name: Herbivores
+    species:
+    - species: {fileID: 11400000, guid: 58d89aaa9ba94363a7c12403b17cca22, type: 2}
+      initialCount: 50
+      randomizeSeed: 0
+      seed: 1
+  - name: Carnivores 1
+    species:
+    - species: {fileID: 11400000, guid: 822ebeafd95e46b6b40185f06518f169, type: 2}
+      initialCount: 15
+      randomizeSeed: 0
+      seed: 1
+  - name: Carnivores 2
+    species: []
+  - name: Carnivores 3
+    species: []
   dayNightPeriodSeconds: 120
   dayNightPhaseDegrees: 0

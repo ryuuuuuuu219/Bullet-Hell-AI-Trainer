@@ -23,7 +23,8 @@ public sealed class HerbivoreFeeding : MonoBehaviour
 
     private void Awake()
     {
-        resources = new HerbivoreResources();
+        var definition = GetComponentInParent<SpeciesManager>()?.Definition ?? GetComponent<SpeciesIdentity>()?.Definition;
+        resources = new HerbivoreResources(definition != null ? definition.initialHealth : HerbivoreResources.InitialHealth);
         body = GetComponent<AnimalBody>();
         body.Initialize(resources, true);
         manager = GetComponentInParent<HerbivoreManager>();

@@ -1,4 +1,4 @@
-﻿using UnityEngine;
+using UnityEngine;
 
 [DefaultExecutionOrder(30)]
 [RequireComponent(typeof(AnimalBody), typeof(LineRenderer))]
@@ -12,7 +12,6 @@ public sealed class CarnivoreAnimal : MonoBehaviour
     public const float StopDistance = 150f;
     public const float ResumeDistance = 200f;
     public const double InitialHealth = 50;
-    [SerializeField, Min(1)] private int foodLayer = 1;
     [SerializeField] private Vector2 movementDirection = Vector2.right;
     [SerializeField, Min(0)] private float separationRadius = 200f;
     [SerializeField, Min(0)] private float separationStrength = 50f;
@@ -35,16 +34,18 @@ public sealed class CarnivoreAnimal : MonoBehaviour
 
     private void Awake()
     {
-        Resources = new AnimalResources(InitialHealth);
+        var definition = GetComponentInParent<SpeciesManager>()?.Definition ?? GetComponent<SpeciesIdentity>()?.Definition;
+        Resources = new AnimalResources(definition != null ? definition.initialHealth : InitialHealth);
         Body = GetComponent<AnimalBody>();
         Body.Initialize(Resources, false);
+        if (Body.Species == null) return;
         manager = GetComponentInParent<CarnivoreManager>();
         skills = GetComponent<SkillSwitch>();
         outline = GetComponent<LineRenderer>();
         outline.useWorldSpace = false;
         outline.loop = true;
-        outline.startColor = outline.endColor = Color.gray;
-        outline.positionCount = Mathf.Max(1, foodLayer) + 2;
+        outline.startColor = outline.endColor = Body.Species.outlineColor;
+        outline.positionCount = Mathf.Max(3, Body.Species.outlineVertices);
         SetInitialDirection(movementDirection);
     }
 
@@ -56,7 +57,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
 
     private void Start() => ChooseTarget();
 
-    private bool CanPursue(AnimalBody candidate) => candidate != null && candidate.IsAlive && candidate.IsHerbivore &&
+    private bool CanPursue(AnimalBody candidate) => candidate != null && candidate.IsAlive && candidate != Body &&
+        Body.Species.Pursues(candidate.Identity.SpeciesId) &&
         !AnimalTactics.Abandon(Resources.Health, candidate.Resources.Health, Resources.Amount, candidate.Resources.Amount) &&
         Body.CanDetect(candidate);
 
@@ -126,7 +128,8 @@ public sealed class CarnivoreAnimal : MonoBehaviour
         Vector2 position = transform.position;
         float half = GrassField.FieldSize * 0.5f;
         float speed = skills.MovementSpeed(Body.Traits);
-        float margin = 2f * speed / (AngularSpeed * Mathf.Deg2Rad) + Body.Radius;
+        float angularSpeed = Mathf.Max(0.01f, Body.Species.angularSpeed);
+        float margin = 2f * speed / (angularSpeed * Mathf.Deg2Rad) + Body.Radius;
         bool boundary = Mathf.Abs(position.x) >= half - margin || Mathf.Abs(position.y) >= half - margin;
         bool aliveTarget = target != null && target.IsAlive;
         Vector2 desired = movementDirection;
@@ -140,14 +143,14 @@ public sealed class CarnivoreAnimal : MonoBehaviour
             desired = (Vector2)target.transform.position - position;
             if (IsStopped)
             {
-                if (desired.sqrMagnitude >= ResumeDistance * ResumeDistance) IsStopped = false;
+                if (desired.sqrMagnitude >= Body.Species.resumeDistance * Body.Species.resumeDistance) IsStopped = false;
             }
-            else if (desired.sqrMagnitude <= StopDistance * StopDistance) IsStopped = true;
+            else if (desired.sqrMagnitude <= Body.Species.stopDistance * Body.Species.stopDistance) IsStopped = true;
         }
         else IsStopped = false;
         if (desired.sqrMagnitude > 0)
         {
-            float turn = Mathf.Clamp(Vector2.SignedAngle(movementDirection, desired), -AngularSpeed * dt, AngularSpeed * dt);
+            float turn = Mathf.Clamp(Vector2.SignedAngle(movementDirection, desired), -angularSpeed * dt, angularSpeed * dt);
             float angle = Mathf.Atan2(movementDirection.y, movementDirection.x) + turn * Mathf.Deg2Rad;
             movementDirection = new Vector2(Mathf.Cos(angle), Mathf.Sin(angle));
         }

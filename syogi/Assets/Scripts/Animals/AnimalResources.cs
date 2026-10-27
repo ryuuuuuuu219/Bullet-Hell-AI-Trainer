@@ -80,7 +80,7 @@ public class AnimalResources
     public double Hit(double power, out double stolenResources)
         => HitWithDamageMultiplier(power, 1, out stolenResources);
 
-    public double Hit(double power, int projectileSpeciesId, int targetSpeciesId, out double stolenResources)
+    public double Hit(double power, string projectileSpeciesId, string targetSpeciesId, out double stolenResources)
         => HitWithDamageMultiplier(power, projectileSpeciesId == targetSpeciesId ? 0.1 : 1,
             out stolenResources);
 

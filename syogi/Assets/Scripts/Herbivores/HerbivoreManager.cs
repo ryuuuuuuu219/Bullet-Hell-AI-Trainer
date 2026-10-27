@@ -1,39 +1,18 @@
 using UnityEngine;
 
-public sealed class HerbivoreManager : MonoBehaviour
+[DefaultExecutionOrder(-100)]
+public sealed class HerbivoreManager : SpeciesManager
 {
-    [SerializeField, Tooltip("指定時は起動時にこのアセットの値を使用。未指定時は下の従来設定を使用。")]
-    private AquariumStartupSettings startupSettings;
-    [SerializeField] private GameObject herbivorePrefab;
-    [SerializeField, Min(0)] private int initialCount = 50;
-    [SerializeField] private bool randomizeSeed = true;
-    [SerializeField] private int seed = 1;
-    public int ActualSeed { get; private set; }
+    protected override string DefaultSpeciesId => "herbivore";
+    private GameObject herbivorePrefab;
+    private int initialCount = 50;
+    private bool randomizeSeed = false;
+    private int seed = 1;
     private int spawnedCount;
     private System.Random reproductionRandom;
-    private readonly AnimalTraits defaultTraits = AnimalTraits.HerbivoreDefaults();
-    public AnimalTraits Traits => startupSettings != null && startupSettings.herbivores != null
-        ? startupSettings.herbivores.traits ?? defaultTraits : defaultTraits;
-
-    public int LivingCount
-    {
-        get
-        {
-            int count = 0;
-            foreach (Transform child in transform)
-            {
-                if (child.gameObject.activeInHierarchy
-                    && child.TryGetComponent(out HerbivoreFeeding animal)
-                    && animal.ResourceAmount > 0)
-                    count++;
-            }
-            return count;
-        }
-    }
-
     public bool TryReproduce(AnimalBody parent, Vector2 parentDirection)
     {
-        if (herbivorePrefab == null || parent == null || !parent.IsAlive || parent.IsSleeping || parent.IsRunning ||
+        if (herbivorePrefab == null || parent == null || parent.SpeciesId != SpeciesId || !parent.IsAlive || parent.IsSleeping || parent.IsRunning ||
             !parent.Resources.CanReproduce(parent.Traits, parent.Activity.ActiveAge)) return false;
         if (reproductionRandom == null) reproductionRandom = new System.Random(seed);
         double probability = parent.Traits.BirthSurvivalProbability(AnimalBody.LivingSpeciesCount(parent.SpeciesId));
@@ -53,20 +32,19 @@ public sealed class HerbivoreManager : MonoBehaviour
     private GameObject Spawn(Vector3 position)
     {
         GameObject animal = Instantiate(herbivorePrefab, position, Quaternion.identity, transform);
-        animal.name = "Herbivore " + (++spawnedCount);
+        animal.name = SpeciesId + " " + (++spawnedCount);
+        Population.CheckExtinction();
         return animal;
     }
 
     private void Start()
     {
-        if (startupSettings != null && startupSettings.herbivores != null)
-        {
-            var settings = startupSettings.herbivores;
-            herbivorePrefab = settings.prefab;
-            initialCount = settings.initialCount;
-            randomizeSeed = settings.randomizeSeed;
-            seed = settings.seed;
-        }
+        if (Population == null) return;
+        var settings = Settings;
+        herbivorePrefab = startupSettings.herbivorePrefab;
+        initialCount = settings.initialCount;
+        randomizeSeed = settings.randomizeSeed;
+        seed = settings.seed;
 
         if (herbivorePrefab == null)
         {

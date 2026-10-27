@@ -30,10 +30,25 @@ public sealed class BattleViewControls : MonoBehaviour
     private bool logHeaderWritten;
     private float loggingRealElapsed;
 
-    private void OnEnable() => ResetSimulationSpeed();
+    private readonly System.Collections.Generic.List<SpeciesManager> loggedSpecies =
+        new System.Collections.Generic.List<SpeciesManager>();
+    private void OnEnable()
+    {
+        ResetSimulationSpeed();
+        BattleSimulationSpeed.Extinction += OnSpeciesExtinct;
+    }
+    private void OnSpeciesExtinct(string id)
+    {
+        eventlog += $"# extinction species={id} simulation_s={Time.timeSinceLevelLoad.ToString("F3", System.Globalization.CultureInfo.InvariantCulture)} speed=0.1\n";
+        if (simulationSpeedText != null) simulationSpeedText.text = "Speed x0.1";
+    }
 
     // Time.timeScale is global: do not carry battle acceleration into other scenes.
-    private void OnDisable() => ResetSimulationSpeed();
+    private void OnDisable()
+    {
+        BattleSimulationSpeed.Extinction -= OnSpeciesExtinct;
+        ResetSimulationSpeed();
+    }
 
     private void ResetSimulationSpeed()
     {
@@ -43,14 +58,15 @@ public sealed class BattleViewControls : MonoBehaviour
 
     private void CycleSimulationSpeed()
     {
-        simulationSpeedIndex = (simulationSpeedIndex + 1) % SimulationSpeeds.Length;
+        simulationSpeedIndex = BattleSimulationSpeed.ExtinctionOverride ? 0
+            : (simulationSpeedIndex + 1) % SimulationSpeeds.Length;
         ApplySimulationSpeed();
     }
 
     private void ApplySimulationSpeed()
     {
         float speed = SimulationSpeeds[simulationSpeedIndex];
-        Time.timeScale = speed;
+        BattleSimulationSpeed.SetUserSpeed(speed);
         if (simulationSpeedText != null) simulationSpeedText.text = $"Speed x{speed:0}";
     }
 
@@ -101,11 +117,11 @@ public sealed class BattleViewControls : MonoBehaviour
         RectTransform rect = obj.GetComponent<RectTransform>();
         rect.anchorMin = rect.anchorMax = rect.pivot = new Vector2(0f, 1f);
         rect.anchoredPosition = new Vector2(16f, -72f);
-        rect.sizeDelta = new Vector2(420f, 110f);
+        rect.sizeDelta = new Vector2(560f, 500f);
         populationText = obj.GetComponent<Text>();
         populationText.font = font;
         populationText.fontSize = 24;
-        populationText.alignment = TextAnchor.MiddleLeft;
+        populationText.alignment = TextAnchor.UpperLeft;
         populationText.color = Color.white;
         populationText.raycastTarget = false;
         obj.GetComponent<Outline>().effectColor = Color.black;
@@ -138,11 +154,23 @@ public sealed class BattleViewControls : MonoBehaviour
         if (loggingGrassField == null) loggingGrassField = FindAnyObjectByType<GrassField>();
         if (!logHeaderWritten)
         {
+            loggedSpecies.Clear();
+            loggedSpecies.AddRange(SpeciesManager.Active);
+            loggedSpecies.Sort((a, b) => string.CompareOrdinal(a.SpeciesId, b.SpeciesId));
+            string extraHeader = "";
+            foreach (var manager in loggedSpecies)
+            {
+                // Quote IDs so commas and quotes remain valid CSV header text.
+                string id = manager.SpeciesId.Replace("\"", "\"\"");
+                extraHeader += $",\"{id}_count\",\"{id}_carbon\"";
+            }
             eventlog += "\n--- 生態系観測ログ（時間は秒、NAは参照なし） ---\n"
                 + $"seed 草={ (loggingGrassField != null ? loggingGrassField.ActualSeed.ToString() : "NA") }"
                 + $" 草食={ (herbivoreManager != null ? herbivoreManager.ActualSeed.ToString() : "NA") }"
                 + $" 肉食={ (carnivoreManager != null ? carnivoreManager.ActualSeed.ToString() : "NA") }\n"
-                + "simulation_s,real_s,speed,grass_cells,grass_total,recovering_cells,empty_cells,herbivores,herbivore_food,carnivores,carnivore_food\n";
+                + "simulation_s,real_s,speed,grass_cells,grass_total,recovering_cells,empty_cells,herbivores,herbivore_food,carnivores,carnivore_food" + extraHeader + "\n";
+            foreach (var manager in loggedSpecies)
+                eventlog += $"# species={manager.SpeciesId} seed={manager.ActualSeed}\n";
             logHeaderWritten = true;
         }
 
@@ -172,17 +200,29 @@ public sealed class BattleViewControls : MonoBehaviour
         var culture = System.Globalization.CultureInfo.InvariantCulture;
         string grassValues = grid == null ? "NA,NA,NA,NA"
             : $"{livingGrass},{grassTotal.ToString("F3", culture)},{recovering},{empty}";
-        eventlog += string.Format(culture, "{0:F3},{1:F3},{2:0.###},{3},{4},{5:F3},{6},{7:F3}\n",
+        string speciesValues = "";
+        foreach (var manager in loggedSpecies)
+        {
+            int count = 0;
+            double carbon = 0;
+            if (manager != null && manager.Population != null)
+                foreach (var body in manager.Population.Individuals)
+                    if (body != null && body.IsAlive) { count++; carbon += body.Resources.Amount; }
+            speciesValues += $",{count},{carbon.ToString("F3", culture)}";
+        }
+        eventlog += string.Format(culture, "{0:F3},{1:F3},{2:0.###},{3},{4},{5:F3},{6},{7:F3}",
             Time.timeSinceLevelLoad, loggingRealElapsed, Time.timeScale, grassValues,
-            herbivores, herbivoreFood, carnivores, carnivoreFood);
+            herbivores, herbivoreFood, carnivores, carnivoreFood) + speciesValues + "\n";
     }
 
     private string UpdatePopulation()
     {
-        int herbivores = herbivoreManager != null ? herbivoreManager.LivingCount : 0;
-        int carnivores = carnivoreManager != null ? carnivoreManager.LivingCount : 0;
         int elapsedSeconds = Mathf.FloorToInt(Time.timeSinceLevelLoad);
-        return $"経過時間：{elapsedSeconds / 3600:00}:{elapsedSeconds / 60 % 60:00}:{elapsedSeconds % 60:00}\n草食動物：{herbivores}\n肉食動物：{carnivores}";
+        string text = $"経過時間：{elapsedSeconds / 3600:00}:{elapsedSeconds / 60 % 60:00}:{elapsedSeconds % 60:00}";
+        foreach (var manager in SpeciesManager.Active)
+            if (manager != null && manager.Definition != null)
+                text += $"\n{manager.Definition.displayName}：{manager.LivingCount}";
+        return text;
     }
 
     private static Button CreateButton(Transform parent, string label, float left, float width, Font font)

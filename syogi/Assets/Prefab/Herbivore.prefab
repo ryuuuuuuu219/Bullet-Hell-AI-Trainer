@@ -15,6 +15,7 @@ GameObject:
   - component: {fileID: 114002}
   - component: {fileID: 114003}
   - component: {fileID: 2074502236574295271}
+  - component: {fileID: 11409999}
   m_Layer: 0
   m_Name: Herbivore
   m_TagString: Untagged
@@ -379,3 +380,16 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 8bbe7880e66841cd81ee23157a3302ec, type: 3}
   m_Name:
   m_EditorClassIdentifier:
+--- !u!114 &11409999
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 100000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 3ef8709e8b9b4dbb8d75a4f0544b1d0c, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  definition: {fileID: 11400000, guid: 58d89aaa9ba94363a7c12403b17cca22, type: 2}

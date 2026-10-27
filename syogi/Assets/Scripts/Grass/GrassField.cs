@@ -4,7 +4,7 @@ public sealed class GrassField : MonoBehaviour
 {
     [SerializeField, Tooltip("指定時は起動時にこのアセットの値を使用。未指定時は下の従来設定を使用。")]
     private AquariumStartupSettings startupSettings;
-    public const int FieldSize = 4000;
+    public const int FieldSize = 8000;
     public const int CellSize = 100;
     public const int CellCount = FieldSize / CellSize;
     [SerializeField, Min(0)] private int initialSpawnCount = 150;
@@ -45,7 +45,7 @@ public sealed class GrassField : MonoBehaviour
 
     /// <summary>
     /// Consumes grass at continuous world XY coordinates (Unity main thread).
-    /// Returns the actual amount removed. Outside [-2000, 2000), empty cells,
+    /// Returns the actual amount removed. Outside [-4000, 4000), empty cells,
     /// non-positive requests and calls before Awake return zero.
     /// </summary>
     public float ConsumeGrass(Vector2 worldPosition, float requestedAmount)

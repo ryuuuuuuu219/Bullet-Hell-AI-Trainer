@@ -407,10 +407,10 @@ LineRenderer:
   m_SortingOrder: 0
   m_MaskInteraction: 0
   m_Positions:
-  - {x: -2000, y: -2000, z: 0}
-  - {x: 2000, y: -2000, z: 0}
-  - {x: 2000, y: 2000, z: 0}
-  - {x: -2000, y: 2000, z: 0}
+  - {x: -4000, y: -4000, z: 0}
+  - {x: 4000, y: -4000, z: 0}
+  - {x: 4000, y: 4000, z: 0}
+  - {x: -4000, y: 4000, z: 0}
   m_Parameters:
     serializedVersion: 3
     widthMultiplier: 5
@@ -569,11 +569,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 517b3d8498fb4ae090de24e26f913d69, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  herbivorePrefab: {fileID: 100000, guid: 6fdf1e92597d483dbed38703f341af07, type: 3}
+  speciesId: herbivore
   startupSettings: {fileID: 11400000, guid: 75bc2da0596946789a7da73d78ca348c, type: 2}
-  initialCount: 50
-  randomizeSeed: 0
-  seed: 1
 --- !u!1 &2100000040
 GameObject:
   m_ObjectHideFlags: 0
@@ -618,11 +615,8 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: b01f06a226de438a8dcbdd386107aef4, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  carnivorePrefab: {fileID: 100000, guid: 236717da15fd4adb8285b3f9f114579c, type: 3}
+  speciesId: carnivore
   startupSettings: {fileID: 11400000, guid: 75bc2da0596946789a7da73d78ca348c, type: 2}
-  initialCount: 15
-  randomizeSeed: 0
-  seed: 1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

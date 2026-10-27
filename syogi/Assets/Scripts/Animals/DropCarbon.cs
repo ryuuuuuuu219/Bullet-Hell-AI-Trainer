@@ -4,7 +4,9 @@ using UnityEngine;
 public sealed class DropCarbon : MonoBehaviour
 {
     public double carbon;
-    public int SpeciesId { get; private set; }
+    public string SpeciesId { get; private set; }
+    private const float LifetimeSeconds = 180f;
+    private float expiresAt;
     private float timer = 1f;
     private AnimalBody target;
     private bool isFeed;
@@ -13,6 +15,7 @@ public sealed class DropCarbon : MonoBehaviour
 
     private void Awake()
     {
+        expiresAt = Time.time + LifetimeSeconds;
         contact = GetComponent<CircleCollider2D>();
         contact.isTrigger = true;
         contact.radius = 60f;
@@ -21,7 +24,7 @@ public sealed class DropCarbon : MonoBehaviour
         physicsBody.constraints = RigidbodyConstraints2D.FreezeRotation;
     }
 
-    public static void Scatter(Vector3 position, double amount, Material material, int speciesId)
+    public static void Scatter(Vector3 position, double amount, Material material, string speciesId)
     {
         foreach (double part in CarbonDecomposition.Split(amount))
         {
@@ -56,6 +59,7 @@ public sealed class DropCarbon : MonoBehaviour
     private void TryAbsorb(Collider2D other)
     {
         if (isFeed || Time.timeScale <= 0) return;
+        if (ExpireIfNeeded()) return;
         var animal = other.GetComponentInParent<AnimalBody>();
         if (animal == null || !animal.IsAlive || animal.SpeciesId == SpeciesId) return;
         double accepted = animal.Resources.AbsorbCarbon(carbon);
@@ -69,6 +73,7 @@ public sealed class DropCarbon : MonoBehaviour
 
     private void Update()
     {
+        if (ExpireIfNeeded()) return;
         if (!isFeed) return;
         if (target == null || !target.IsAlive || timer <= 0)
         {
@@ -80,5 +85,16 @@ public sealed class DropCarbon : MonoBehaviour
             Mathf.Clamp01(dt / timer));
         timer -= dt;
         if (timer <= 0) Destroy(gameObject);
+    }
+
+    private bool ExpireIfNeeded()
+    {
+        if (Time.time < expiresAt) return false;
+        // Remaining carbon leaves the ecosystem; it is not scattered again.
+        carbon = 0;
+        contact.enabled = false;
+        physicsBody.simulated = false;
+        Destroy(gameObject);
+        return true;
     }
 }

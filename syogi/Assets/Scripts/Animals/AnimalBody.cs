@@ -2,6 +2,7 @@ using System.Collections.Generic;
 using UnityEngine;
 
 [DefaultExecutionOrder(0)]
+[RequireComponent(typeof(SpeciesIdentity))]
 public sealed class AnimalBody : MonoBehaviour
 {
     private static readonly List<AnimalBody> active = new List<AnimalBody>();
@@ -35,7 +36,7 @@ public sealed class AnimalBody : MonoBehaviour
     }
     public int SeparationId { get; private set; }
     public static IReadOnlyList<AnimalBody> Active => active;
-    public static int LivingSpeciesCount(int species)
+    public static int LivingSpeciesCount(string species)
     {
         int count = 0;
         foreach (AnimalBody body in active)
@@ -43,9 +44,10 @@ public sealed class AnimalBody : MonoBehaviour
         return count;
     }
     public float Radius => (float)AnimalTactics.Radius(Resources == null ? 0 : Resources.Health);
-    // Zero selects the current MVP default; explicit IDs allow future species.
-    [SerializeField, Min(0)] private int speciesId;
-    public int SpeciesId => speciesId;
+    public SpeciesIdentity Identity { get; private set; }
+    public string SpeciesId => Identity == null ? string.Empty : Identity.SpeciesId;
+    public SpeciesDefinition Species => Identity == null ? null : Identity.Definition;
+    private SpeciesManager speciesManager;
     public AnimalResources Resources { get; private set; }
     public bool IsHerbivore { get; private set; }
     public bool IsAlive => isActiveAndEnabled && Resources != null && !Resources.IsDead;
@@ -133,9 +135,14 @@ public sealed class AnimalBody : MonoBehaviour
         if (active.Contains(this)) return;
         SeparationId = ++nextSeparationId;
         active.Add(this);
+        if (speciesManager != null) speciesManager.Population?.Register(this);
         SyncSpatialPosition();
     }
-    private void OnDisable() { active.Remove(this); spatialGrid.Remove(this); }
+    private void OnDisable()
+    {
+        active.Remove(this); spatialGrid.Remove(this);
+        if (speciesManager != null) speciesManager.Population?.Unregister(this);
+    }
     public void Initialize(AnimalResources resources, bool herbivore)
     {
         Resources = resources;
@@ -144,16 +151,22 @@ public sealed class AnimalBody : MonoBehaviour
         absorptionCollider = gameObject.AddComponent<CircleCollider2D>();
         absorptionCollider.isTrigger = true;
         absorptionCollider.radius = Radius;
-        var herbivoreManager = GetComponentInParent<HerbivoreManager>();
-        var carnivoreManager = GetComponentInParent<CarnivoreManager>();
-        Traits = (herbivore ? (herbivoreManager == null ? AnimalTraits.HerbivoreDefaults() : herbivoreManager.Traits)
-            : (carnivoreManager == null ? new AnimalTraits() : carnivoreManager.Traits)).Copy();
+        speciesManager = GetComponentInParent<SpeciesManager>();
+        Identity = GetComponent<SpeciesIdentity>();
+        if (speciesManager != null) Identity.Initialize(speciesManager.Definition);
+        if (Species == null)
+        {
+            Debug.LogError("Animal requires a configured species manager or SpeciesIdentity.", this);
+            gameObject.SetActive(false);
+            return;
+        }
+        Traits = Species.traits.Copy();
+        speciesManager?.Population?.Register(this);
         grass = FindAnyObjectByType<GrassField>();
-        if (speciesId == 0) speciesId = herbivore ? 1 : 2;
         SyncSpatialPosition();
     }
 
-    public double Hit(double power, CarnivoreAnimal attacker, int projectileSpeciesId)
+    public double Hit(double power, CarnivoreAnimal attacker, string projectileSpeciesId)
     {
         if (!IsAlive) return power;
         double remaining = Resources.Hit(power, projectileSpeciesId, SpeciesId, out double stolen);

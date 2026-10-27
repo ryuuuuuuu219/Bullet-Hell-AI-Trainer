@@ -1,0 +1,15 @@
+C:\Bullet-Hell-AI-Trainer\tests\Species\bin\Debug\net10.0\Species.exe
+C:\Bullet-Hell-AI-Trainer\tests\Species\bin\Debug\net10.0\Species.deps.json
+C:\Bullet-Hell-AI-Trainer\tests\Species\bin\Debug\net10.0\Species.runtimeconfig.json
+C:\Bullet-Hell-AI-Trainer\tests\Species\bin\Debug\net10.0\Species.dll
+C:\Bullet-Hell-AI-Trainer\tests\Species\bin\Debug\net10.0\Species.pdb
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.GeneratedMSBuildEditorConfig.editorconfig
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.AssemblyInfoInputs.cache
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.AssemblyInfo.cs
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.csproj.CoreCompileInputs.cache
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.sourcelink.json
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.dll
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\refint\Species.dll
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.pdb
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\Species.genruntimeconfig.cache
+C:\Bullet-Hell-AI-Trainer\tests\Species\obj\Debug\net10.0\ref\Species.dll

@@ -1,41 +1,24 @@
 using UnityEngine;
 
-public sealed class CarnivoreManager : MonoBehaviour
+[DefaultExecutionOrder(-100)]
+public sealed class CarnivoreManager : SpeciesManager
 {
-    [SerializeField, Tooltip("指定時は起動時にこのアセットの値を使用。未指定時は下の従来設定を使用。")]
-    private AquariumStartupSettings startupSettings;
-    [SerializeField] private GameObject carnivorePrefab;
-    [SerializeField, Min(0)] private int initialCount = 15;
-    [SerializeField] private bool randomizeSeed = true;
-    [SerializeField] private int seed = 1;
-    public int ActualSeed { get; private set; }
+    protected override string DefaultSpeciesId => "carnivore";
+    private GameObject carnivorePrefab;
+    private int initialCount = 15;
+    private bool randomizeSeed = false;
+    private int seed = 1;
     private int spawnedCount;
-    private readonly AnimalTraits defaultTraits = new AnimalTraits();
-    public AnimalTraits Traits => startupSettings != null && startupSettings.carnivores != null
-        ? startupSettings.carnivores.traits ?? defaultTraits : defaultTraits;
     private System.Random birthRandom;
     private System.Random reproductionRandom;
-    public int LivingCount
-    {
-        get
-        {
-            int count = 0;
-            foreach (Transform child in transform)
-                if (child.TryGetComponent(out AnimalBody body) && body.IsAlive) count++;
-            return count;
-        }
-    }
-
     private void Start()
     {
-        if (startupSettings != null && startupSettings.carnivores != null)
-        {
-            var settings = startupSettings.carnivores;
-            carnivorePrefab = settings.prefab;
-            initialCount = settings.initialCount;
-            randomizeSeed = settings.randomizeSeed;
-            seed = settings.seed;
-        }
+        if (Population == null) return;
+        var settings = Settings;
+        carnivorePrefab = startupSettings.carnivorePrefab;
+        initialCount = settings.initialCount;
+        randomizeSeed = settings.randomizeSeed;
+        seed = settings.seed;
 
         if (carnivorePrefab == null)
         {
@@ -58,14 +41,15 @@ public sealed class CarnivoreManager : MonoBehaviour
     private void Spawn(Vector3 position, Vector2 direction, double birthResources = AnimalResources.Initial)
     {
         GameObject child = Instantiate(carnivorePrefab, position, Quaternion.identity, transform);
-        child.name = "Carnivore " + (++spawnedCount);
+        child.name = SpeciesId + " " + (++spawnedCount);
         child.GetComponent<CarnivoreAnimal>().SetInitialDirection(direction);
         child.GetComponent<AnimalBody>().Resources.SetBirthResources(birthResources);
+        Population.CheckExtinction();
     }
 
     public void TryReproduce(CarnivoreAnimal parent)
     {
-        if (carnivorePrefab == null || parent == null || !parent.Body.IsAlive || parent.Body.IsSleeping ||
+        if (carnivorePrefab == null || parent == null || parent.Body.SpeciesId != SpeciesId || !parent.Body.IsAlive || parent.Body.IsSleeping ||
             !parent.Resources.CanReproduce(parent.Body.Traits, parent.Body.Activity.ActiveAge)) return;
         if (birthRandom == null) birthRandom = new System.Random(seed);
         Vector3 position = parent.transform.position;

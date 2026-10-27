@@ -3,8 +3,11 @@ using UnityEngine;
 [DisallowMultipleComponent]
 public sealed class SkillSwitch : MonoBehaviour
 {
-    public bool accel;
-    public bool shoot = true;
+    private AnimalBody body;
+    private void Awake() => body = GetComponent<AnimalBody>();
+    private SpeciesDefinition Species => body == null ? null : body.Species;
+    public bool accel => Species != null && Species.accel;
+    public bool shoot => Species != null && Species.shoot;
     private float shotElapsed;
 
     public float MovementSpeed(AnimalTraits traits) =>
