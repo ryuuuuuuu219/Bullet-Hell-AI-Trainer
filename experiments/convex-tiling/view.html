@@ -1,0 +1,53 @@
+<div id="tiling-simulation">
+  <div class="viz-controls">
+    <label class="form-label">試行 <select class="form-select" id="tiling-seed"></select></label>
+  </div>
+  <div id="tiling-result" aria-live="polite"></div>
+  <svg id="tiling-map" role="img" aria-label="区画の増設過程とY軸対称の外形" style="display:block;width:100%;height:390px"></svg>
+  <div class="viz-row text-small"><span>三角形・正方形：通常色</span><span>今回の追加：濃色</span><span>破線：凸包</span></div>
+  <label class="form-label" for="tiling-step" id="tiling-step-label">生成過程</label>
+  <input class="form-range" type="range" id="tiling-step" min="0" value="0" step="1">
+  <div id="tiling-detail" aria-live="polite"></div>
+</div>
+<script>
+(() => {
+const runs = __RESULTS__;
+const root=document.getElementById('tiling-simulation');
+const select=root.querySelector('#tiling-seed'), slider=root.querySelector('#tiling-step');
+const svg=root.querySelector('#tiling-map');
+let selected=2, step=runs[2].frames.length-1;
+runs.forEach((r,i)=>{const o=document.createElement('option');o.value=i;o.textContent=`シード ${r.seed} · ${r.count} 区画`;select.appendChild(o);});
+function restore(state){const s=state?.modelContent;if(s&&Number.isInteger(s.run)&&runs[s.run]){selected=s.run;step=Math.max(0,Math.min(runs[selected].frames.length-1,Number(s.step)||0));}}
+restore(window.openai?.widgetState);
+function save(){window.openai?.setWidgetState({modelContent:{run:selected,seed:runs[selected].seed,step},privateContent:null}).catch(()=>{});}
+function draw(){
+ const run=runs[selected],frame=run.frames[step];
+ select.value=selected;slider.max=run.frames.length-1;slider.value=step;
+ root.querySelector('#tiling-result').textContent=`目安24区画 → ${run.count}区画 · ${run.attempts}試行 · ${run.reached?'目安に到達':'試行上限で停止'}`;
+ root.querySelector('#tiling-step-label').textContent=`生成過程 ${step+1} / ${run.frames.length}`;
+ root.querySelector('#tiling-detail').textContent=`${frame.label} · ${frame.parts.length}区画 · ${frame.convex?'凸形状':'凹みあり（補完中）'}`;
+ const w=Math.max(280,svg.clientWidth||640),h=390;
+ svg.setAttribute('viewBox',`0 0 ${w} ${h}`);svg.replaceChildren();
+ const all=run.frames.flatMap(f=>f.parts.flat());
+ const extent=Math.max(...all.map(p=>Math.abs(p[0])))+.5;
+ const ymin=Math.min(...all.map(p=>p[1]))-.5,ymax=Math.max(...all.map(p=>p[1]))+.5;
+ const z=Math.min((w-24)/(2*extent),(h-24)/(ymax-ymin));
+ const xy=p=>[w/2+p[0]*z,h/2-(p[1]-(ymin+ymax)/2)*z];
+ const ns='http://www.w3.org/2000/svg';
+ function elem(tag,attrs){const e=document.createElementNS(ns,tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));svg.appendChild(e);return e;}
+ elem('line',{x1:w/2,x2:w/2,y1:8,y2:h-8,stroke:'var(--border)','stroke-width':1});
+ frame.parts.forEach((p,i)=>{
+   const fresh=i>=frame.parts.length-frame.added;
+   elem('polygon',{points:p.map(v=>xy(v).join(',')).join(' '),fill:'var(--viz-series-1)','fill-opacity':fresh?.5:.14,stroke:'var(--foreground)','stroke-opacity':.45,'stroke-width':1});
+   const c=xy(p.reduce((a,v)=>[a[0]+v[0]/p.length,a[1]+v[1]/p.length],[0,0]));
+   if(z>25){const text=elem('text',{x:c[0],y:c[1]+4,'text-anchor':'middle',fill:'var(--foreground)','font-size':12});text.textContent=i+1;}
+ });
+ if(!frame.convex)elem('polygon',{points:frame.hull.map(v=>xy(v).join(',')).join(' '),fill:'none',stroke:'var(--foreground)','stroke-width':1,'stroke-dasharray':'5 4'});
+}
+select.addEventListener('change',()=>{selected=Number(select.value);step=runs[selected].frames.length-1;draw();save();});
+slider.addEventListener('input',()=>{step=Number(slider.value);draw();});
+slider.addEventListener('change',save);
+window.addEventListener('openai:set_globals',e=>{restore(e.detail?.globals?.widgetState);draw();});
+new ResizeObserver(draw).observe(svg);draw();
+})();
+</script>

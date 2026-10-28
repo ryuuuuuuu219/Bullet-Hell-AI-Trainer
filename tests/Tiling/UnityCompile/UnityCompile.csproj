@@ -1,0 +1,12 @@
+<Project Sdk="Microsoft.NET.Sdk">
+  <PropertyGroup>
+    <TargetFramework>net10.0</TargetFramework>
+    <EnableDefaultCompileItems>false</EnableDefaultCompileItems>
+    <UnityManagedPath Condition="'$(UnityManagedPath)' == ''">C:/Program Files/Unity/Hub/Editor/6000.4.6f1/Editor/Data/Managed</UnityManagedPath>
+  </PropertyGroup>
+  <ItemGroup>
+    <Compile Include="../../../syogi/Assets/Scripts/Tiling/*.cs" />
+    <Compile Include="../../../syogi/Assets/Editor/TilingTestSceneTools.cs" />
+    <Reference Include="$(UnityManagedPath)/UnityEngine/*.dll" />
+  </ItemGroup>
+</Project>
