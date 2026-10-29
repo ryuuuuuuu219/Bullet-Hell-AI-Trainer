@@ -181,7 +181,7 @@ Modの実装はまだなく、現在の加算集計に上記規則が適用さ�
 
 10. 参照先（リポジトリルートからの相対パス）
 
-仕様メモ：memo/将棋/カードによる弾幕定義.txt
+仕様メモ：memo/将棋/カード・弾幕/カードによる弾幕定義.txt
 保存データ：syogi/Assets/CardCatalog.asset
 項目・カード定義：syogi/Assets/Scripts/CardData.cs
 保存用クラス：syogi/Assets/Scripts/CardCatalog.cs

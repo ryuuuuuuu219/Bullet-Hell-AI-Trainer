@@ -232,4 +232,4 @@ Aidata.Awakeで保存設定を読み込んでからネットワークを初期�
 ・Assets/Scripts/bullethell/PlayerMovementController.cs
 ・Assets/Scripts/bullethell/StageSpawnManager.cs
 ・Assets/prefub/player/Player.prefab
-・memo/弾幕シューティングとニューラルネットワーク学習（遺伝的アルゴリズム）を.txt
+・memo/NN/企画・履歴/弾幕シューティングとニューラルネットワーク学習（遺伝的アルゴリズム）を.txt

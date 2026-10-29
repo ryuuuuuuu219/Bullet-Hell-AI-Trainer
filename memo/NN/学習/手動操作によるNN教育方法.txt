@@ -7,7 +7,7 @@
 個体ID 0を人間が操作し、その操作を教師データとしてNNへ学習させる手順をまとめる。
 
 ネットワーク構造、85入力の詳細、逆伝播式については
-「memo/NN仕様_現状.txt」を参照する。
+「memo/NN/現行仕様/NN仕様_現状.txt」を参照する。
 
 
 ◇教師操作
@@ -316,7 +316,7 @@ Lossが激しく振動する、操作と逆方向へ予測が飛ぶ場合
 
 ◇関連ファイル
 
-・memo/NN仕様_現状.txt
+・memo/NN/現行仕様/NN仕様_現状.txt
 ・Assets/Scripts/AIstruct/Aidata.cs
 ・Assets/Scripts/bullethell/player/PlayerMovementController.cs
 ・Assets/Scripts/bullethell/StageSpawnManager.cs
