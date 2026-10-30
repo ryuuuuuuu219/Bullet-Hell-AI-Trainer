@@ -29,6 +29,7 @@ namespace Aquarium.Tiling
             public float Speed;
             public float Decay;
             public float Spread;
+            public float SpCost;
             public float Timer;
         }
 
@@ -89,7 +90,7 @@ namespace Aquarium.Tiling
         private int armorCount;
         public int DisplayedTileCount { get; private set; }
         public int TurretCount => turrets.Count;
-        public int ActiveTestBulletCount => drawing == null ? 0 : drawing.GetComponentsInChildren<Bullet>().Length;
+        public int ActiveTestBulletCount => drawing == null ? 0 : drawing.GetComponentsInChildren<TilingTurretProjectile>().Length;
         public bool HasFinished => generator != null && generator.Done && !generating;
 
         private void Start()
@@ -338,16 +339,16 @@ namespace Aquarium.Tiling
             {
                 case WeaponKind.SmallGun:
                     turret.Power = Mathf.Lerp(50f, 100f, sample) + choice.Grade * 50f;
-                    turret.Interval = 2f; turret.Speed = 150f; turret.Decay = 10f; turret.Spread = 5f; break;
+                    turret.Interval = 2f; turret.Speed = 450f; turret.Decay = 10f; turret.Spread = 5f; turret.SpCost = 10f; break;
                 case WeaponKind.HeavyGun:
                     turret.Power = Mathf.Lerp(300f, 500f, sample) + choice.Grade * 100f;
-                    turret.Interval = 5f; turret.Speed = 200f; turret.Decay = 30f; turret.Spread = 3f; break;
+                    turret.Interval = 5f; turret.Speed = 600f; turret.Decay = 30f; turret.Spread = 3f; turret.SpCost = 10f; break;
                 case WeaponKind.AntiShipMissile:
                     turret.Power = Mathf.Lerp(100f, 200f, sample) + choice.Grade * 60f;
-                    turret.Interval = 5f; turret.Speed = 200f; turret.Decay = 50f; turret.Spread = 0f; break;
+                    turret.Interval = 5f; turret.Speed = 600f; turret.Decay = 50f; turret.Spread = 0f; turret.SpCost = 10f; break;
                 default:
                     turret.Power = 10f + choice.Grade * 30f;
-                    turret.Interval = .1f; turret.Speed = 400f; turret.Decay = 10f; turret.Spread = 12f; break;
+                    turret.Interval = .1f; turret.Speed = 400f; turret.Decay = 10f; turret.Spread = 12f; turret.SpCost = .3f; break;
             }
             turret.Timer = 0f; // Loading begins at birth; no immediate first shot.
             return turret;
@@ -377,6 +378,27 @@ namespace Aquarium.Tiling
 
         private static string GradeLabel(int grade) => grade <= 0 ? "" : ((char)('A' + grade - 1)).ToString();
 
+        private static float ProjectileRadius(WeaponKind kind)
+        {
+            switch (kind)
+            {
+                case WeaponKind.MachineGun: return 2f;
+                case WeaponKind.AntiShipMissile: return 7f;
+                default: return 5f;
+            }
+        }
+
+        private static Color ProjectileColor(WeaponKind kind)
+        {
+            switch (kind)
+            {
+                case WeaponKind.MachineGun: return Color.yellow;
+                case WeaponKind.SmallGun: return new Color(1f, .5f, 0f);
+                case WeaponKind.HeavyGun: return new Color(1f, .25f, 0f);
+                default: return Color.red;
+            }
+        }
+
         private void TickTurrets()
         {
             if (!enableTurretTest || turrets.Count == 0 || drawing == null || turretRandom == null) return;
@@ -387,8 +409,8 @@ namespace Aquarium.Tiling
                 while (turret.Timer >= turret.Interval)
                 {
                     turret.Timer -= turret.Interval;
-                    if (shipSp < 10f) continue;
-                    shipSp -= 10f;
+                    if (shipSp + .000001f < turret.SpCost) continue;
+                    shipSp = Mathf.Max(0f, shipSp - turret.SpCost);
                     Fire(turret, target);
                 }
             }
@@ -412,21 +434,13 @@ namespace Aquarium.Tiling
                 direction = bodyForward.sqrMagnitude > 0 ? bodyForward.normalized : Vector2.up;
             float scatter = turret.Spread <= 0 ? 0f : ((float)turretRandom.NextDouble() - .5f) * turret.Spread;
             direction = Quaternion.Euler(0, 0, scatter) * direction.normalized;
-            var settings = new BarrageSettings
-            {
-                direction = direction,
-                speed = turret.Speed,
-                radius = 5f,
-                lineWidth = 1f,
-                lifetime = Mathf.Max(.01f, turret.Power / Mathf.Max(.01f, turret.Decay)),
-                useLinearPower = true,
-                powerConstant = turret.Power,
-                powerSlope = -turret.Decay
-            };
             var bulletObject = new GameObject($"{WeaponLabel(turret.Kind)}{GradeLabel(turret.Grade)} Test Bullet");
             bulletObject.transform.position = new Vector3(turret.Position.x, turret.Position.y, -.05f);
             bulletObject.transform.SetParent(drawing.transform, true);
-            bulletObject.AddComponent<Bullet>().Initialize(material, settings);
+            bulletObject.AddComponent<TilingTurretProjectile>().Initialize(material, direction, turret.Speed,
+                ProjectileRadius(turret.Kind), 1f,
+                Mathf.Max(.01f, turret.Power / Mathf.Max(.01f, turret.Decay)), ProjectileColor(turret.Kind),
+                turret.Kind != WeaponKind.MachineGun);
         }
         private void AddLine(GameObject parent, Vector3[] points, bool loop, Color color, float width)
         {
@@ -476,7 +490,7 @@ namespace Aquarium.Tiling
             if (enableTurretTest && !generating && frameIndex == generator.Frames.Count - 1)
             {
                 GUILayout.BeginHorizontal();
-                GUILayout.Label($"砲撃テスト：{shipClass} / コア1 / 装甲{armorCount} / 砲塔{turrets.Count} / SP {shipSp:0}/{maximumShipSp:0}", labelStyle);
+                GUILayout.Label($"砲撃テスト：{shipClass} / コア1 / 装甲{armorCount} / 砲塔{turrets.Count} / SP {shipSp:0.0}/{maximumShipSp:0.0}", labelStyle);
                 if (GUILayout.Button("SP全回復", GUILayout.Width(80))) shipSp = maximumShipSp;
                 GUILayout.EndHorizontal();
                 GUILayout.Label("緑：コア　赤：装甲　黄・橙・紫・水色：砲塔　砲塔はマウス現在位置へ自動射撃", labelStyle);

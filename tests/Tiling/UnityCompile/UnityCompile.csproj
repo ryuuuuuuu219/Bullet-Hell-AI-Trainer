@@ -8,5 +8,8 @@
     <Compile Include="../../../syogi/Assets/Scripts/Tiling/*.cs" />
     <Compile Include="../../../syogi/Assets/Editor/TilingTestSceneTools.cs" />
     <Reference Include="$(UnityManagedPath)/UnityEngine/*.dll" />
+    <Reference Include="Unity.InputSystem">
+      <HintPath>../../../syogi/Library/ScriptAssemblies/Unity.InputSystem.dll</HintPath>
+    </Reference>
   </ItemGroup>
 </Project>
