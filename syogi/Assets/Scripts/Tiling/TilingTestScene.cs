@@ -30,6 +30,8 @@ namespace Aquarium.Tiling
             public float Decay;
             public float Spread;
             public float SpCost;
+            public float GuidanceTurnSpeed;
+            public float NavigationConstant;
             public float Timer;
         }
 
@@ -345,7 +347,10 @@ namespace Aquarium.Tiling
                     turret.Interval = 5f; turret.Speed = 600f; turret.Decay = 30f; turret.Spread = 3f; turret.SpCost = 10f; break;
                 case WeaponKind.AntiShipMissile:
                     turret.Power = Mathf.Lerp(100f, 200f, sample) + choice.Grade * 60f;
-                    turret.Interval = 5f; turret.Speed = 600f; turret.Decay = 50f; turret.Spread = 0f; turret.SpCost = 10f; break;
+                    turret.Interval = 5f; turret.Speed = 600f; turret.Decay = 50f; turret.Spread = 0f; turret.SpCost = 10f;
+                    turret.GuidanceTurnSpeed = 50f + choice.Grade * 20f;
+                    turret.NavigationConstant = Mathf.Lerp(1f, 3f, (float)random.NextDouble());
+                    break;
                 default:
                     turret.Power = 10f + choice.Grade * 30f;
                     turret.Interval = .1f; turret.Speed = 400f; turret.Decay = 10f; turret.Spread = 12f; turret.SpCost = .3f; break;
@@ -395,7 +400,7 @@ namespace Aquarium.Tiling
                 case WeaponKind.MachineGun: return Color.yellow;
                 case WeaponKind.SmallGun: return new Color(1f, .5f, 0f);
                 case WeaponKind.HeavyGun: return new Color(1f, .25f, 0f);
-                default: return Color.red;
+                default: return new Color(1f, .3f, .65f);
             }
         }
 
@@ -437,10 +442,12 @@ namespace Aquarium.Tiling
             var bulletObject = new GameObject($"{WeaponLabel(turret.Kind)}{GradeLabel(turret.Grade)} Test Bullet");
             bulletObject.transform.position = new Vector3(turret.Position.x, turret.Position.y, -.05f);
             bulletObject.transform.SetParent(drawing.transform, true);
+            bool guided = turret.Kind == WeaponKind.AntiShipMissile;
             bulletObject.AddComponent<TilingTurretProjectile>().Initialize(material, direction, turret.Speed,
                 ProjectileRadius(turret.Kind), 1f,
                 Mathf.Max(.01f, turret.Power / Mathf.Max(.01f, turret.Decay)), ProjectileColor(turret.Kind),
-                turret.Kind != WeaponKind.MachineGun);
+                turret.Kind != WeaponKind.MachineGun, guided, turret.GuidanceTurnSpeed,
+                turret.NavigationConstant, guided ? GetAimPoint : null);
         }
         private void AddLine(GameObject parent, Vector3[] points, bool loop, Color color, float width)
         {
