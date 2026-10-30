@@ -39,13 +39,16 @@ public static class TilingTestSceneTools
     {
         bool timeout = EditorApplication.timeSinceStartup - checkStarted > 90;
         var test = EditorApplication.isPlaying ? UnityEngine.Object.FindAnyObjectByType<TilingTestScene>() : null;
-        if (!timeout && !playError && (test == null || !test.HasFinished)) return;
+        bool ready = test != null && test.HasFinished && test.TurretCount > 0 && test.ActiveTestBulletCount > 0;
+        if (!timeout && !playError && !ready) return;
         bool passed = !timeout && !playError && test != null && test.DisplayedTileCount > 0
-            && test.GetComponentsInChildren<MeshFilter>().Length == test.DisplayedTileCount;
+            && test.GetComponentsInChildren<MeshFilter>().Length == test.DisplayedTileCount
+            && test.TurretCount > 0 && test.ActiveTestBulletCount > 0;
         SessionState.SetBool(PlayCheckKey, false);
         EditorApplication.update -= CheckPlayMode;
         Application.logMessageReceived -= CheckLog;
-        Debug.Log(passed ? "TILING_PLAYMODE_VALIDATED tiles=" + test.DisplayedTileCount : "TILING_PLAYMODE_FAILED");
+        Debug.Log(passed ? $"TILING_PLAYMODE_VALIDATED tiles={test.DisplayedTileCount} turrets={test.TurretCount} bullets={test.ActiveTestBulletCount}"
+            : "TILING_PLAYMODE_FAILED");
         EditorApplication.Exit(passed ? 0 : 1);
     }
 
