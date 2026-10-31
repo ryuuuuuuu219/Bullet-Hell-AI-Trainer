@@ -163,16 +163,21 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 5ea970aaebc24a0294e0d447a1f8caed, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
-  seed: 4209
-  targetSections: 33
-  maximumAttempts: 327
-  triangleStart: 1
+  seed: 4506
+  targetSections: 97
+  maximumAttempts: 136
+  triangleStart: 0
   squareStartAngle: 0
   triangleStartAngle: 30
   formEnds: 1
   endSearchDepth: 6
   endSearchLimit: 1200
   tileShader: {fileID: 4800000, guid: 794845af152e4476a2567d274dd44c92, type: 3}
+  enableTurretTest: 1
+  shipClass: 3
+  sectionWorldSize: 100
+  spPerSection: 100
+  bodyForward: {x: 0, y: 1}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

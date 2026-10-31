@@ -87,6 +87,23 @@ public sealed class DropCarbon : MonoBehaviour
         if (timer <= 0) Destroy(gameObject);
     }
 
+    /// <summary>戦艦型動物の各区画から、通常動物と同じ種族除外を保って資源を回収する。</summary>
+    public double TakeCarbon(string consumerSpeciesId, double capacity)
+    {
+        if (isFeed || capacity <= 0 || carbon <= 0 || ExpireIfNeeded() ||
+            (!string.IsNullOrEmpty(consumerSpeciesId) && consumerSpeciesId == SpeciesId)) return 0;
+        double accepted = System.Math.Min(carbon, capacity);
+        carbon -= accepted;
+        if (carbon <= 1e-9)
+        {
+            carbon = 0;
+            contact.enabled = false;
+            physicsBody.simulated = false;
+            Destroy(gameObject);
+        }
+        return accepted;
+    }
+
     private bool ExpireIfNeeded()
     {
         if (Time.time < expiresAt) return false;
