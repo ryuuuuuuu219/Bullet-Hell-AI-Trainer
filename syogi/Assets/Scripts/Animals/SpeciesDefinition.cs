@@ -46,7 +46,7 @@ public sealed class SpeciesDefinition : ScriptableObject
         pursuitSpeciesIds != null && Array.IndexOf(pursuitSpeciesIds, id) >= 0;
 
     public bool PursuesSpecies(SpeciesDefinition other) => other != null &&
-        (isShip ? !other.isShip || other.shipRank <= shipRank : Pursues(other.speciesId));
+        (isShip ? !other.isShip || other.shipRank < shipRank : Pursues(other.speciesId));
 
     public bool HasFleeTargets => isShip || fleeShips || fleeNonHerbivores || (fleeSpeciesIds != null && fleeSpeciesIds.Length > 0);
 

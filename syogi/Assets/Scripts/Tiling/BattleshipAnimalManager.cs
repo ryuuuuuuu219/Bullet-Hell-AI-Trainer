@@ -71,12 +71,13 @@ namespace Aquarium.Tiling
                 Vector2 position = ChooseSpawnPosition(positionRandom);
                 float heading = (float)(positionRandom.NextDouble() * 360d);
                 SpawnOne(i, shipClass, targetSections, animalSeed, position, heading,
-                    unchecked(animalSeed ^ (i + 1) * 104729));
+                    unchecked(animalSeed ^ (i + 1) * 104729), null);
             }
         }
 
         private BattleshipAnimalInstance SpawnOne(int index, BattleshipAnimalClass animalClass,
-            int requestedSections, int animalSeed, Vector2 position, float heading, int loadoutSeed)
+            int requestedSections, int animalSeed, Vector2 position, float heading, int loadoutSeed,
+            BattleshipAnimalInstance birthPayer)
         {
             requestedSections = Mathf.Clamp(requestedSections, 1, 128);
             var generator = new TilingGenerator(animalSeed, requestedSections, maximumAttempts, triangleStart, initialAngle);
@@ -85,6 +86,8 @@ namespace Aquarium.Tiling
                 foreach (int ignored in generator.FormEnds(endSearchDepth, endSearchLimit)) { }
 
             TilingGenerator.Tile[] tiles = generator.Frames[generator.Frames.Count - 1].Tiles;
+            if (birthPayer != null && !birthPayer.TryPayBirth(tiles.Length * 30d, tiles.Length * 50d))
+                return null;
             var root = new GameObject($"Battleship Animal {index + 1} [{animalClass}] {tiles.Length} sections");
             root.transform.SetParent(transform, false);
             root.transform.position = new Vector3(position.x, position.y, 0f);
@@ -336,7 +339,7 @@ namespace Aquarium.Tiling
             float heading = (float)(reproductionRandom.NextDouble() * 360d);
             int loadoutSeed = unchecked(reproductionRandom.Next() ^ (++birthSerial * 486187739));
             SpawnOne(spawnedAnimals.Count + birthSerial, parent.ShipClass, requested, parent.GenerationSeed,
-                parent.transform.position, heading, loadoutSeed);
+                parent.transform.position, heading, loadoutSeed, parent);
         }
 
         internal void NotifyDeath(BattleshipAnimalInstance instance)

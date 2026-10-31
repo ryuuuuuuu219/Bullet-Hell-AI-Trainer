@@ -21,6 +21,7 @@ namespace Aquarium.Tiling
     [DefaultExecutionOrder(20)]
     public sealed class BattleshipAnimalInstance : MonoBehaviour
     {
+        private const float FleeDistance = 1500f;
         private static readonly List<BattleshipAnimalInstance> active = new List<BattleshipAnimalInstance>();
 
         [SerializeField] private BattleshipAnimalClass shipClass;
@@ -140,7 +141,7 @@ namespace Aquarium.Tiling
             }
 
             var candidates = new List<object>();
-            candidates.AddRange(active.Where(x => x != this && x.IsAlive && x.shipClass <= shipClass));
+            candidates.AddRange(active.Where(x => x != this && x.IsAlive && x.shipClass < shipClass));
             candidates.AddRange(AnimalBody.Active.Where(x => x != null && x.IsAlive && (x.Species == null || !x.Species.isShip)));
             if (candidates.Count == 0) { attackTarget = null; return; }
 
@@ -172,7 +173,8 @@ namespace Aquarium.Tiling
             else
             {
                 BattleshipAnimalInstance threat = active
-                    .Where(x => x != this && x.IsAlive && x.shipClass >= shipClass)
+                    .Where(x => x != this && x.IsAlive && x.shipClass >= shipClass &&
+                        ((Vector2)(x.transform.position - transform.position)).sqrMagnitude <= FleeDistance * FleeDistance)
                     .OrderBy(x => ((Vector2)(x.transform.position - transform.position)).sqrMagnitude)
                     .FirstOrDefault();
                 if (threat != null) desired = position - (Vector2)threat.transform.position;
@@ -210,6 +212,15 @@ namespace Aquarium.Tiling
         {
             if (amount < 0 || currentSp + 1e-9 < amount) return false;
             currentSp = Math.Max(0, currentSp - amount);
+            return true;
+        }
+
+        internal bool TryPayBirth(double resourceAmount, double spAmount)
+        {
+            if (!IsAlive || resourceAmount < 0 || spAmount < 0 ||
+                currentResource + 1e-9 < resourceAmount || currentSp + 1e-9 < spAmount) return false;
+            currentResource = Math.Max(0, currentResource - resourceAmount);
+            currentSp = Math.Max(0, currentSp - spAmount);
             return true;
         }
 
