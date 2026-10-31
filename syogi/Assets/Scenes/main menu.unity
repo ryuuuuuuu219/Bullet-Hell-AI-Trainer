@@ -241,19 +241,19 @@ MonoBehaviour:
   - main menu
   - CardSet
   - nobel0
-  - battle0
+  - battle1
   - debriefing0
   toStoryButtons:
-  - sceneName: battle0
+  - sceneName: battle1
     buttons:
     - {fileID: 1300}
     - {fileID: 1200}
     - {fileID: 1400}
   Scenes:
   - isUnlocked: 1
-    sceneName: battle0
-  - isUnlocked: 0
     sceneName: battle1
+  - isUnlocked: 0
+    sceneName: battle2
 --- !u!1 &1100
 GameObject:
   m_ObjectHideFlags: 0
@@ -346,7 +346,7 @@ GameObject:
   - component: {fileID: 1203}
   - component: {fileID: 1204}
   m_Layer: 5
-  m_Name: Go to battle0
+  m_Name: Go to battle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -478,7 +478,7 @@ GameObject:
   - component: {fileID: 1212}
   - component: {fileID: 1213}
   m_Layer: 5
-  m_Name: battle0
+  m_Name: battle1
   m_TagString: Untagged
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
@@ -544,7 +544,7 @@ MonoBehaviour:
     m_HorizontalOverflow: 0
     m_VerticalOverflow: 0
     m_LineSpacing: 1
-  m_Text: battle0
+  m_Text: ステージ1
 --- !u!1 &1300
 GameObject:
   m_ObjectHideFlags: 0

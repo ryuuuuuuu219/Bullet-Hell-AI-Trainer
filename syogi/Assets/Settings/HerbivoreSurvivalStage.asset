@@ -12,8 +12,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: 1c057ab248794ef98c460282de897c51, type: 3}
   m_Name: HerbivoreSurvivalStage
   m_EditorClassIdentifier:
-  stageId: herbivore-survival
-  displayName: 草食動物の存続
+  stageId: stage-minus-1
+  displayName: ステージ-1 実験場
   targetSpecies: {fileID: 11400000, guid: 58d89aaa9ba94363a7c12403b17cca22, type: 2}
   pointsPerSecond: 1
   goalSeconds: 0
+  goals: []

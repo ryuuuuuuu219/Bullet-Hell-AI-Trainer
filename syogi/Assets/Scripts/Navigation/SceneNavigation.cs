@@ -21,7 +21,7 @@ public sealed class SceneNavigation : MonoBehaviour
     [SerializeField] private string[] sceneNames =
     {
         "main menu",
-        "battle0",
+        "battle1",
         "nobel0",
         "debriefing0"
     };
@@ -30,8 +30,8 @@ public sealed class SceneNavigation : MonoBehaviour
 
     public UnlockState[] Scenes =
     {
-        new UnlockState { isUnlocked = true, sceneName = "battle0" },
-        new UnlockState { isUnlocked = false, sceneName = "battle1" }
+        new UnlockState { isUnlocked = true, sceneName = "battle1" },
+        new UnlockState { isUnlocked = false, sceneName = "battle2" }
     };
 
     // Shared for this play session; starting a new session restores Inspector defaults.

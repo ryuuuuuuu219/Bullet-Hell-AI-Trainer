@@ -1589,15 +1589,15 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::SceneNavigation
   sceneNames:
   - main menu
-  - battle0
+  - battle1
   - nobel0
   - debriefing0
   toStoryButtons: []
   Scenes:
   - isUnlocked: 1
-    sceneName: battle0
-  - isUnlocked: 0
     sceneName: battle1
+  - isUnlocked: 0
+    sceneName: battle2
 --- !u!4 &1332778825
 Transform:
   m_ObjectHideFlags: 0

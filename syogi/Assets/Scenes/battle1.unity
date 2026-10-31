@@ -169,14 +169,14 @@ MonoBehaviour:
   - main menu
   - CardSet
   - nobel0
-  - battle0
+  - battle1
   - debriefing0
   toStoryButtons: []
   Scenes:
   - isUnlocked: 1
-    sceneName: battle0
-  - isUnlocked: 0
     sceneName: battle1
+  - isUnlocked: 0
+    sceneName: battle2
 --- !u!114 &1006
 MonoBehaviour:
   m_ObjectHideFlags: 0
@@ -634,7 +634,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2100000051
 Transform:
   m_ObjectHideFlags: 0
@@ -680,7 +680,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2100000061
 Transform:
   m_ObjectHideFlags: 0
@@ -726,7 +726,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2100000071
 Transform:
   m_ObjectHideFlags: 0
@@ -772,7 +772,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2100000081
 Transform:
   m_ObjectHideFlags: 0
@@ -846,7 +846,9 @@ MonoBehaviour:
   m_Script: {fileID: 11500000, guid: fc110b2d6a594898a99a3a899f9c55b0, type: 3}
   m_Name:
   m_EditorClassIdentifier:
-  stage: {fileID: 11400000, guid: c03448aa70a24b1b8aab0e005f308e7a, type: 2}
+  stage: {fileID: 11400000, guid: 571a610eb7df4c18a78e7352b4d10101, type: 2}
+  sceneNavigation: {fileID: 1005}
+  unlockNextStageOnFirstGoal: 1
 --- !u!1 &2100000100
 GameObject:
   m_ObjectHideFlags: 0
@@ -863,7 +865,7 @@ GameObject:
   m_Icon: {fileID: 0}
   m_NavMeshLayer: 0
   m_StaticEditorFlags: 0
-  m_IsActive: 1
+  m_IsActive: 0
 --- !u!4 &2100000101
 Transform:
   m_ObjectHideFlags: 0

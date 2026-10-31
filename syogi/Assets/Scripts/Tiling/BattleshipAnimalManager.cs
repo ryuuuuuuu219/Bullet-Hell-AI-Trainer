@@ -4,7 +4,7 @@ using UnityEngine;
 
 namespace Aquarium.Tiling
 {
-    /// <summary>battle0上で、指定された艦種と区画数から戦艦型動物を生成する。</summary>
+    /// <summary>戦艦型動物を有効にしたバトルシーンで、指定艦種と区画数から個体を生成する。</summary>
     public sealed class BattleshipAnimalManager : MonoBehaviour
     {
         private sealed class WeaponChoice

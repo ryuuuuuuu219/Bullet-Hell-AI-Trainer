@@ -1,0 +1,32 @@
+%YAML 1.1
+%TAG !u! tag:unity3d.com,2011:
+--- !u!114 &11400000
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 0}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 1c057ab248794ef98c460282de897c51, type: 3}
+  m_Name: Stage1Survival
+  m_EditorClassIdentifier:
+  stageId: stage-1
+  displayName: ステージ1
+  targetSpecies: {fileID: 0}
+  pointsPerSecond: 1
+  goalSeconds: 0
+  goals:
+  - displayName: 草食動物の存続
+    targetSpecies: {fileID: 11400000, guid: 58d89aaa9ba94363a7c12403b17cca22, type: 2}
+    pointsPerSecond: 1
+    goalSeconds: 450
+  - displayName: 肉食動物の存続
+    targetSpecies: {fileID: 11400000, guid: 822ebeafd95e46b6b40185f06518f169, type: 2}
+    pointsPerSecond: 1
+    goalSeconds: 600
+  - displayName: 肉食動物の長期存続
+    targetSpecies: {fileID: 11400000, guid: 822ebeafd95e46b6b40185f06518f169, type: 2}
+    pointsPerSecond: 1
+    goalSeconds: 900
