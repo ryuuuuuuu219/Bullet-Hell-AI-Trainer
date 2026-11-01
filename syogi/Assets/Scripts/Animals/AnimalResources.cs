@@ -14,6 +14,7 @@ public class AnimalResources
     public const double SleepingRecoveryMultiplier = 3;
     public double Stamina { get; private set; } = InitialStamina;
     public double Health { get; private set; }
+    public double Interception { get; set; } = 0.0;
     public double HealthLimit { get; }
     public double Amount { get; private set; } = Initial;
     public bool IsDead => Amount <= 0 || Health <= 0 || Stamina <= 0;
@@ -77,27 +78,27 @@ public class AnimalResources
     }
 
     // Both subtractions use the values BEFORE impact.
-    public double Hit(double power, out double stolenResources)
-        => HitWithDamageMultiplier(power, 1, out stolenResources);
+    public double Hit(double power, out double stolenResources, double penetration = 1.0)
+        => HitWithDamageMultiplier(power, 1, out stolenResources, penetration);
 
-    public double Hit(double power, string projectileSpeciesId, string targetSpeciesId, out double stolenResources)
+    public double Hit(double power, string projectileSpeciesId, string targetSpeciesId, out double stolenResources, double penetration = 1.0)
         => HitWithDamageMultiplier(power, !string.IsNullOrEmpty(projectileSpeciesId) && projectileSpeciesId == targetSpeciesId ? 0.1 : 1,
-            out stolenResources);
+            out stolenResources, penetration);
 
-    private double HitWithDamageMultiplier(double power, double damageMultiplier, out double stolenResources)
+    private double HitWithDamageMultiplier(double power, double damageMultiplier, out double stolenResources, double penetration)
     {
         stolenResources = 0;
         if (IsDead || double.IsNaN(power) || double.IsInfinity(power) || power <= 0) return power;
         double previousHealth = Health;
+        double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, previousHealth, 0);
         Health = Math.Max(0, previousHealth - power * damageMultiplier);
         if (Health <= 0)
         {
             stolenResources = Amount;
             Amount = 0;
         }
-        // Damage reduction does not scale projectile power. Preserve the existing
-        // consumption rule: subtract the target's HP before impact.
-        return Math.Max(0, power - previousHealth);
+        // Damage reduction does not scale projectile power.
+        return remaining;
     }
 
     public bool TryReproduce()

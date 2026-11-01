@@ -11,5 +11,6 @@
     <Compile Include="../../syogi/Assets/Scripts/Animals/AnimalResources.cs" Link="AnimalResources.cs" />
     <Compile Include="../../syogi/Assets/Scripts/AquariumStartupSettings.cs" Link="AquariumStartupSettings.cs" />
     <Compile Include="../../syogi/Assets/Scripts/View/BattleSimulationSpeed.cs" Link="BattleSimulationSpeed.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Animals/ProjectilePenetration.cs" Link="ProjectilePenetration.cs" />
   </ItemGroup>
 </Project>

@@ -6,6 +6,8 @@ namespace Aquarium.Tiling
     [RequireComponent(typeof(LineRenderer))]
     public sealed class TilingTurretProjectile : MonoBehaviour
     {
+        [SerializeField] private double penetration = 1.0;
+        public double Penetration => penetration;
         private const int CircleSegments = 24;
         private const float TrailSeconds = 1f;
         private Vector2 direction;
@@ -64,6 +66,12 @@ namespace Aquarium.Tiling
 
         private void Update()
         {
+            if (!ProjectilePenetration.IsValid(penetration))
+            {
+                Debug.LogError("弾の貫通力は0より大きい有限値が必要です。弾を停止・除去します。", this);
+                Destroy(gameObject);
+                return;
+            }
             float step = Mathf.Min(Time.deltaTime, lifetime - elapsed);
             if (guided && step > 0f) ApplyProportionalNavigation(step);
             transform.position += (Vector3)(direction * speed * step);

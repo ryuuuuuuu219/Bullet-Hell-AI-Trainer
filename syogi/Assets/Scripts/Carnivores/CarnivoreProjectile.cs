@@ -4,6 +4,8 @@ using UnityEngine;
 [DefaultExecutionOrder(40)]
 public sealed class CarnivoreProjectile : MonoBehaviour
 {
+    [SerializeField] private double penetration = 1.0;
+    public double Penetration => penetration;
     public const float Speed = 250f;
     public const float Radius = 5f;
     public const double InitialPower = 25;
@@ -58,6 +60,12 @@ public sealed class CarnivoreProjectile : MonoBehaviour
 
     private void Update()
     {
+        if (!ProjectilePenetration.IsValid(penetration))
+        {
+            Debug.LogError("弾の貫通力は0より大きい有限値が必要です。弾を停止・除去します。", this);
+            Destroy(gameObject);
+            return;
+        }
         double remainingSeconds = Time.deltaTime;
         Vector2 position = transform.position;
         // Re-query after reflection so the unused frame time follows the reflected path.
@@ -110,7 +118,7 @@ public sealed class CarnivoreProjectile : MonoBehaviour
                     reflected = true;
                     break;
                 }
-                power = contact.Body.Hit(power, owner, SpeciesId);
+                power = contact.Body.Hit(power, owner, SpeciesId, penetration);
                 if (owner != null) owner.OnAttackHit();
                 if (power <= 0) { Destroy(gameObject); return; }
             }

@@ -49,6 +49,7 @@ public sealed class AnimalBody : MonoBehaviour
     public SpeciesDefinition Species => Identity == null ? null : Identity.Definition;
     private SpeciesManager speciesManager;
     public AnimalResources Resources { get; private set; }
+    public double Interception => Resources == null ? 0.0 : Resources.Interception;
     public bool IsHerbivore { get; private set; }
     public bool IsAlive => isActiveAndEnabled && Resources != null && !Resources.IsDead;
     public AnimalTraits Traits { get; private set; }
@@ -172,10 +173,10 @@ public sealed class AnimalBody : MonoBehaviour
         SyncSpatialPosition();
     }
 
-    public double Hit(double power, CarnivoreAnimal attacker, string projectileSpeciesId)
+    public double Hit(double power, CarnivoreAnimal attacker, string projectileSpeciesId, double penetration = 1.0)
     {
         if (!IsAlive) return power;
-        double remaining = Resources.Hit(power, projectileSpeciesId, SpeciesId, out double stolen);
+        double remaining = Resources.Hit(power, projectileSpeciesId, SpeciesId, out double stolen, penetration);
         if (Resources.IsDead)
         {
             Die(stolen); // Immediately remove it so another bullet cannot claim this kill.

@@ -28,6 +28,13 @@ static class Program
     { Time.deltaTime=seconds; if(!bullet.gameObject.destroyed) Update.Invoke(bullet,null); }
     static void Main()
     {
+        var invalidOwner=Shooter(); var invalidTarget=Target(50); var invalid=Fire(invalidOwner);
+        Equal(invalid.Penetration,1.0,"existing bullets default to penetration 1");
+        typeof(CarnivoreProjectile).GetField("penetration",BindingFlags.NonPublic|BindingFlags.Instance).SetValue(invalid,0d);
+        int errors=Debug.Errors;
+        Step(invalid,1);
+        Check(Debug.Errors==errors+1 && invalid.gameObject.destroyed,"zero penetration logs error and destroys bullet");
+        Equal(invalidTarget.Resources.Health,100,"invalid bullet cannot damage target");
         var owner=Shooter(); var reflector=Target(50,true); var bullet=Fire(owner);
         Step(bullet,1);
         Equal(reflector.Resources.Health,100,"reflection prevents damage");

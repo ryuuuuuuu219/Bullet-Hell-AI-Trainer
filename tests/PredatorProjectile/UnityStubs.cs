@@ -3,6 +3,8 @@ using System;
 using System.Collections.Generic;
 namespace UnityEngine
 {
+    public sealed class SerializeField : Attribute { }
+    public static class Debug { public static int Errors; public static void LogError(object message, object context) { Errors++; } }
     public class ScriptableObject { }
     public class Material { }
     public class Transform { public Vector3 position; }
@@ -77,8 +79,8 @@ public sealed class AnimalBody
     public bool IsAlive => !Resources.IsDead;
     public static void QuerySpatial(UnityEngine.Vector2 a,UnityEngine.Vector2 b,float padding,bool radius,List<AnimalBody> result)
     { result.Clear(); result.AddRange(All); }
-    public double Hit(double power,CarnivoreAnimal owner,string species)
-        => Resources.Hit(power,species,SpeciesId,out _);
+    public double Hit(double power,CarnivoreAnimal owner,string species,double penetration=1.0)
+        => Resources.Hit(power,species,SpeciesId,out _,penetration);
 }
 public sealed class CarnivoreAnimal
 {

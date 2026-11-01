@@ -224,6 +224,7 @@ static class Program
 
     static void Main()
     {
+        PenetrationTests.Run();
         var accelerationTraits = new AnimalTraits();
         Equal(AccelerationSkill.Speed(accelerationTraits, false), 105, "skill off preserves walking speed");
         Equal(AccelerationSkill.Speed(accelerationTraits, true), 150, "skill on uses running speed");

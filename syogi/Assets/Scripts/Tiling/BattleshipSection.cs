@@ -37,6 +37,7 @@ namespace Aquarium.Tiling
         public double CurrentHealth { get; private set; }
         public double MaximumHealth { get; private set; } = 100d;
         public double Armor => Role == BattleshipSectionRole.Armor ? 25d : 0d;
+        public double Interception => Role == BattleshipSectionRole.Armor ? 0.1d : 0.0d;
         public bool IsAttached { get; private set; } = true;
         public BattleshipAnimalInstance Owner => owner;
         public IReadOnlyList<BattleshipSection> Neighbors => neighbors;
@@ -72,12 +73,12 @@ namespace Aquarium.Tiling
             CurrentHealth = Math.Min(MaximumHealth, CurrentHealth + amount);
         }
 
-        internal double Hit(double power)
+        internal double Hit(double power, double penetration = 1.0)
         {
             if (!IsAttached || owner == null || power <= 0) return power;
-            double previousHealth = CurrentHealth;
+            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, CurrentHealth, Armor);
             owner.ReceiveHit(this, power);
-            return Math.Max(0, power - previousHealth);
+            return remaining;
         }
 
         internal void TickWeapon(float seconds)

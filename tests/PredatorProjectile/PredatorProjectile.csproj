@@ -7,5 +7,6 @@
     <Compile Include="../../syogi/Assets/Scripts/Animals/AnimalResources.cs" Link="AnimalResources.cs" />
     <Compile Include="../../syogi/Assets/Scripts/Animals/AnimalTraits.cs" Link="AnimalTraits.cs" />
     <Compile Include="../../syogi/Assets/Scripts/Animals/SpeciesDefinition.cs" Link="SpeciesDefinition.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Animals/ProjectilePenetration.cs" Link="ProjectilePenetration.cs" />
   </ItemGroup>
 </Project>

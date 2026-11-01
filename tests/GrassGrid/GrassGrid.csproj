@@ -9,5 +9,6 @@
     <Compile Include="../../syogi/Assets/Scripts/Grass/GrassGrid.cs" Link="GrassGrid.cs" />
     <Compile Include="../../syogi/Assets/Scripts/Grass/GrassTargeting.cs" Link="GrassTargeting.cs" />
     <Compile Include="../../syogi/Assets/Scripts/Herbivores/HerbivoreResources.cs" Link="HerbivoreResources.cs" />
+    <Compile Include="../../syogi/Assets/Scripts/Animals/ProjectilePenetration.cs" Link="ProjectilePenetration.cs" />
   </ItemGroup>
 </Project>

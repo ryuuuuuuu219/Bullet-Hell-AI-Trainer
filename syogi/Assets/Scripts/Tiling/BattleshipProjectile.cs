@@ -6,6 +6,8 @@ namespace Aquarium.Tiling
     [DefaultExecutionOrder(40)]
     public sealed class BattleshipProjectile : MonoBehaviour
     {
+        [SerializeField] private double penetration = 1.0;
+        public double Penetration => penetration;
         private struct Contact
         {
             public RaycastHit2D Hit;
@@ -51,6 +53,12 @@ namespace Aquarium.Tiling
 
         private void Update()
         {
+            if (!ProjectilePenetration.IsValid(penetration))
+            {
+                Debug.LogError("弾の貫通力は0より大きい有限値が必要です。弾を停止・除去します。", this);
+                Destroy(gameObject);
+                return;
+            }
             float dt = Time.deltaTime;
             if (dt <= 0 || power <= 0 || owner == null || !owner.IsAlive) { Destroy(gameObject); return; }
             if (kind == BattleshipWeaponKind.AntiShipMissile) Guide(dt);
@@ -95,10 +103,10 @@ namespace Aquarium.Tiling
                     previousShip = contact.Section.Owner;
                     previousShipDistance = contact.Hit.distance;
                     hitSections.Add(contact.Section);
-                    power = contact.Section.Hit(power);
+                    power = contact.Section.Hit(power, penetration);
                 }
                 else if (contact.Body != null && contact.Body.IsAlive && hitBodies.Add(contact.Body))
-                    power = contact.Body.Hit(power, null, null);
+                    power = contact.Body.Hit(power, null, null, penetration);
             }
 
             power = System.Math.Max(0, power - decay * dt);

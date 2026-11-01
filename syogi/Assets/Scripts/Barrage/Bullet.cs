@@ -51,6 +51,8 @@ public class BarrageSettings
 [RequireComponent(typeof(LineRenderer))]
 public class Bullet : MonoBehaviour
 {
+    [SerializeField] private double penetration = 1.0;
+    public double Penetration => penetration;
     private float speed = 50f;
     private float lifetime = 10f;
     private float elapsed;
@@ -113,6 +115,12 @@ public class Bullet : MonoBehaviour
 
     void Update()
     {
+        if (!ProjectilePenetration.IsValid(penetration))
+        {
+            Debug.LogError("弾の貫通力は0より大きい有限値が必要です。弾を停止・除去します。", this);
+            Destroy(gameObject);
+            return;
+        }
         if (!initialized) return;
 
         float step = Mathf.Min(Time.deltaTime, lifetime - elapsed);
