@@ -179,6 +179,7 @@ public sealed class AnimalBody : MonoBehaviour
         double remaining = Resources.Hit(power, projectileSpeciesId, SpeciesId, out double stolen, penetration);
         if (Resources.IsDead)
         {
+            if (Resources.Health <= 0) CampaignRuntime.RecordKill(SpeciesId);
             Die(stolen); // Immediately remove it so another bullet cannot claim this kill.
         }
         return remaining;

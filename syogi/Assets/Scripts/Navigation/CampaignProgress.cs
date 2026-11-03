@@ -1,0 +1,45 @@
+using System;
+using System.Collections.Generic;
+
+// Serializable progress and settings. Rewards are derived from unique mission IDs.
+[Serializable]
+public sealed class CampaignProgress
+{
+    public int version = 1;
+    public List<string> completed = new List<string>();
+    public List<SettingValue> settings = new List<SettingValue>();
+    public int maximumSections;
+    [Serializable] public sealed class SettingValue { public string key; public float value; }
+    public bool Has(string id) => completed.Contains(id);
+    public bool Complete(string id)
+    {
+        if (!Array.Exists(SettingMissionCatalog.All, m => m.Id == id) || Has(id)) return false;
+        completed.Add(id); return true;
+    }
+    public bool StageUnlocked(int stage) => stage == 0 || stage > 0 && stage <= 9 && Has((stage - 1) + "-1");
+    public int SpeedRewards => completed.FindAll(id => Array.Exists(SettingMissionCatalog.All,
+        m => m.Id == id && IsSpeedReward(m))).Count;
+    public static bool IsSpeedReward(SettingMissionCatalog.Mission m) => m.Number == 3 || m.Id == "3-2" || m.Id == "5-2";
+    public float Get(string key, float fallback)
+    {
+        var entry = settings.Find(s => s.key == key);
+        return entry == null || float.IsNaN(entry.value) || float.IsInfinity(entry.value) ? fallback : entry.value;
+    }
+    public void Set(string key, float value)
+    {
+        if (float.IsNaN(value) || float.IsInfinity(value)) return;
+        var entry = settings.Find(s => s.key == key);
+        if (entry == null) { entry = new SettingValue { key = key }; settings.Add(entry); }
+        entry.value = value;
+    }
+    public static string RequiredReward(string key)
+    {
+        if (key == "grass.initialCount" || key == "grass.maxAmount") return "0-2";
+        if (key.StartsWith("grass.birthNeighbor")) return "0-4";
+        if (key == "grass.cycle") return "1-4";
+        if (key == "dayNight") return "2-4";
+        if (key == "ship.sections") return "8-4";
+        return key.Length > 3 ? key.Substring(0, 3) : "";
+    }
+    public bool CanEdit(string key) => key != null && Has(RequiredReward(key));
+}

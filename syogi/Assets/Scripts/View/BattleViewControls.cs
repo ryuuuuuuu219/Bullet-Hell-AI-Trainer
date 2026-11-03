@@ -17,7 +17,8 @@ public sealed class BattleViewControls : MonoBehaviour
 
     private Button zoomInButton;
     private Button zoomOutButton;
-    private static readonly float[] SimulationSpeeds = { 1f, 2f, 4f, 8f };
+    private static readonly System.Collections.ObjectModel.ReadOnlyCollection<float> SimulationSpeeds = SettingMissionCatalog.TimeScaleUnlockOrder;
+    private static readonly float[] LegacySpeeds = { 1f, 2f, 4f, 8f };
     private int simulationSpeedIndex;
     private Text simulationSpeedText;
     private Text populationText;
@@ -60,15 +61,15 @@ public sealed class BattleViewControls : MonoBehaviour
     private void CycleSimulationSpeed()
     {
         simulationSpeedIndex = BattleSimulationSpeed.ExtinctionOverride ? 0
-            : (simulationSpeedIndex + 1) % SimulationSpeeds.Length;
+            : (simulationSpeedIndex + 1) % (CampaignRuntime.Current != null ? Mathf.Min(SimulationSpeeds.Count, 1 + CampaignStore.Data.SpeedRewards) : LegacySpeeds.Length);
         ApplySimulationSpeed();
     }
 
     private void ApplySimulationSpeed()
     {
-        float speed = SimulationSpeeds[simulationSpeedIndex];
+        float speed = CampaignRuntime.Current != null ? SimulationSpeeds[simulationSpeedIndex] : LegacySpeeds[simulationSpeedIndex];
         BattleSimulationSpeed.SetUserSpeed(speed);
-        if (simulationSpeedText != null) simulationSpeedText.text = $"Speed x{speed:0}";
+        if (simulationSpeedText != null) simulationSpeedText.text = $"Speed x{speed:0.#}";
     }
 
     private void Start()
@@ -223,7 +224,8 @@ public sealed class BattleViewControls : MonoBehaviour
         foreach (var manager in SpeciesManager.Active)
             if (manager != null && manager.Definition != null)
                 text += $"\n{manager.Definition.displayName}：{manager.LivingCount}";
-        if (survivalStage != null) text += "\n\n" + survivalStage.Summary;
+        if (CampaignRuntime.Current != null) text += "\n\n" + CampaignRuntime.Current.Summary;
+        else if (survivalStage != null) text += "\n\n" + survivalStage.Summary;
         return text;
     }
 

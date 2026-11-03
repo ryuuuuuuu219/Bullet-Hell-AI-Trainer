@@ -9,6 +9,7 @@ public sealed class SettingScene : MonoBehaviour
 {
     [SerializeField] private Font japaneseFont;
     private Font font;
+    private Text saveStatus;
     private RectTransform missionContent;
     private ScrollRect missionScroll;
     private Button missionOrderButton;
@@ -21,6 +22,8 @@ public sealed class SettingScene : MonoBehaviour
 
     private void Start()
     {
+        values.Clear();
+        foreach (var entry in CampaignStore.Data.settings) values[entry.key] = entry.value;
         font = japaneseFont != null ? japaneseFont : Resources.GetBuiltinResource<Font>("LegacyRuntime.ttf");
         if (EventSystem.current == null)
             new GameObject("Setting EventSystem", typeof(EventSystem), typeof(InputSystemUIInputModule)).transform.SetParent(transform, false);
@@ -35,8 +38,9 @@ public sealed class SettingScene : MonoBehaviour
         Stretch(background);
         Text title = Label(canvas, "生態系の設定", 34);
         Place(title.rectTransform, 32, 18, 1400, 54);
-        Text help = Label(canvas, "操作値はプレイ中のみ保持・バトル反映／報酬連携は未接続", 22);
+        Text help = Label(canvas, "操作値は自動保存・開始時に反映・未解放項目は操作できません", 22);
         Place(help.rectTransform, 32, 78, 1700, 38);
+        saveStatus = help;
         missionOrderButton = SortButton(canvas, "ミッション順", 32, false);
         functionOrderButton = SortButton(canvas, "機能別", 268, true);
         var menu = Panel("Back to Menu", canvas, new Color(.15f, .25f, .32f));
@@ -77,6 +81,11 @@ public sealed class SettingScene : MonoBehaviour
         missionContent = content;
         missionScroll = scroll;
         SortMissions(false);
+    }
+
+    private void Update()
+    {
+        if (saveStatus != null && CampaignStore.SaveError != null) saveStatus.text = CampaignStore.SaveError;
     }
 
     private Button SortButton(Transform parent, string caption, float x, bool byFunction)
@@ -158,7 +167,7 @@ public sealed class SettingScene : MonoBehaviour
         horizontal.padding = new RectOffset(16, 16, 10, 10); horizontal.spacing = 16;
         horizontal.childControlWidth = horizontal.childControlHeight = true;
         horizontal.childForceExpandWidth = false; horizontal.childForceExpandHeight = true;
-        var label = Label(row, mission.Id + "  " + mission.Condition + "\n<size=19><color=#AABCCD>報酬：" + mission.Reward + "</color></size>", 24);
+        var label = Label(row, mission.Id + (CampaignStore.Data.Has(mission.Id) ? "  [達成済]  " : "  [未達成]  ") + mission.Condition + "\n<size=19><color=#AABCCD>報酬：" + mission.Reward + "</color></size>", 24);
         var labelLayout = label.gameObject.AddComponent<LayoutElement>();
         labelLayout.minWidth = 550; labelLayout.preferredWidth = 700; labelLayout.flexibleWidth = 1;
         RectTransform controls = Rect("Controls", row);
@@ -185,11 +194,12 @@ public sealed class SettingScene : MonoBehaviour
             case "7-2": Population(controls, mission.Id, "駆逐艦型", 0, 10); break;
             // The memo explicitly gives its later reward section priority over the earlier table.
             case "8-2": Population(controls, mission.Id, "巡洋艦型", 0, 5); Population(controls, mission.Id, "戦艦型", 0, 3); break;
-            case "8-4": Pending(controls, "初期目安区画数：上限記録・範囲未接続", true); break;
+            case "8-4": SliderControl(controls, "ship.sections", "初期目安区画数", 40, Mathf.Max(40, CampaignStore.Data.maximumSections), 40); break;
             default:
-                Pending(controls, mission.Reward.Contains("タイムスケール")
+                Pending(controls, (CampaignStore.Data.Has(mission.Id) ? "取得済\n" : "未取得\n") + (mission.Reward.Contains("タイムスケール")
                     ? "獲得ごとに次の倍率を開放\n" + SettingMissionCatalog.TimeScaleUnlockOrderLabel
-                    : "次ステージ：自動解放", false);
+                    : "次ステージ：自動解放"), false);
+                controls.GetComponentInChildren<Toggle>().SetIsOnWithoutNotify(CampaignStore.Data.Has(mission.Id));
                 break;
         }
     }
@@ -236,9 +246,9 @@ public sealed class SettingScene : MonoBehaviour
         box.anchorMin = box.anchorMax = new Vector2(0, .5f); box.pivot = new Vector2(0, .5f); box.sizeDelta = new Vector2(30, 30);
         RectTransform check = Panel("Checkmark", box, Accent); Stretch(check); check.offsetMin = new Vector2(6, 6); check.offsetMax = new Vector2(-6, -6);
         var toggle = root.gameObject.AddComponent<Toggle>(); toggle.targetGraphic = box.GetComponent<Image>(); toggle.graphic = check.GetComponent<Image>();
-        toggle.interactable = enabled;
+        toggle.interactable = enabled && key != null && CampaignStore.Data.CanEdit(key);
         toggle.SetIsOnWithoutNotify(key != null && values.TryGetValue(key, out float value) && value != 0);
-        if (key != null) toggle.onValueChanged.AddListener(on => values[key] = on ? 1 : 0);
+        if (key != null) toggle.onValueChanged.AddListener(on => { values[key] = on ? 1 : 0; CampaignStore.Set(key, values[key]); });
         Text text = Label(root, caption, 21); Stretch(text.rectTransform); text.rectTransform.offsetMin = new Vector2(38, 0);
         // Include the label in the toggle's click target.
         root.gameObject.AddComponent<Image>().color = Color.clear;
@@ -256,7 +266,7 @@ public sealed class SettingScene : MonoBehaviour
         RectTransform handleArea = Rect("Handle Area", track); Stretch(handleArea);
         RectTransform handle = Panel("Handle", handleArea, Accent); handle.sizeDelta = new Vector2(24, 30);
         var slider = track.gameObject.AddComponent<Slider>(); slider.handleRect = handle; slider.targetGraphic = handle.GetComponent<Image>();
-        slider.minValue = min; slider.maxValue = max; slider.wholeNumbers = true; slider.interactable = key != null;
+        slider.minValue = min; slider.maxValue = max; slider.wholeNumbers = true; slider.interactable = key != null && CampaignStore.Data.CanEdit(key);
         float value = key != null && values.TryGetValue(key, out float stored) ? stored : initial;
         slider.SetValueWithoutNotify(value);
         System.Action<float> refresh = v => text.text = key == null ? caption : caption + "  " + (choices != null ? choices[Mathf.RoundToInt(v)] : Mathf.RoundToInt(v));
@@ -264,7 +274,7 @@ public sealed class SettingScene : MonoBehaviour
         if (key != null)
         {
             values[key] = slider.value;
-            slider.onValueChanged.AddListener(v => { values[key] = v; refresh(v); });
+            slider.onValueChanged.AddListener(v => { values[key] = v; CampaignStore.Set(key,v); refresh(v); });
         }
         return root;
     }

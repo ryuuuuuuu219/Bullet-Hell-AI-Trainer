@@ -141,11 +141,15 @@ public sealed class SceneNavigation : MonoBehaviour
 
     public void ReturnToMainMenu()
     {
+        if (CampaignRuntime.Current != null) { CampaignRuntime.Current.Finish(); return; }
         LoadSceneByName("main menu");
     }
 
     private void LoadSceneByName(string sceneName)
     {
+        if (CampaignRuntime.Current != null && sceneName == "setting") return;
+        if (sceneName.StartsWith("battle") && int.TryParse(sceneName.Substring(6), out int stageIndex) && stageIndex >= 0
+            && !CampaignStore.Data.StageUnlocked(stageIndex)) return;
         if (string.IsNullOrWhiteSpace(sceneName) || !Application.CanStreamedLevelBeLoaded(sceneName))
         {
             Debug.LogError($"Scene is empty or not available in the build: {sceneName}", this);

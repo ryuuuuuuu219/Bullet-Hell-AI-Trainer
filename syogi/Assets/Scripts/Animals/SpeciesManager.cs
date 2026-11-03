@@ -21,6 +21,7 @@ public abstract class SpeciesManager : MonoBehaviour
 
     protected virtual void Awake()
     {
+        startupSettings = CampaignRuntime.Resolve(startupSettings);
         if (string.IsNullOrEmpty(speciesId)) speciesId = DefaultSpeciesId;
         if (startupSettings == null || !startupSettings.TryFindSpecies(speciesId, out var settings))
         {

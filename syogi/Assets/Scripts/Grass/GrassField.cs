@@ -50,6 +50,7 @@ public sealed class GrassField : MonoBehaviour
 
     private void Awake()
     {
+        startupSettings = CampaignRuntime.Resolve(startupSettings);
         var daylight = GetComponent<AquariumDayNight>();
         if (daylight == null) daylight = gameObject.AddComponent<AquariumDayNight>();
         if (startupSettings != null)
@@ -88,6 +89,9 @@ public sealed class GrassField : MonoBehaviour
         renderer.sprite = sprite;
         renderer.sortingOrder = -10;
         RefreshDisplay();
+        // GrowthEnabled controls amount increments, not spontaneous germination.
+        // Stage 5 has no grass at all; keep its independent day/night component running.
+        if (CampaignRuntime.Current != null && CampaignRuntime.Current.stageIndex == 5) enabled = false;
     }
 
     private void Update()

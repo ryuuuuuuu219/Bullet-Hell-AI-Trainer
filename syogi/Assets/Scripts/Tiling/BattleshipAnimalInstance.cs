@@ -241,6 +241,7 @@ namespace Aquarium.Tiling
                 coreHealth -= damage;
             }
             ProcessDestroyedSections();
+            if (dying) CampaignRuntime.RecordKill(SpeciesId);
         }
 
         private void ProcessDestroyedSections()

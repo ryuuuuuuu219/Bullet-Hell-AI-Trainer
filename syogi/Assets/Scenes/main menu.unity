@@ -1651,6 +1651,40 @@ CanvasRenderer:
   m_PrefabAsset: {fileID: 0}
   m_GameObject: {fileID: 539037966}
   m_CullTransparentMesh: 1
+--- !u!1 &2199000000
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 2199000001}
+  - component: {fileID: 2199000002}
+  m_Layer: 0
+  m_Name: Campaign
+  m_TagString: Untagged
+  m_IsActive: 1
+--- !u!4 &2199000001
+Transform:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2199000000}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_Children: []
+  m_Father: {fileID: 0}
+--- !u!114 &2199000002
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_GameObject: {fileID: 2199000000}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 93bf042ca71b47d8b095c4a60aac90a5, type: 3}
+  m_Name:
+  m_EditorClassIdentifier:
+  japaneseFont: {fileID: 12800000, guid: c4732cddaa37ed941a873274ec8e4bd4, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
@@ -1658,3 +1692,4 @@ SceneRoots:
   - {fileID: 330585546}
   - {fileID: 1001}
   - {fileID: 2001}
+  - {fileID: 2199000001}

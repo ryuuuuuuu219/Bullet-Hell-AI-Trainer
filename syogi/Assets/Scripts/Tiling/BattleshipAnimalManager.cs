@@ -52,6 +52,8 @@ namespace Aquarium.Tiling
 
         private void Start()
         {
+            if (CampaignRuntime.Current != null && shipClass == BattleshipAnimalClass.Battleship)
+                targetSections = CampaignRuntime.Read("ship.sections", 40, 40, Mathf.Max(40, CampaignStore.Data.maximumSections));
             if (spawnOnStart) Respawn();
         }
 
@@ -110,6 +112,7 @@ namespace Aquarium.Tiling
             instance.Initialize(this, animalClass, requestedSections, tiles.Length, animalSeed, sections);
 
             spawnedAnimals.Add(root);
+            CampaignRuntime.RecordShip(animalClass, requestedSections);
             if (!generator.Reached)
                 Debug.LogWarning($"{root.name}: 生成試行上限に達し、指定した{requestedSections}区画へ到達しませんでした。", this);
             return instance;
@@ -331,7 +334,7 @@ namespace Aquarium.Tiling
                 BattleshipAnimalClass.Cruiser => 5,
                 _ => 3
             };
-            double probability = Mathf.Clamp01(1f - (float)living / baseline);
+            double probability = CampaignRuntime.ShipProbability(parent.ShipClass, living, Mathf.Clamp01(1f - (float)living / baseline));
             parent.ResetReproductionAge();
             if (reproductionRandom.NextDouble() >= probability) return;
 

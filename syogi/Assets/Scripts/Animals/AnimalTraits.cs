@@ -6,6 +6,7 @@ public sealed class AnimalTraits
 {
     public double reproductionThreshold = 40;
     public int reproductionPopulationBaseline = 50;
+    public bool populationScalingEnabled = true;
     public double maturitySeconds = 30;
     public int offspringCount = 1;
     public double offspringResources = 10;
@@ -25,14 +26,14 @@ public sealed class AnimalTraits
     public float escapeHoldSeconds = 2;
 
     public static AnimalTraits HerbivoreDefaults() => new AnimalTraits { reproductionPopulationBaseline = 300, activeLightMinimum = 0.2f, searchDistance = 500, walkingSpeed = 80, runningCostPerSecond = 15 };
-    public double BirthSurvivalProbability(int population) => reproductionPopulationBaseline > 0
+    public double BirthSurvivalProbability(int population) => !populationScalingEnabled ? 1 : reproductionPopulationBaseline > 0
         ? Math.Max(0, Math.Min(1, 1 - (double)population / reproductionPopulationBaseline)) : 0;
     public AnimalTraits Copy() => (AnimalTraits)MemberwiseClone();
     public bool IsActive(double light) => (includeActiveLightMinimum ? light >= activeLightMinimum : light > activeLightMinimum) && light <= activeLightMaximum;
     public double SearchRadius(double light) => Math.Max(0, searchDistance) *
         (Math.Max(0, nightSearchMultiplier) + (1 - Math.Max(0, nightSearchMultiplier)) * Math.Max(0, Math.Min(1, light)));
     public double BirthCost => offspringCount * offspringResources;
-    public bool ValidReproduction => offspringCount > 0 && reproductionPopulationBaseline > 0 && Finite(reproductionThreshold) && reproductionThreshold >= 0 &&
+    public bool ValidReproduction => offspringCount > 0 && (!populationScalingEnabled || reproductionPopulationBaseline > 0) && Finite(reproductionThreshold) && reproductionThreshold >= 0 &&
         Finite(maturitySeconds) && maturitySeconds >= 0 && Finite(offspringResources) && offspringResources > 0 &&
         offspringResources <= AnimalResources.Maximum && Finite(reproductionStaminaCost) && reproductionStaminaCost >= 0 &&
         Finite(BirthCost);
