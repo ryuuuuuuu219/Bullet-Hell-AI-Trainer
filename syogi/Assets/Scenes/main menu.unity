@@ -239,7 +239,7 @@ MonoBehaviour:
   m_EditorClassIdentifier: 
   sceneNames:
   - main menu
-  - CardSet
+  - setting
   - nobel0
   - battle1
   - debriefing0
