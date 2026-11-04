@@ -31,6 +31,13 @@
 ・内部文明から見れば創造者に相当するが、本人は生存命題を与えていない。
 ・主人公がゲームに触れる前にテストプレイをしていた。
 
+stable diffusion用プロンプト
+1girl, solo, blush,  light smile
+((bouncing breasts)), ((unaligned breasts)), 
+classroom, evening
+white and gray school uniform, black navy long hair, glasses, light blue A-line mini skirt, light blue trench coat, light lavender fringed scarf, small  light beige leather mini handbag, blazer, cardigan
+
+
 ■ 3. 内部文明
 ・市街地を設営する電子生命文明。
 ・偵察プローブで生態系を発見し、弾幕プラットフォームや入植ユニットなどで強襲する（ゲーム企画書の設定）。
