@@ -43,6 +43,11 @@ public static class CampaignStore
         }
         catch (Exception e) { SaveError = "保存に失敗しました: " + e.Message; Debug.LogError(SaveError); }
     }
+    public static bool SetMaintenance(string speciesId, float value)
+    {
+        if (CampaignRuntime.Current != null || !Data.SetMaintenance(speciesId, value)) return false;
+        Save(); return true;
+    }
     public static void Set(string key,float value)
     {
         if (!Data.CanEdit(key) || CampaignRuntime.Current != null) return;

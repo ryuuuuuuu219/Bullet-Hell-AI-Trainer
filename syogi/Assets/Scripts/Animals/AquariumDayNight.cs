@@ -5,6 +5,13 @@ public sealed class AquariumDayNight : MonoBehaviour
 {
     [Min(0.01f)] public float periodSeconds = 120;
     public float phaseDegrees;
+    public bool permanentNight;
+
+    public void Configure(float period, float phase, bool fixedNight)
+    {
+        periodSeconds = period; phaseDegrees = phase; permanentNight = fixedNight;
+        elapsed = 0; Apply();
+    }
     public float LightLevel { get; private set; } = 0.5f;
     public static float CurrentLight => current == null ? 1f : current.LightLevel;
     private static AquariumDayNight current;
@@ -19,7 +26,7 @@ public sealed class AquariumDayNight : MonoBehaviour
     private void Apply()
     {
         double phase = elapsed * System.Math.PI * 2 / Mathf.Max(0.01f, periodSeconds) + phaseDegrees * Mathf.Deg2Rad;
-        LightLevel = (float)(System.Math.Sin(phase) * 0.5 + 0.5);
+        LightLevel = permanentNight ? 0f : (float)(System.Math.Sin(phase) * 0.5 + 0.5);
         if (mainCamera == null) mainCamera = Camera.main;
         if (mainCamera == null) return;
         mainCamera.clearFlags = CameraClearFlags.SolidColor;

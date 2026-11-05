@@ -21,7 +21,8 @@ namespace Aquarium.Tiling
     [DefaultExecutionOrder(20)]
     public sealed class BattleshipAnimalInstance : MonoBehaviour
     {
-        private const float FleeDistance = 1500f;
+        // Shared center-to-center range for threat detection and attack acquisition.
+        public const float EncounterDistance = 1500f;
         private static readonly List<BattleshipAnimalInstance> active = new List<BattleshipAnimalInstance>();
 
         [SerializeField] private BattleshipAnimalClass shipClass;
@@ -58,7 +59,7 @@ namespace Aquarium.Tiling
         public double CoreHealthLimit => coreHealthLimit;
         public bool IsAlive => isActiveAndEnabled && !dying && coreHealth > 0 && LivingSectionCount > 0;
         public Vector2 ObservedVelocity => observedVelocity;
-        internal object AttackTarget => ValidTarget(attackTarget) ? attackTarget : null;
+        internal object AttackTarget => ValidTarget(attackTarget) && WithinEncounterRange(attackTarget) ? attackTarget : null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
         private static void ResetRegistry() => active.Clear();
@@ -136,13 +137,15 @@ namespace Aquarium.Tiling
                     .Where(x => x != this && x.IsAlive && x.shipClass == shipClass)
                     .OrderBy(x => ((Vector2)(x.transform.position - transform.position)).sqrMagnitude)
                     .FirstOrDefault();
-                attackTarget = friend?.AttackTarget;
+                var sharedTarget = friend?.AttackTarget;
+                attackTarget = sharedTarget != null && WithinEncounterRange(sharedTarget) ? sharedTarget : null;
                 return;
             }
 
             var candidates = new List<object>();
             candidates.AddRange(active.Where(x => x != this && x.IsAlive && x.shipClass < shipClass));
             candidates.AddRange(AnimalBody.Active.Where(x => x != null && x.IsAlive && (x.Species == null || !x.Species.isShip)));
+            candidates.RemoveAll(target => !WithinEncounterRange(target));
             if (candidates.Count == 0) { attackTarget = null; return; }
 
             switch (shipClass)
@@ -174,7 +177,7 @@ namespace Aquarium.Tiling
             {
                 BattleshipAnimalInstance threat = active
                     .Where(x => x != this && x.IsAlive && x.shipClass >= shipClass &&
-                        ((Vector2)(x.transform.position - transform.position)).sqrMagnitude <= FleeDistance * FleeDistance)
+                        ((Vector2)(x.transform.position - transform.position)).sqrMagnitude <= EncounterDistance * EncounterDistance)
                     .OrderBy(x => ((Vector2)(x.transform.position - transform.position)).sqrMagnitude)
                     .FirstOrDefault();
                 if (threat != null) desired = position - (Vector2)threat.transform.position;
@@ -336,6 +339,8 @@ namespace Aquarium.Tiling
             AnimalBody body => body.Resources.Health,
             _ => 0
         };
+
+        private bool WithinEncounterRange(object target) => DistanceSquared(target) <= EncounterDistance * EncounterDistance;
 
         private float DistanceSquared(object target) => (TargetPosition(target) - (Vector2)transform.position).sqrMagnitude;
 

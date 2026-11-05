@@ -25,7 +25,7 @@ public sealed class CampaignMissionRun
             case 1: Add(450,"herbivore"); Add(600,"carnivore"); Add(900,"carnivore"); Add(900,"carnivore", eligible:herbivore50); break;
             case 2: Add(450,"herbivore,carnivore"); Add(600,"herbivore,carnivore"); Add(900,"carnivore",eligible:herbivore60); Add(900,"carnivore",eligible:cycle60); break;
             case 3: Add(450,"dog"); Add(450,"dog,carnivore"); Add(900,"dog,carnivore"); break;
-            case 4: Add(450,"herbivore,dog"); Add(900,"herbivore,dog"); Add(900,"herbivore,dog",eligible:cycle60); break;
+            case 4: Add(150,"herbivore,dog"); Add(300,"herbivore,dog"); Add(300,"herbivore,dog",eligible:cycle60); break;
             case 5: Add(1,"snake",1); Add(5,"snake",1); Add(450,"snake"); break;
             case 6: Add(450,"herbivore"); Add(5,"battleship-frigate",1); Add(450,"battleship-destroyer"); break;
             case 7: Add(5,"battleship-destroyer",2); Add(10,"battleship-destroyer",2); Add(900,"herbivore,battleship-frigate"); break;

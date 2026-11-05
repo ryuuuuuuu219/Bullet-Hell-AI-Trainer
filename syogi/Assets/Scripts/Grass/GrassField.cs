@@ -55,8 +55,7 @@ public sealed class GrassField : MonoBehaviour
         if (daylight == null) daylight = gameObject.AddComponent<AquariumDayNight>();
         if (startupSettings != null)
         {
-            daylight.periodSeconds = startupSettings.dayNightPeriodSeconds;
-            daylight.phaseDegrees = startupSettings.dayNightPhaseDegrees;
+            daylight.Configure(startupSettings.dayNightPeriodSeconds, startupSettings.dayNightPhaseDegrees, startupSettings.permanentNight);
         }
         if (startupSettings != null && startupSettings.grass != null)
         {

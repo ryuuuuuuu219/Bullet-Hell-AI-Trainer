@@ -4,6 +4,7 @@ using System;
 [Serializable]
 public sealed class AnimalTraits
 {
+    public double maintenancePerSecond = AnimalResources.MaintenancePerSecond;
     public double reproductionThreshold = 40;
     public int reproductionPopulationBaseline = 50;
     public bool populationScalingEnabled = true;
@@ -54,7 +55,7 @@ public sealed class AnimalActivity
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
             throw new ArgumentOutOfRangeException(nameof(seconds));
         IsSleeping = !traits.IsActive(light);
-        resources.Advance(seconds, IsSleeping);
+        resources.Advance(seconds, IsSleeping, traits.maintenancePerSecond);
         if (IsSleeping || resources.IsDead || seconds == 0) return;
         threatDetected = threat;
         ActiveAge += seconds;

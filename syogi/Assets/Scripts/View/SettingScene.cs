@@ -105,7 +105,7 @@ public sealed class SettingScene : MonoBehaviour
     {
         "草の初期数・草量上限", "草の繁殖条件", "草のサイクル時間",
         "個体数比例繁殖・基準数", "昼夜の速さ", "戦艦型の初期目安区画数",
-        "タイムスケール", "次ステージ開放"
+        "タイムスケール", "次ステージ開放", "動物の維持費"
     };
 
     private static int FunctionIndex(SettingMissionCatalog.Mission mission)
@@ -118,6 +118,7 @@ public sealed class SettingScene : MonoBehaviour
             case "1-2": case "2-2": case "4-2": case "6-2": case "7-2": case "8-2": return 3;
             case "2-4": return 4;
             case "8-4": return 5;
+            case "5-2": return 8;
             default: return mission.Reward.Contains("タイムスケール") ? 6 : 7;
         }
     }
@@ -190,6 +191,7 @@ public sealed class SettingScene : MonoBehaviour
             case "4-2":
                 foreach (string species in new[] { "犬型", "ヨッシー型", "蛇型", "甲虫型" }) Population(controls, mission.Id, species, 0, 20);
                 break;
+            case "5-2": MaintenanceControl(controls, "snake", "蛇型"); break;
             case "6-2": Population(controls, mission.Id, "フリゲート艦型", 0, 20); break;
             case "7-2": Population(controls, mission.Id, "駆逐艦型", 0, 10); break;
             // The memo explicitly gives its later reward section priority over the earlier table.
@@ -255,7 +257,12 @@ public sealed class SettingScene : MonoBehaviour
         return root;
     }
 
-    private RectTransform SliderControl(Transform parent, string key, string caption, int min, int max, int initial, int[] choices = null)
+    // Reusable species slider. Undeclared rewards remain locked.
+    public RectTransform MaintenanceControl(Transform parent, string speciesId, string caption)
+        => SliderControl(parent, CampaignProgress.MaintenanceKey(speciesId), caption + "の維持費（資源/秒）",
+            0, CampaignProgress.MaintenanceMaximumStep, (float)AnimalResources.MaintenancePerSecond, null, true, true);
+
+    private RectTransform SliderControl(Transform parent, string key, string caption, float min, float max, float initial, int[] choices = null, bool wholeNumbers = true, bool maintenanceLog = false)
     {
         RectTransform root = Rect(caption, parent); Stretch(root);
         root.gameObject.AddComponent<LayoutElement>().flexibleWidth = 1;
@@ -266,15 +273,15 @@ public sealed class SettingScene : MonoBehaviour
         RectTransform handleArea = Rect("Handle Area", track); Stretch(handleArea);
         RectTransform handle = Panel("Handle", handleArea, Accent); handle.sizeDelta = new Vector2(24, 30);
         var slider = track.gameObject.AddComponent<Slider>(); slider.handleRect = handle; slider.targetGraphic = handle.GetComponent<Image>();
-        slider.minValue = min; slider.maxValue = max; slider.wholeNumbers = true; slider.interactable = key != null && CampaignStore.Data.CanEdit(key);
+        slider.minValue = min; slider.maxValue = max; slider.wholeNumbers = wholeNumbers; slider.interactable = key != null && CampaignStore.Data.CanEdit(key);
         float value = key != null && values.TryGetValue(key, out float stored) ? stored : initial;
-        slider.SetValueWithoutNotify(value);
-        System.Action<float> refresh = v => text.text = key == null ? caption : caption + "  " + (choices != null ? choices[Mathf.RoundToInt(v)] : Mathf.RoundToInt(v));
+        slider.SetValueWithoutNotify(maintenanceLog ? CampaignProgress.MaintenanceStep(value) : value);
+        System.Action<float> refresh = v => text.text = key == null ? caption : caption + "  " + (maintenanceLog ? CampaignProgress.MaintenanceValue(Mathf.RoundToInt(v)).ToString("G6") : choices != null ? choices[Mathf.RoundToInt(v)].ToString() : wholeNumbers ? Mathf.RoundToInt(v).ToString() : v.ToString("0.00"));
         refresh(slider.value);
         if (key != null)
         {
-            values[key] = slider.value;
-            slider.onValueChanged.AddListener(v => { values[key] = v; CampaignStore.Set(key,v); refresh(v); });
+            values[key] = maintenanceLog ? CampaignProgress.MaintenanceValue(Mathf.RoundToInt(slider.value)) : slider.value;
+            slider.onValueChanged.AddListener(v => { values[key] = maintenanceLog ? CampaignProgress.MaintenanceValue(Mathf.RoundToInt(v)) : v; CampaignStore.Set(key,values[key]); refresh(v); });
         }
         return root;
     }

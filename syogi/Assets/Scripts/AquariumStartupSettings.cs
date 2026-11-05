@@ -38,6 +38,7 @@ public sealed class AquariumStartupSettings : ScriptableObject
     [Header("昼夜（0=夜、1=昼）")]
     [Min(0.01f)] public float dayNightPeriodSeconds = 120;
     public float dayNightPhaseDegrees;
+    public bool permanentNight;
 
     [System.Serializable]
     public sealed class GrassSettings

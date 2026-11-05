@@ -22,3 +22,17 @@ UIはPlay開始時に生成する。ステージ0～8の31ミッションを、�
 
 保存・初期配置・デブリーフィング・検証の詳細は `CAMPAIGN.md` を参照。
 ノベル本文とステージ9以降の戦闘は未収録。全ミッションの達成可能性・難易度の検証状況は実装報告と区別する。
+
+
+## 動物種別の維持費 API（5-2）
+- 5-2達成で蛇型の維持費スライダーを解放。既存の時間倍率報酬も維持する。
+- 範囲は10^-5～10^0資源/ゲーム内秒/個体。指数1/3刻みの全16段階で、3目盛り進むと10倍。解放後の初期値は0.05に最も近い約0.0464159。旧保存値も最寄り目盛りに補正し、旧0は下限10^-5として扱う。未解放時の基本値0.05は維持。休眠中は従来どおり消費なし。移動・射撃・繁殖の費用は別。
+- `AnimalTraits.maintenancePerSecond`：通常動物の種別基本値。`AnimalActivity.Step`が使用し、子のtraitsコピーにも引き継ぐ。戦艦型の区画数比例維持費は別処理のまま。
+- `CampaignProgress.MaintenanceKey(speciesId)`：保存キー。例 `maintenance.snake`。
+- `CampaignProgress.GetMaintenance(speciesId, fallback)`：解放済みの保存値を対数目盛りの最寄り値に補正して取得。未解放ならfallback。
+- `CampaignStore.SetMaintenance(speciesId, value)`：解放確認・対数目盛りへの補正・保存。未解放、非有限値、バトル中はfalseを返して拒否。
+- `SettingScene.MaintenanceControl(parent, speciesId, caption)`：種別キーに接続した16段階の対数スライダーを生成（保存するのは目盛り番号ではなく実際の維持費）。蛇型以外の解放報酬は未指定のためロック。
+- 別の通常動物へ解放する場合は`CampaignProgress.RequiredReward`に種別キーの報酬を追加し、対応行で`MaintenanceControl`を呼ぶ。
+- バトル開始時の設定スナップショットからコピーしたtraitsに適用し、共有アセットは変更しない。保存形式は既存settings配列を使用。過去に5-2達成済みのセーブも解放対象。
+
+- `CampaignProgress.MaintenanceValue(step)` / `MaintenanceStep(value)`：目盛り0～15と実際の維持費を相互変換するAPI。

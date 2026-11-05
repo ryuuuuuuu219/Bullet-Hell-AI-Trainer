@@ -66,7 +66,7 @@ public sealed class CampaignRuntime : MonoBehaviour
         g.birthNeighborMaximum=Read("grass.birthNeighborMaximum",1,g.birthNeighborMinimum,3);
         if (Settings.Has("2-4")) copy.dayNightPeriodSeconds=new[]{30,60,90}[Read("dayNight",0,0,2)];
         if (Current.stageIndex==2) g.deathAmount=-5;
-        if (Current.stageIndex==5) { g.initialSpawnCount=0; g.growthEnabled=false; }
+        if (Current.stageIndex==5) { g.initialSpawnCount=0; g.growthEnabled=false; copy.permanentNight=true; }
         Current.snapshots.Add(source,copy);
         return copy;
     }
@@ -92,6 +92,7 @@ public sealed class CampaignRuntime : MonoBehaviour
     }
     public static void ApplyTraits(string id,AnimalTraits traits)
     {
+        traits.maintenancePerSecond = Settings.GetMaintenance(id, traits.maintenancePerSecond);
         var key=PopulationKey(id);
         traits.populationScalingEnabled=Read(key+".enabled",0,0,1)!=0;
         int min=id=="herbivore"?50:id=="carnivore"?20:0;

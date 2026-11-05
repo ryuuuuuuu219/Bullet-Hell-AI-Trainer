@@ -28,12 +28,37 @@ public sealed class CampaignProgress
     public void Set(string key, float value)
     {
         if (float.IsNaN(value) || float.IsInfinity(value)) return;
+        if (key != null && key.StartsWith("maintenance.")) value = MaintenanceValue(MaintenanceStep(value));
         var entry = settings.Find(s => s.key == key);
         if (entry == null) { entry = new SettingValue { key = key }; settings.Add(entry); }
         entry.value = value;
     }
+    // Stable species IDs keep settings independent of localized UI labels.
+    public const int MaintenanceMaximumStep = 15;
+    // Integer positions 0..15 represent exponents -5..0 in exact thirds.
+    public static float MaintenanceValue(int step) => (float)Math.Pow(10, -5 + Math.Max(0, Math.Min(15, step)) / 3.0);
+    public static int MaintenanceStep(double value)
+    {
+        if (double.IsNaN(value) || value <= 0) return 0;
+        if (value >= 1) return MaintenanceMaximumStep;
+        return Math.Max(0, Math.Min(15, (int)Math.Round((Math.Log10(Math.Max(1e-5, value)) + 5) * 3)));
+    }
+    public static string MaintenanceKey(string speciesId) => "maintenance." + speciesId;
+    public double GetMaintenance(string speciesId, double fallback)
+    {
+        string key = MaintenanceKey(speciesId);
+        return CanEdit(key) ? MaintenanceValue(MaintenanceStep(Get(key, (float)fallback))) : fallback;
+    }
+    public bool SetMaintenance(string speciesId, float value)
+    {
+        string key = MaintenanceKey(speciesId);
+        if (!CanEdit(key) || float.IsNaN(value) || float.IsInfinity(value)) return false;
+        Set(key, value);
+        return true;
+    }
     public static string RequiredReward(string key)
     {
+        if (key == MaintenanceKey("snake")) return "5-2";
         if (key == "grass.initialCount" || key == "grass.maxAmount") return "0-2";
         if (key.StartsWith("grass.birthNeighbor")) return "0-4";
         if (key == "grass.cycle") return "1-4";

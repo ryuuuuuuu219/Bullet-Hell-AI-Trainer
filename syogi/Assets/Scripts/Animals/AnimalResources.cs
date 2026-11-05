@@ -25,11 +25,12 @@ public class AnimalResources
         HealthLimit = initialHealth * 2;
     }
 
-    public void Maintain(double seconds)
+    public void Maintain(double seconds, double rate = MaintenancePerSecond)
     {
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
             throw new ArgumentOutOfRangeException(nameof(seconds));
-        Amount = Math.Max(0, Amount - MaintenancePerSecond * seconds);
+        ValidateMaintenance(rate);
+        Amount = Math.Max(0, Amount - rate * seconds);
         if (Amount < 1e-10) Amount = 0;
     }
 
@@ -38,19 +39,26 @@ public class AnimalResources
         AbsorbCarbon(actualConsumed);
     }
 
-    public void Advance(double seconds, bool sleeping)
+    private static void ValidateMaintenance(double rate)
+    {
+        if (double.IsNaN(rate) || double.IsInfinity(rate) || rate < 0)
+            throw new ArgumentOutOfRangeException(nameof(rate));
+    }
+
+    public void Advance(double seconds, bool sleeping, double rate = MaintenancePerSecond)
     {
         if (double.IsNaN(seconds) || double.IsInfinity(seconds) || seconds < 0)
             throw new ArgumentOutOfRangeException(nameof(seconds));
+        ValidateMaintenance(rate);
         if (IsDead || seconds == 0) return;
         // Sleeping preserves carbon; awake recovery integrates its gradual depletion.
-        double maintenance = sleeping ? 0 : MaintenancePerSecond;
-        double aliveSeconds = sleeping ? seconds : Math.Min(seconds, Amount / maintenance);
+        double maintenance = sleeping ? 0 : rate;
+        double aliveSeconds = maintenance == 0 ? seconds : Math.Min(seconds, Amount / maintenance);
         double recovery = (Amount - maintenance * aliveSeconds / 2) * aliveSeconds *
             RecoveryPerCarbonPerSecond * (sleeping ? SleepingRecoveryMultiplier : 1);
         Health = Math.Min(HealthLimit, Health + recovery);
         Stamina = Math.Min(MaximumStamina, Stamina + recovery);
-        if (!sleeping) Maintain(seconds);
+        if (!sleeping) Maintain(seconds, rate);
     }
 
     public void SpendStamina(double amount)
