@@ -674,6 +674,16 @@ MonoBehaviour:
   m_Name:
   m_EditorClassIdentifier:
   japaneseFont: {fileID: 12800000, guid: c4732cddaa37ed941a873274ec8e4bd4, type: 3}
+  novelTexts:
+  - {fileID: 4900000, guid: 91e88a7f59034221b49760e17b94bd1e, type: 3}
+  - {fileID: 4900000, guid: 7f9327ab8c804c058c26a7938f7869a9, type: 3}
+  - {fileID: 4900000, guid: a662b7f916bd4435b2e44b606ea8cbb7, type: 3}
+  - {fileID: 4900000, guid: ee6d6072e37c4169a841bbd9e9bd6696, type: 3}
+  - {fileID: 4900000, guid: 2388ce484dbd4d4ea206a42442f5230c, type: 3}
+  - {fileID: 4900000, guid: 58d9b10021c8462b90140ba97b8340e2, type: 3}
+  - {fileID: 4900000, guid: 73bc2aa23ab448179bf66f5207eca558, type: 3}
+  - {fileID: 4900000, guid: e5437123838d4e239e549a966b8394ca, type: 3}
+  - {fileID: 4900000, guid: 67e5f27becb646b1b55a589c33992d15, type: 3}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

@@ -4,10 +4,11 @@ using UnityEngine.EventSystems;
 using UnityEngine.InputSystem.UI;
 using UnityEngine.SceneManagement;
 
-// Shared menu, narrative handoff and debriefing. Story prose remains a separate asset task.
+// Shared menu, narrative handoff and debriefing. Story prose is referenced from Assets/nobel.
 public sealed class CampaignFlow : MonoBehaviour
 {
     public Font japaneseFont;
+    [SerializeField] private TextAsset[] novelTexts;
     private void Start()
     {
         string scene=SceneManager.GetActiveScene().name;
@@ -55,9 +56,11 @@ public sealed class CampaignFlow : MonoBehaviour
         {
             int stage=CampaignRuntime.SelectedStage;
             Label(panel.transform,"ステージ "+stage+" — ノベルパート",40,40,1520,70,36);
-            Label(panel.transform,"このステージのノベル本文は未収録です。\n"+(stage<9?"下のボタンから観察を開始できます。":"ステージ9以降の戦闘は未定義です。"),40,180,1520,300,28);
-            Button(panel.transform,"観察を開始",40,650,700,85,StartBattle,stage<9 && CampaignStore.Data.StageUnlocked(stage));
-            Button(panel.transform,"メニュー",820,650,700,85,()=>SceneManager.LoadScene("main menu"));
+            string story=novelTexts!=null && stage>=0 && stage<novelTexts.Length && novelTexts[stage]!=null
+                ? novelTexts[stage].text : "このステージのノベル本文は未登録です。";
+            ScrollText(panel.transform,"Novel Text",story,40,140,1520,650,28);
+            Button(panel.transform,"観察を開始",40,820,700,85,StartBattle,stage<9 && CampaignStore.Data.StageUnlocked(stage));
+            Button(panel.transform,"メニュー",820,820,700,85,()=>SceneManager.LoadScene("main menu"));
         }
         if(CampaignStore.SaveError!=null) Label(panel.transform,CampaignStore.SaveError,40,930,1520,60,20);
     }
