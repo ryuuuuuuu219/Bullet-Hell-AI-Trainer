@@ -76,9 +76,9 @@ namespace Script
         internal double Hit(double power, double penetration = 1.0)
         {
             if (!IsAttached || owner == null || power <= 0) return power;
-            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, CurrentHealth, out double afterHealth);
-            CurrentHealth = afterHealth;
-            owner.ReceiveHit(this, power);
+            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, CurrentHealth, out _);
+            // The owner applies damage once, including armor and core distribution.
+            owner.ReceiveHit(this, Math.Max(0, power * (penetration - Interception)));
             return remaining;
         }
 

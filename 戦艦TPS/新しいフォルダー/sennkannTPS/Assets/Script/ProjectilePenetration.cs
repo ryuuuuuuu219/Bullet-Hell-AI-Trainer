@@ -17,7 +17,7 @@ public static class ProjectilePenetration
         if (!IsValid(penetration,interception))
             throw new ArgumentOutOfRangeException(nameof(penetration), "貫通力は0より大きい有限値が必要です。");
         double togetherDamage = Math.Max(0,(power * (penetration - interception)));
-        float ratio = interception / penetration;
+        double ratio = interception / penetration;
         afterHealth = Math.Max(0, Health - togetherDamage);
         return Math.Max(0, power - togetherDamage*ratio);
     }

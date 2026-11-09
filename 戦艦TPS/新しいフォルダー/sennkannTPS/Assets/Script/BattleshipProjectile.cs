@@ -77,7 +77,9 @@ namespace Script
                     contacts.Add(new Contact { Hit = hit, Section = section });
                     continue;
                 }
-                GameObject body = hit.collider.gameObject;
+                Player player = hit.collider.GetComponentInParent<Player>();
+                GameObject body = player != null && player.isActiveAndEnabled && player.Health > 0
+                    ? player.gameObject : null;
                 if (body != null && !hitBodies.Contains(body))
                     contacts.Add(new Contact { Hit = hit, Body = body });
             }
@@ -104,6 +106,12 @@ namespace Script
                     previousShipDistance = contact.Hit.distance;
                     hitSections.Add(contact.Section);
                     power = contact.Section.Hit(power, penetration);
+                }
+                else if (contact.Body != null && hitBodies.Add(contact.Body))
+                {
+                    Player player = contact.Body.GetComponent<Player>();
+                    if (player != null)
+                        power = player.Hit(power, penetration);
                 }
             }
 

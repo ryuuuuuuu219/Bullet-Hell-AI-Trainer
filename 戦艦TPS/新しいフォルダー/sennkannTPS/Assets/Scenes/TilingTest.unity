@@ -160,7 +160,7 @@ MonoBehaviour:
   m_GameObject: {fileID: 1000}
   m_Enabled: 1
   m_EditorHideFlags: 0
-  m_Script: {fileID: 11500000, guid: 5ea970aaebc24a0294e0d447a1f8caed, type: 3}
+  m_Script: {fileID: 11500000, guid: 0f34e5b1f8c1cb941b5b0df09559bf59, type: 3}
   m_Name: 
   m_EditorClassIdentifier: 
   seed: 4506
@@ -172,7 +172,7 @@ MonoBehaviour:
   formEnds: 1
   endSearchDepth: 6
   endSearchLimit: 1200
-  tileShader: {fileID: 4800000, guid: 794845af152e4476a2567d274dd44c92, type: 3}
+  tileShader: {fileID: 4800000, guid: 330e4c1ee6f59274590126e452114c91, type: 3}
   enableTurretTest: 1
   shipClass: 3
   sectionWorldSize: 100

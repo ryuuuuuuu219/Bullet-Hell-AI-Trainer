@@ -1,4 +1,4 @@
-﻿using NUnit.Framework;
+
 using System; 
 using UnityEngine;
 
@@ -9,8 +9,18 @@ namespace Script
     {
         public bool IsFriend = false;
 
+        private void OnEnable() => RegistryToManager();
+        private void OnDisable()
+        {
+            ObjectManager.AllyObjects.Remove(gameObject);
+            ObjectManager.EnemyObjects.Remove(gameObject);
+        }
+
         public void RegistryToManager()
         {
+            ObjectManager.AllyObjects.Remove(gameObject);
+            ObjectManager.EnemyObjects.Remove(gameObject);
+            if (!isActiveAndEnabled) return;
             if (IsFriend)
             {
                 if (!ObjectManager.AllyObjects.Contains(this.gameObject))

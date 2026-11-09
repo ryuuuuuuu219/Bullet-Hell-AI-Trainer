@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -186,6 +186,7 @@ namespace Script
         private void DrawFrame()
         {
             lastWidth = Screen.width; lastHeight = Screen.height;
+            turrets.Clear();
             ClearDrawing();
             drawing = new GameObject("Generated Sections"); drawing.transform.SetParent(transform);
             var frame = generator.Frames[frameIndex]; DisplayedTileCount = frame.Tiles.Length;
@@ -207,6 +208,17 @@ namespace Script
                 go.AddComponent<MeshRenderer>().sharedMaterial = material;
                 AddLine(go, vertices, true, new Color(.08f, .12f, .17f), .018f * sectionWorldSize);
             }
+            UpdateView();
+            float ymin = viewCamera.transform.position.y - viewCamera.orthographicSize;
+            float ymax = viewCamera.transform.position.y + viewCamera.orthographicSize;
+            AddLine(drawing, new[] { new Vector3(0, ymin, .02f), new Vector3(0, ymax, .02f) }, false, new Color(.4f, .45f, .5f), .01f * sectionWorldSize);
+            if (enableTurretTest && !generating && frameIndex == generator.Frames.Count - 1)
+                SetupTurrets(frame.Tiles, sectionObjects);
+        }
+
+        private void UpdateView()
+        {
+            lastWidth = Screen.width; lastHeight = Screen.height;
             var final = generator.Frames[generator.Frames.Count - 1].Tiles.SelectMany(t => t.Vertices).ToArray();
             float extent = Mathf.Max(.8f, (float)final.Max(p => System.Math.Abs(p.X)) + .5f) * sectionWorldSize;
             float ymin = ((float)final.Min(p => p.Y) - .5f) * sectionWorldSize;
@@ -214,9 +226,6 @@ namespace Script
             float aspect = Mathf.Max(.1f, (float)Screen.width / Mathf.Max(1, Screen.height) / .67f);
             viewCamera.orthographicSize = Mathf.Max((ymax - ymin) / 2, extent / aspect);
             viewCamera.transform.position = new Vector3(0, (ymin + ymax) / 2, -10);
-            AddLine(drawing, new[] { new Vector3(0, ymin, .02f), new Vector3(0, ymax, .02f) }, false, new Color(.4f, .45f, .5f), .01f * sectionWorldSize);
-            if (enableTurretTest && !generating && frameIndex == generator.Frames.Count - 1)
-                SetupTurrets(frame.Tiles, sectionObjects);
         }
 
         private void SetupTurrets(TilingGenerator.Tile[] tiles, List<GameObject> sectionObjects)
@@ -507,7 +516,7 @@ namespace Script
         private void OnDestroy() { ClearDrawing(); if (material != null) Release(material); }
         private void Update()
         {
-            if (generator != null && (lastWidth != Screen.width || lastHeight != Screen.height)) DrawFrame();
+            if (generator != null && (lastWidth != Screen.width || lastHeight != Screen.height)) UpdateView();
             TickTurrets();
         }
     }

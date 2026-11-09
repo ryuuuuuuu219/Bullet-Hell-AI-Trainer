@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -107,57 +107,27 @@ namespace Script
 
         private void SelectAttackTarget()
         {
-            IFF iff;
-            if (!TryGetComponent(out iff))
+            attackTarget = null;
+            if (!TryGetComponent(out IFF iff)) return;
+            double best = targetSelectionMode == TargetSelectionMode.Farthest
+                ? double.NegativeInfinity : double.PositiveInfinity;
+            var candidates = iff.IsFriend ? ObjectManager.EnemyObjects : ObjectManager.AllyObjects;
+            foreach (var candidate in candidates)
             {
-                return;
-            }
-            if (iff.IsFriend)
-            {
-                float bestDistance = targetSelectionMode switch
+                if (candidate == null || candidate == gameObject || !candidate.activeInHierarchy ||
+                    !candidate.TryGetComponent(out IFF other) || other.IsFriend == iff.IsFriend) continue;
+                object target = candidate.GetComponent<BattleshipAnimalInstance>();
+                if (target == null) target = candidate.GetComponent<Player>();
+                if (!ValidTarget(target) || !WithinEncounterRange(target)) continue;
+                double score = targetSelectionMode == TargetSelectionMode.Covered
+                    ? CurrentHealth(target) : DistanceSquared(target);
+                if (targetSelectionMode == TargetSelectionMode.Farthest ? score > best : score < best)
                 {
-                    TargetSelectionMode.Closest => float.MaxValue,
-                    TargetSelectionMode.Farthest => float.MinValue,
-                    TargetSelectionMode.Covered => float.MaxValue,
-                    _ => throw new ArgumentOutOfRangeException()
-                };
-                foreach (var enemy in ObjectManager.EnemyObjects)
-                {
-                    if (!enemy.TryGetComponent(out IFF eiff)||eiff.IsFriend) continue;
-                    if (WithinEncounterRange(enemy))
-                    {
-                        switch (targetSelectionMode)
-                        {
-                            case TargetSelectionMode.Closest:
-                                float distance = DistanceSquared(enemy);
-                                if (distance < bestDistance)
-                                {
-                                    bestDistance = distance;
-                                    attackTarget = enemy;
-                                }
-                                break;
-                            case TargetSelectionMode.Farthest:
-                                distance = DistanceSquared(enemy);
-                                if (distance > bestDistance)
-                                {
-                                    bestDistance = distance;
-                                    attackTarget = enemy;
-                                }
-                                break;
-                            case TargetSelectionMode.Covered:
-                                double health = CurrentHealth(enemy);
-                                if (health < bestDistance)
-                                {
-                                    bestDistance = (float)health;
-                                    attackTarget = enemy;
-                                }
-                                break;
-                        }
-                    }
+                    best = score;
+                    attackTarget = target;
                 }
             }
         }
-
         public float half = 10f;
 
         private void Move(float seconds)
@@ -210,14 +180,19 @@ namespace Script
             if (!IsAlive || hitSection == null || !hitSection.IsAttached || power <= 0) return;
             if (hitSection.Role == BattleshipSectionRole.Core)
             {
-                coreHealth -= power;
+
                 var living = sections.Where(x => x != null && x.IsAttached).ToList();
                 double share = living.Count == 0 ? 0 : power / living.Count;
-                foreach (BattleshipSection section in living) section.ApplyDamage(share);
+                foreach (BattleshipSection section in living)
+                {
+                    double before = section.CurrentHealth;
+                    section.ApplyDamage(share);
+                    coreHealth -= before - section.CurrentHealth;
+                }
             }
             else
             {
-                double damage = Math.Max(0, power - hitSection.Armor);
+                double damage = Math.Min(hitSection.CurrentHealth, Math.Max(0, power - hitSection.Armor));
                 hitSection.ApplyDamage(damage);
                 coreHealth -= damage;
             }
@@ -275,7 +250,7 @@ namespace Script
         private bool ValidTarget(object target) => target switch
         {
             BattleshipAnimalInstance ship => ship != null && ship.IsAlive,
-            Player body => true,
+            Player body => body != null && body.isActiveAndEnabled && body.Health > 0,
             _ => false
         };
 

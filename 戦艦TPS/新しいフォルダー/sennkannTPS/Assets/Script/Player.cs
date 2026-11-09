@@ -1,4 +1,4 @@
-﻿using System; 
+using System;
 using UnityEngine;
 
 namespace Script
@@ -8,9 +8,15 @@ namespace Script
     {
         public double Health = 100.0;
 
+        internal double Hit(double power, double penetration)
+        {
+            if (!isActiveAndEnabled || Health <= 0) return power;
+            return ProjectilePenetration.RemainingPower(power, penetration, 0, Health, out Health);
+        }
+
         private void Start()
         {
-            IFF iff = this.gameObject.AddComponent<IFF>();
+            if (!TryGetComponent(out IFF iff)) iff = gameObject.AddComponent<IFF>();
             iff.IsFriend = true;
             iff.RegistryToManager();
         }
