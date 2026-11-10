@@ -184,9 +184,11 @@ MonoBehaviour:
   testProjectileLifetime: 15
   testProjectilePower: 46
   testProjectilePenetration: 0.26
-  armorMode: 0
+  testProjectileAffect: 3
+  testExplosionRadius: 100
+  armorMode: 1
   armorThickness: 10
-  eraVectorMagnitude: 0.84
+  eraVectorMagnitude: 0.15
   armorInterception: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:

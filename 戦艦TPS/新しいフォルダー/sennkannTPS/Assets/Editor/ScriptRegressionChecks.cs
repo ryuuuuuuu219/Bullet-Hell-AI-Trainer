@@ -92,7 +92,7 @@ public static class ScriptRegressionChecks
             ally.targetSelectionMode = BattleshipAnimalInstance.TargetSelectionMode.Covered;
             Call(ally, "SelectAttackTarget");
             Check(ReferenceEquals(Field(ally, "attackTarget"), near), "Lowest health target");
-            Call(parts[0], "Hit", 30d, 1d);
+            Call(parts[0], "Hit", 30d, .5d);
             Check(parts[0].CurrentHealth == 90 && parts[1].CurrentHealth == 50 && near.CoreHealth == 230,
                 "Core distributes damage once");
             near.transform.position = new Vector3(2000, 0); far.gameObject.SetActive(false);
@@ -138,7 +138,7 @@ public static class ScriptRegressionChecks
                     "Armor blocks lower and equal power without HP damage");
             }
             ((System.Collections.IList)Field(test, "floatingHits")).Clear();
-            Call(armor, "HitAt", 100d, 1d, new Vector2(12, 34));
+            Call(armor, "HitAt", 90d, 1d, new Vector2(12, 34));
             var properties = new MaterialPropertyBlock();
             foreach (var visual in armor.GetComponentsInChildren<Renderer>())
             {
@@ -166,7 +166,7 @@ public static class ScriptRegressionChecks
             Call(armor, "HitSurface", 100d, 1d, Vector2.zero, Vector2.up, Vector2.left, Vector2.zero);
             Check(armor.LastImpactAngle == 90f && double.IsPositiveInfinity(armor.LastEffectiveArmor) &&
                 armor.CurrentHealth == 100d, "Grazing impact has no NaN or HP damage");
-            object[] impactArgs = { 100d, 1d, Vector2.zero, new Vector2(1, 1), Vector2.left, Vector2.zero };
+            object[] impactArgs = { 90d, 1d, Vector2.zero, new Vector2(1, 1), Vector2.left, Vector2.zero };
             Call(armor, "HitSurface", impactArgs);
             Check((Vector2)impactArgs[5] == new Vector2(1, 1), "Outgoing direction is returned via out argument");
             Check(Math.Abs(armor.LastEffectiveArmor - 50 * Math.Sqrt(2)) < .001 &&
@@ -179,15 +179,16 @@ public static class ScriptRegressionChecks
             object[] eraArgs = { 60d, 1d, Vector2.zero, new Vector2(1, 1), new Vector2(-2, 0), Vector2.zero };
             Call(armor, "HitSurface", eraArgs);
             Check((Vector2)eraArgs[5] == new Vector2(-49, 1), "ERA adds normalized surface normal times 50");
-            Check(armor.LastEffectiveArmor < 51d && Math.Abs(armor.CurrentHealth - 46d) < 1e-6,
+            Check(armor.LastEffectiveArmor < 51d && Math.Abs(armor.CurrentHealth - 40d) < 1e-6,
                 "ERA-adjusted direction determines passage before shared damage");
             foreach (double initialPenetration in new[] { .1d, .05d })
             {
-                object[] exhaustedArgs = { 100d, initialPenetration, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero };
+                Call(armor, "Recover", 60d);
+                object[] exhaustedArgs = { 60d, initialPenetration, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero };
                 double remaining = (double)Call(armor, "HitProjectile", exhaustedArgs);
                 Check(remaining == 0d && (double)exhaustedArgs[1] == 0d &&
-                    (Vector2)exhaustedArgs[5] == Vector2.zero && Math.Abs(armor.CurrentHealth - 46d) < 1e-6,
-                    "Exhausted penetration stops without negative penetration or repeated damage");
+                    (Vector2)exhaustedArgs[5] == Vector2.zero && Math.Abs(armor.CurrentHealth - 40d) < 1e-6,
+                    "Exhausted penetration applies full damage once and then stops");
             }
             core.Mode = ArmorMode.ERA;
             object[] coreArgs = { 1d, 1d, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero };
@@ -259,10 +260,10 @@ public static class ScriptRegressionChecks
             projectile.Initialize(null, new Vector2(19990, 0), new Vector2(1000, 0),
                 .1f, 15f, ship, 60d, 1d, reports.Add, BattleshipProjectile.Affect.HE, 15f);
             Call(projectile, "SimulateStep", .03f);
-            Check(Math.Abs(parts[1].CurrentHealth - 46d) < 1e-6, "HE uses impact power before armor consumes the projectile");
+            Check(Math.Abs(parts[1].CurrentHealth - 40d) < 1e-6, "HE uses impact power before armor consumes the projectile");
             Check(parts[2].CurrentHealth == 40d, "Nearby section receives one independent blast hit despite duplicate colliders");
             Check(parts[0].CurrentHealth == 100d, "Section outside blast stays intact");
-            Check(Math.Abs(ship.CoreHealth - 186d) < 1e-6, "Blast damage counted once in ship health");
+            Check(Math.Abs(ship.CoreHealth - 180d) < 1e-6, "Blast damage counted once in ship health");
             Check(projectile.RemainingPower == 0d && reports.Count == 1, "HE detonates once and stops");
             Call(projectile, "SimulateStep", .03f);
             Check(parts[2].CurrentHealth == 40d && reports.Count == 1, "HE cannot damage again before deferred destruction");
@@ -302,18 +303,18 @@ public static class ScriptRegressionChecks
             Physics2D.Simulate(.02f);
             Physics2D.queriesHitTriggers = false;
             projectile.Initialize(material, new Vector2(9990, 0), new Vector2(1000, 0),
-                .1f, 15f, ship, 100d, 1d, reports.Add);
+                .1f, 15f, ship, 90d, 1d, reports.Add);
             Call(projectile, "SimulateStep", .01f);
             Check(Math.Abs(parts[1].CurrentHealth - 10d) < 1e-6 &&
-                Math.Abs(projectile.RemainingPower - 91d) < 1e-6,
+                Math.Abs(projectile.RemainingPower - 81d) < 1e-6,
                 $"Armor hit: HP={parts[1].CurrentHealth}, power={projectile.RemainingPower}, alive={ship.IsAlive}, contacts={((List<RaycastHit2D>)Field(projectile, "contacts")).Count}, position={projectile.transform.position}, armor={parts[1].transform.position}");
             Call(projectile, "SimulateStep", .001f);
             Check(parts[1].CurrentHealth == 10d && reports.Count == 1 && Math.Abs(projectile.Penetration - .9d) < 1e-9,
                 "No repeated damage or penetration loss while overlapping");
             Call(projectile, "SimulateStep", .02f);
-            Check(Math.Abs(parts[2].CurrentHealth - 18.1d) < 1e-6 && reports.Count == 2,
+            Check(Math.Abs(parts[2].CurrentHealth - 19d) < 1e-6 && reports.Count == 2,
                 "Swept collision reaches second section at high speed");
-            Check(Math.Abs(ship.CoreHealth - 128.1d) < 1e-6, "Damage counted once per section");
+            Check(Math.Abs(ship.CoreHealth - 129d) < 1e-6, "Damage counted once per section");
             Check(parts[0].CurrentHealth == 100d, "Off-path section not hit");
             parts[1].Mode = ArmorMode.ERA;
             Call(parts[1], "Recover", 90d);
@@ -324,7 +325,7 @@ public static class ScriptRegressionChecks
             Call(eraProbe, "SimulateStep", .03f);
             Check(eraProbe.Velocity == new Vector2(-1000, 0) && eraProbe.transform.position.x < 9990,
                 "ERA changes actual flight and uses remaining frame time");
-            Check(Math.Abs(parts[2].CurrentHealth - 18.1d) < 1e-6 && reports.Count == 3,
+            Check(Math.Abs(parts[2].CurrentHealth - 19d) < 1e-6 && reports.Count == 3,
                 "Old-path contacts are discarded after ERA deflection");
         }
         finally

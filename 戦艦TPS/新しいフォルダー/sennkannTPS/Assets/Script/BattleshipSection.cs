@@ -140,15 +140,16 @@ namespace Script
                 HitResolved?.Invoke(position, CurrentHealth, 0d, MaximumHealth);
                 return 0d;
             }
-            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, before, out double afterHealth);
+            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, before,
+                out double afterHealth, out double afterPenetration);
             // Armor is only a passage gate; apply the shared HP calculation without subtracting it again.
             double damage = Role == BattleshipSectionRole.Core
-                ? Math.Max(0, power * (penetration - Interception))
+                ? power
                 : before - afterHealth;
             owner.ReceiveHitWithArmor(this, damage, 0d);
             UpdateOpacity();
             HitResolved?.Invoke(position, CurrentHealth, before - CurrentHealth, MaximumHealth);
-            penetration = Math.Max(0d, penetration - Interception);
+            penetration = afterPenetration;
             if (penetration <= 0d)
             {
                 outgoingDirection = Vector2.zero;
