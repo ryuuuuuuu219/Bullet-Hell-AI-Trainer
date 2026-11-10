@@ -164,8 +164,8 @@ MonoBehaviour:
   m_Name: 
   m_EditorClassIdentifier: 
   seed: 4506
-  targetSections: 97
-  maximumAttempts: 136
+  targetSections: 42
+  maximumAttempts: 55
   triangleStart: 0
   squareStartAngle: 0
   triangleStartAngle: 30
@@ -178,6 +178,16 @@ MonoBehaviour:
   sectionWorldSize: 100
   spPerSection: 100
   bodyForward: {x: 0, y: 1}
+  protectionTestMode: 1
+  launchVelocityScale: 1
+  testProjectileRadius: 5
+  testProjectileLifetime: 15
+  testProjectilePower: 46
+  testProjectilePenetration: 0.26
+  armorMode: 0
+  armorThickness: 10
+  eraVectorMagnitude: 0.84
+  armorInterception: 0.1
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0

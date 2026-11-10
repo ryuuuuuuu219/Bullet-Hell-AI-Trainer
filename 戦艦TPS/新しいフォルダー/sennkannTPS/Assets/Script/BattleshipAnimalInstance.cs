@@ -37,6 +37,7 @@ namespace Script
         private Vector2 observedVelocity;
         private Vector2 previousPosition;
         private bool dying;
+        private bool stationaryTestTarget;
         private float nextTargetScan;
 
         public static IReadOnlyList<BattleshipAnimalInstance> Active => active;
@@ -63,8 +64,10 @@ namespace Script
         private void OnDisable() => active.Remove(this);
 
         internal void Initialize(BattleshipAnimalClass value,
-            int requested, int actual, int seed, IReadOnlyList<BattleshipSection> createdSections)
+            int requested, int actual, int seed, IReadOnlyList<BattleshipSection> createdSections,
+            bool stationary = false)
         {
+            stationaryTestTarget = stationary;
             shipClass = value;
             requestedSections = requested;
             actualSections = actual;
@@ -77,7 +80,7 @@ namespace Script
 
         private void Update()
         {
-            if (!IsAlive || Time.deltaTime <= 0) return;
+            if (stationaryTestTarget || !IsAlive || Time.deltaTime <= 0) return;
             float dt = Time.deltaTime;
             if (!IsAlive) return;
 
@@ -176,6 +179,9 @@ namespace Script
         }
 
         internal void ReceiveHit(BattleshipSection hitSection, double power)
+            => ReceiveHitWithArmor(hitSection, power, hitSection != null ? hitSection.Armor : 0d);
+
+        internal void ReceiveHitWithArmor(BattleshipSection hitSection, double power, double effectiveArmor)
         {
             if (!IsAlive || hitSection == null || !hitSection.IsAttached || power <= 0) return;
             if (hitSection.Role == BattleshipSectionRole.Core)
@@ -192,7 +198,7 @@ namespace Script
             }
             else
             {
-                double damage = Math.Min(hitSection.CurrentHealth, Math.Max(0, power - hitSection.Armor));
+                double damage = Math.Min(hitSection.CurrentHealth, Math.Max(0, power - effectiveArmor));
                 hitSection.ApplyDamage(damage);
                 coreHealth -= damage;
             }
@@ -240,6 +246,8 @@ namespace Script
                 if (section == null || !section.IsAttached) continue;
                 section.Detach();
             }
+            // Keep the test target and its final HP available for inspection/reset.
+            if (stationaryTestTarget) return;
             gameObject.SetActive(false);
             Destroy(gameObject);
         }

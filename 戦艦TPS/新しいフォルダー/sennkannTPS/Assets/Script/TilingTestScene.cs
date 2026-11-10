@@ -74,6 +74,28 @@ namespace Script
         [SerializeField, Min(1f)] private float sectionWorldSize = 100f;
         [SerializeField, Min(0f)] private float spPerSection = 100f;
         [SerializeField] private Vector2 bodyForward = Vector2.up;
+        [Header("防護分析・試験弾の発射")]
+        [SerializeField] private bool protectionTestMode = true;
+        [SerializeField, Min(.01f), Tooltip("ドラッグのワールド座標差に掛ける初速倍率（1/秒）")]
+        private float launchVelocityScale = 1f;
+        [SerializeField, Min(.1f)] private float testProjectileRadius = 5f;
+        [SerializeField, Min(.1f)] private float testProjectileLifetime = 15f;
+        [SerializeField, Min(.01f)] private float testProjectilePower = 100f;
+        [SerializeField, Min(.01f)] private float testProjectilePenetration = 1f;
+        [SerializeField, InspectorName("試験弾の弾種")] private BattleshipProjectile.Affect testProjectileAffect = BattleshipProjectile.Affect.AP;
+        [SerializeField, Min(.01f), InspectorName("HE爆発半径")] private float testExplosionRadius = 100f;
+        [SerializeField, InspectorName("試験標的の装甲モード")] private ArmorMode armorMode = ArmorMode.Basic;
+        [SerializeField, Min(0f), InspectorName("試験標的の実装甲厚")] private float armorThickness = 50f;
+        [SerializeField, Min(0f), InspectorName("ERA印加ベクトルの絶対値")] private float eraVectorMagnitude = 50f;
+        private float appliedArmorThickness = float.NaN;
+        [SerializeField, Min(0f), InspectorName("試験標的の装甲区画の迎撃力")]
+        private double armorInterception = 0.1d;
+        private double appliedArmorInterception = double.NaN;
+        private float appliedEraVectorMagnitude = float.NaN;
+        private BattleshipAnimalInstance testTarget;
+        private readonly Queue<string> hitLog = new Queue<string>();
+        private ProtectionTestLauncher testLauncher;
+        private GameObject testProjectiles;
         private TilingGenerator generator;
         private Coroutine generation;
         private Camera viewCamera;
@@ -85,6 +107,16 @@ namespace Script
         private bool generating;
         private int lastWidth, lastHeight;
         private GUIStyle labelStyle;
+        private sealed class FloatingHit
+        {
+            public Vector2 Position;
+            public string Text;
+            public float StartedAt;
+        }
+        private const float FloatingHitSeconds = 2f;
+        private readonly List<FloatingHit> floatingHits = new List<FloatingHit>();
+        private GUIStyle floatingHitStyle;
+        private Vector2 panelScroll;
         private readonly List<TurretRuntime> turrets = new List<TurretRuntime>();
         private System.Random turretRandom;
         private float shipSp;
@@ -130,6 +162,13 @@ namespace Script
                 if (shader == null) throw new System.InvalidOperationException("TilingTest shader is missing.");
                 material = new Material(shader);
             }
+            if (testLauncher == null)
+            {
+                testProjectiles = new GameObject("Protection Test Projectiles");
+                testProjectiles.transform.SetParent(transform, false);
+                testLauncher = gameObject.AddComponent<ProtectionTestLauncher>();
+                testLauncher.Initialize(viewCamera, material, testProjectiles.transform);
+            }
         }
         private void Regenerate()
         {
@@ -166,6 +205,9 @@ namespace Script
         // Used by the editor smoke check to exercise the same rendering path synchronously.
         public void GenerateForValidation()
         {
+            if (generation != null) StopCoroutine(generation);
+            generation = null;
+            generating = false;
             EnsureView();
             generator = new TilingGenerator(seed, targetSections, maximumAttempts, triangleStart,
                 (int)(triangleStart ? triangleStartAngle : squareStartAngle));
@@ -175,9 +217,24 @@ namespace Script
         }
         private void ClearDrawing()
         {
+            ClearTestProjectiles();
+            testTarget = null;
+            hitLog.Clear();
+            floatingHits.Clear();
             if (drawing != null) { drawing.SetActive(false); Release(drawing); }
             foreach (var mesh in meshes) Release(mesh);
             meshes.Clear();
+        }
+        private void ClearTestProjectiles()
+        {
+            if (testLauncher != null) testLauncher.Cancel();
+            if (testProjectiles == null) return;
+            for (int i = testProjectiles.transform.childCount - 1; i >= 0; i--)
+            {
+                GameObject bullet = testProjectiles.transform.GetChild(i).gameObject;
+                bullet.SetActive(false);
+                Release(bullet);
+            }
         }
         private static void Release(Object value)
         {
@@ -212,7 +269,7 @@ namespace Script
             float ymin = viewCamera.transform.position.y - viewCamera.orthographicSize;
             float ymax = viewCamera.transform.position.y + viewCamera.orthographicSize;
             AddLine(drawing, new[] { new Vector3(0, ymin, .02f), new Vector3(0, ymax, .02f) }, false, new Color(.4f, .45f, .5f), .01f * sectionWorldSize);
-            if (enableTurretTest && !generating && frameIndex == generator.Frames.Count - 1)
+            if (!generating && frameIndex == generator.Frames.Count - 1)
                 SetupTurrets(frame.Tiles, sectionObjects);
         }
 
@@ -235,6 +292,8 @@ namespace Script
             maximumShipSp = Mathf.Max(0f, spPerSection) * tiles.Length;
             shipSp = maximumShipSp;
             if (tiles.Length == 0) return;
+            testTarget = drawing.AddComponent<BattleshipAnimalInstance>();
+            var sections = new List<BattleshipSection>(tiles.Length);
 
             var roles = new List<SectionRole>(tiles.Length - 1);
             int nonCore = tiles.Length - 1;
@@ -245,10 +304,13 @@ namespace Script
             Shuffle(roles, turretRandom);
 
             ColorizeSection(sectionObjects[0], new Color(.32f, .95f, .48f), "Core");
+            sections.Add(CreateTestSection(sectionObjects[0], 0, BattleshipSectionRole.Core));
             var choices = BuildWeaponChoices(shipClass);
             for (int i = 1; i < tiles.Length; i++)
             {
                 SectionRole role = roles[i - 1];
+                sections.Add(CreateTestSection(sectionObjects[i], i,
+                    role == SectionRole.Armor ? BattleshipSectionRole.Armor : BattleshipSectionRole.Turret));
                 if (role == SectionRole.Armor)
                 {
                     ColorizeSection(sectionObjects[i], new Color(.86f, .30f, .30f), "Armor");
@@ -263,6 +325,88 @@ namespace Script
                 ColorizeSection(sectionObjects[i], WeaponColor(choice.Kind), $"Turret {WeaponLabel(choice.Kind)}{GradeLabel(choice.Grade)}");
                 AddMarker(sectionObjects[i], turret.Position, Color.white, .12f * sectionWorldSize);
             }
+            // Use the generator's shared edges for the combat model's detachment rules.
+            for (int i = 0; i < tiles.Length; i++)
+            for (int j = i + 1; j < tiles.Length; j++)
+            {
+                int shared = tiles[i].Vertices.Count(a => tiles[j].Vertices.Any(b =>
+                    System.Math.Abs(a.X - b.X) < TilingGenerator.Epsilon &&
+                    System.Math.Abs(a.Y - b.Y) < TilingGenerator.Epsilon));
+                if (shared < 2) continue;
+                sections[i].AddNeighbor(sections[j]);
+                sections[j].AddNeighbor(sections[i]);
+            }
+            testTarget.Initialize((BattleshipAnimalClass)shipClass, targetSections, tiles.Length,
+                seed, sections, stationary: true);
+            Physics2D.SyncTransforms();
+        }
+
+        private BattleshipSection CreateTestSection(GameObject section, int id, BattleshipSectionRole role)
+        {
+            var collider = section.AddComponent<PolygonCollider2D>();
+            collider.isTrigger = true;
+            collider.SetPath(0, section.GetComponent<MeshFilter>().sharedMesh.vertices
+                .Select(p => new Vector2(p.x, p.y)).ToArray());
+            var runtime = section.AddComponent<BattleshipSection>();
+            runtime.Initialize(testTarget, id, role, null);
+            runtime.Mode = armorMode;
+            runtime.ArmorThickness = armorThickness;
+            runtime.ArmorInterception = armorInterception;
+            runtime.EraVectorMagnitude = eraVectorMagnitude;
+            runtime.HitResolved += ShowFloatingHit;
+            // Static analysis geometry: the probe uses casts, not trigger callbacks.
+            // Solid colliders remain queryable when queriesHitTriggers is disabled.
+            collider.isTrigger = false;
+            return runtime;
+        }
+
+        private void RecordTestHit(string result)
+        {
+            hitLog.Enqueue(result);
+            while (hitLog.Count > 12) hitLog.Dequeue();
+        }
+
+        private void ShowFloatingHit(Vector2 position, double health, double damage, double maximum)
+        {
+            if (floatingHits.Count >= 64) floatingHits.RemoveAt(0);
+            floatingHits.Add(new FloatingHit {
+                Position = position,
+                Text = $"{health:0.##}（-{damage:0.##}）/{maximum:0.##}",
+                StartedAt = Time.time
+            });
+        }
+
+        private void DrawFloatingHits()
+        {
+            if (viewCamera == null || floatingHits.Count == 0) return;
+            if (floatingHitStyle == null)
+                floatingHitStyle = new GUIStyle(GUI.skin.label) {
+                    alignment = TextAnchor.MiddleCenter, fontSize = 18, fontStyle = FontStyle.Bold
+                };
+            Rect viewport = viewCamera.pixelRect;
+            var clip = new Rect(viewport.x, Screen.height - viewport.yMax, viewport.width, viewport.height);
+            Color previousColor = GUI.color;
+            GUI.BeginGroup(clip);
+            foreach (FloatingHit hit in floatingHits)
+            {
+                float age = Time.time - hit.StartedAt;
+                if (age >= FloatingHitSeconds) continue;
+                Vector3 point = viewCamera.WorldToScreenPoint(hit.Position);
+                if (point.z <= 0) continue;
+                float alpha = 1f - Mathf.Clamp01(age / FloatingHitSeconds);
+                var content = new GUIContent(hit.Text);
+                Vector2 size = floatingHitStyle.CalcSize(content) + new Vector2(12, 4);
+                float x = Mathf.Clamp(point.x - clip.x - size.x * .5f, 0, Mathf.Max(0, clip.width - size.x));
+                float y = Mathf.Clamp(Screen.height - point.y - clip.y - size.y - age * 30f,
+                    0, Mathf.Max(0, clip.height - size.y));
+                GUI.color = new Color(1, 1, 1, alpha);
+                floatingHitStyle.normal.textColor = Color.black;
+                GUI.Label(new Rect(x + 1, y + 1, size.x, size.y), content, floatingHitStyle);
+                floatingHitStyle.normal.textColor = Color.white;
+                GUI.Label(new Rect(x, y, size.x, size.y), content, floatingHitStyle);
+            }
+            GUI.EndGroup();
+            GUI.color = previousColor;
         }
 
         private static void Shuffle<T>(IList<T> values, System.Random random)
@@ -415,7 +559,7 @@ namespace Script
 
         private void TickTurrets()
         {
-            if (!enableTurretTest || turrets.Count == 0 || drawing == null || turretRandom == null) return;
+            if (protectionTestMode || !enableTurretTest || turrets.Count == 0 || drawing == null || turretRandom == null) return;
             Vector2 target = GetAimPoint();
             foreach (TurretRuntime turret in turrets)
             {
@@ -479,6 +623,7 @@ namespace Script
             float scale = Mathf.Clamp(Screen.width / 850f, .55f, 1.4f);
             var oldMatrix = GUI.matrix; GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             GUILayout.BeginArea(new Rect(12, 8, Screen.width / scale - 24, Screen.height * .33f / scale - 8));
+            panelScroll = GUILayout.BeginScrollView(panelScroll);
             GUILayout.Label(formEnds ? $"端部：上 {generator.UpperEndStatus} / 下 {generator.LowerEndStatus} / 追加{generator.EndTilesAdded}区画" : "タイリングテスト / 辺長1・Y軸対称 / 端部形成OFF", labelStyle);
             GUILayout.BeginHorizontal();
             GUILayout.Label("シード", GUILayout.Width(45)); seedText = GUILayout.TextField(seedText, GUILayout.Width(70));
@@ -509,14 +654,69 @@ namespace Script
                 GUILayout.Label($"砲撃テスト：{shipClass} / コア1 / 装甲{armorCount} / 砲塔{turrets.Count} / SP {shipSp:0.0}/{maximumShipSp:0.0}", labelStyle);
                 if (GUILayout.Button("SP全回復", GUILayout.Width(80))) shipSp = maximumShipSp;
                 GUILayout.EndHorizontal();
-                GUILayout.Label("緑：コア　赤：装甲　黄・橙・紫・水色：砲塔　砲塔はマウス現在位置へ自動射撃", labelStyle);
+                GUILayout.Label(protectionTestMode ? "緑：コア　赤：装甲　黄・橙・紫・水色：砲塔（自動射撃停止中）" : "緑：コア　赤：装甲　黄・橙・紫・水色：砲塔　砲塔はマウス現在位置へ自動射撃", labelStyle);
             }
+            GUILayout.BeginHorizontal();
+            bool nextMode = GUILayout.Toggle(protectionTestMode, "防護分析：試験弾を左ドラッグで発射");
+            if (nextMode != protectionTestMode)
+            {
+                protectionTestMode = nextMode;
+                DrawFrame();
+            }
+            if (GUILayout.Button("試験弾を消去", GUILayout.Width(100))) ClearTestProjectiles();
+            if (GUILayout.Button("標的を復元", GUILayout.Width(90))) DrawFrame();
+            GUILayout.EndHorizontal();
+            if (protectionTestMode && testLauncher != null) GUILayout.Label(testLauncher.Readout, labelStyle);
+            if (protectionTestMode)
+            {
+                GUILayout.BeginHorizontal();
+                GUILayout.Label("装甲モード", GUILayout.Width(85));
+                var selectedArmor = (ArmorMode)GUILayout.SelectionGrid((int)armorMode,
+                    new[] { "ベーシック", "ERA" }, 2, GUILayout.Width(220));
+                if (selectedArmor != armorMode)
+                {
+                    armorMode = selectedArmor;
+                    if (testTarget != null)
+                        foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
+                            section.Mode = armorMode;
+                }
+                GUILayout.EndHorizontal();
+                GUILayout.Label($"試験弾：威力 {testProjectilePower:0.##} / 貫通力 {testProjectilePenetration:0.##}（Inspectorで変更）", labelStyle);
+                if (testTarget != null)
+                    GUILayout.Label($"標的HP {testTarget.CoreHealth:0.##}/{testTarget.CoreHealthLimit:0.##} / 残存区画 {testTarget.LivingSectionCount}/{DisplayedTileCount}", labelStyle);
+                else GUILayout.Label("生成完了後、最終過程で試験弾を発射できます。", labelStyle);
+                foreach (string entry in hitLog) GUILayout.Label(entry, labelStyle);
+            }
+            GUILayout.EndScrollView();
             GUILayout.EndArea(); GUI.matrix = oldMatrix;
+            DrawFloatingHits();
         }
         private void OnDestroy() { ClearDrawing(); if (material != null) Release(material); }
         private void Update()
         {
-            if (generator != null && (lastWidth != Screen.width || lastHeight != Screen.height)) UpdateView();
+            if (testTarget != null && (appliedArmorThickness != armorThickness || appliedEraVectorMagnitude != eraVectorMagnitude ||
+                appliedArmorInterception != armorInterception))
+            {
+                foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
+                {
+                    section.ArmorThickness = armorThickness;
+                    section.ArmorInterception = armorInterception;
+                    section.EraVectorMagnitude = eraVectorMagnitude;
+                }
+                appliedArmorThickness = armorThickness;
+                appliedArmorInterception = armorInterception;
+                appliedEraVectorMagnitude = eraVectorMagnitude;
+            }
+            floatingHits.RemoveAll(hit => Time.time - hit.StartedAt >= FloatingHitSeconds);
+            if (generator != null && (lastWidth != Screen.width || lastHeight != Screen.height))
+            { if (testLauncher != null) testLauncher.Cancel(); UpdateView(); }
+            if (testLauncher != null)
+                testLauncher.Tick(protectionTestMode && !generating && testTarget != null && testTarget.IsAlive &&
+                    ProjectilePenetration.IsValid(testProjectilePenetration) &&
+                    testProjectilePower > 0 && !float.IsInfinity(testProjectilePower),
+                    Mathf.Max(.01f, launchVelocityScale), Mathf.Max(.1f, testProjectileRadius),
+                    Mathf.Max(.1f, testProjectileLifetime), testTarget, testProjectilePower,
+                    testProjectilePenetration, RecordTestHit, testProjectileAffect, testExplosionRadius);
             TickTurrets();
         }
     }

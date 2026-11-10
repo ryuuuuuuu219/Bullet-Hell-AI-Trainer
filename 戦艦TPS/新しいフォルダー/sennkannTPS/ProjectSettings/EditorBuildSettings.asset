@@ -9,7 +9,7 @@ EditorBuildSettings:
     path: Assets/Scenes/TilingTest.unity
     guid: 85e9cf49c435ad44eae2e77bedf63277
   - enabled: 1
-    path: Assets/StellarSystem/Scenes/StellarSystem.unity
+    path: Assets/Scenes/StellarSystem.unity
     guid: d0683e43ba15c0f4bbf597f32816c4e0
   m_configObjects:
     com.unity.input.settings.actions: {fileID: -944628639613478452, guid: 052faaac586de48259a63d0c4782560b, type: 3}
