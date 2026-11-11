@@ -35,8 +35,9 @@ namespace Script
         }
 
         public void Tick(bool canLaunch, float velocityScale, float radius, float lifetime,
-            BattleshipAnimalInstance target, double power, double penetration, System.Action<string> report,
-            BattleshipProjectile.Affect affect = BattleshipProjectile.Affect.AP, float explosionRadius = 1f)
+            BattleshipInstance target, double power, double penetration, System.Action<string> report,
+            BattleshipProjectile.Affect affect = BattleshipProjectile.Affect.AP, float explosionRadius = 1f,
+            ProjectileEffectSettings effects = null)
         {
             Mouse mouse = Mouse.current;
             if (!canLaunch || mouse == null || !Application.isFocused || view == null)
@@ -72,7 +73,7 @@ namespace Script
                     var go = new GameObject("Protection Test Projectile");
                     go.transform.SetParent(projectileRoot, false);
                     go.AddComponent<ProtectionTestProjectile>().Initialize(material, origin, velocity, radius,
-                        lifetime, target, power, penetration, report, affect, explosionRadius);
+                        lifetime, target, power, penetration, report, affect, explosionRadius, effects);
                 }
                 Cancel();
             }

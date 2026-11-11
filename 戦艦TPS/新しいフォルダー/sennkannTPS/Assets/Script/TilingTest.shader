@@ -1,4 +1,4 @@
-Shader "Aquarium/TilingTest"
+Shader "Battleship/TilingTest"
 {
     Properties { _Opacity ("Opacity", Range(0, 1)) = 1 }
     SubShader

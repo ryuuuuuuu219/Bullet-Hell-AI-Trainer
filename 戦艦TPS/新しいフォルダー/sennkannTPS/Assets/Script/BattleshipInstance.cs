@@ -5,7 +5,7 @@ using UnityEngine;
 
 namespace Script
 {
-    public enum BattleshipAnimalClass
+    public enum BattleshipClass
     {
         [InspectorName("フリゲート艦")]
         Frigate,
@@ -17,15 +17,34 @@ namespace Script
         Battleship
     }
 
-    /// <summary>区画、資源、移動、対象選択、砲撃をまとめる戦艦型動物の実行時本体。</summary>
+    /// <summary>区画、資源、移動、対象選択、砲撃をまとめる艦船の実行時本体。</summary>
     [DefaultExecutionOrder(20)]
-    public sealed class BattleshipAnimalInstance : MonoBehaviour
+    public sealed class BattleshipInstance : MonoBehaviour
     {
         // Shared center-to-center range for threat detection and attack acquisition.
         public const float EncounterDistance = 1500f;
-        private static readonly List<BattleshipAnimalInstance> active = new List<BattleshipAnimalInstance>();
+        private static readonly List<BattleshipInstance> active = new List<BattleshipInstance>();
+        internal static IReadOnlyList<BattleshipInstance> ActiveShips => active;
+        public Vector2 CorePosition => sections.Count > 0 && sections[0] != null ? (Vector2)sections[0].transform.position : (Vector2)transform.position;
+        [Header("電磁バリア")]
+        public bool barrierEnabled;
+        [Min(1)] public int barrierReferenceSections = 24;
+        public bool barrierReduceOnExit;
+        [Range(0f, 1f)] public float barrierReduction = .1f;
+        public float BarrierRadius => Mathf.Min(LivingSectionCount * 40f, Mathf.Sqrt(Mathf.Max(1, barrierReferenceSections)) * 150f);
+        [SerializeField] private double heatAccumulation;
+        [SerializeField] private double emAccumulation;
+        public double HeatAccumulation => heatAccumulation;
+        public double EmAccumulation => emAccumulation;
+        public bool EmpActive => emAccumulation > 100d;
+        public bool CanFireRailgun => emAccumulation <= 0d;
+        internal void AccumulateImpact(double heat, double em)
+        {
+            heatAccumulation += Math.Max(0, heat);
+            emAccumulation += Math.Max(0, em);
+        }
 
-        [SerializeField] private BattleshipAnimalClass shipClass;
+        [SerializeField] private BattleshipClass shipClass;
         [SerializeField] private int requestedSections;
         [SerializeField] private int actualSections;
         [SerializeField] private int generationSeed;
@@ -40,8 +59,8 @@ namespace Script
         private bool stationaryTestTarget;
         private float nextTargetScan;
 
-        public static IReadOnlyList<BattleshipAnimalInstance> Active => active;
-        public BattleshipAnimalClass ShipClass => shipClass;
+        public static IReadOnlyList<BattleshipInstance> Active => active;
+        public BattleshipClass ShipClass => shipClass;
         public int RequestedSections => requestedSections;
         public int ActualSections => actualSections;
         public int GenerationSeed => generationSeed;
@@ -63,7 +82,7 @@ namespace Script
 
         private void OnDisable() => active.Remove(this);
 
-        internal void Initialize(BattleshipAnimalClass value,
+        internal void Initialize(BattleshipClass value,
             int requested, int actual, int seed, IReadOnlyList<BattleshipSection> createdSections,
             bool stationary = false)
         {
@@ -80,6 +99,8 @@ namespace Script
 
         private void Update()
         {
+            heatAccumulation = Math.Max(0, heatAccumulation - 5d * Time.deltaTime);
+            emAccumulation = Math.Max(0, emAccumulation - 5d * Time.deltaTime);
             if (stationaryTestTarget || !IsAlive || Time.deltaTime <= 0) return;
             float dt = Time.deltaTime;
             if (!IsAlive) return;
@@ -119,7 +140,7 @@ namespace Script
             {
                 if (candidate == null || candidate == gameObject || !candidate.activeInHierarchy ||
                     !candidate.TryGetComponent(out IFF other) || other.IsFriend == iff.IsFriend) continue;
-                object target = candidate.GetComponent<BattleshipAnimalInstance>();
+                object target = candidate.GetComponent<BattleshipInstance>();
                 if (target == null) target = candidate.GetComponent<Player>();
                 if (!ValidTarget(target) || !WithinEncounterRange(target)) continue;
                 double score = targetSelectionMode == TargetSelectionMode.Covered
@@ -142,7 +163,7 @@ namespace Script
                 desired = -position;
             else
             {
-                BattleshipAnimalInstance threat = active
+                BattleshipInstance threat = active
                     .Where(x => x != this && x.IsAlive && x.shipClass >= shipClass &&
                         ((Vector2)(x.transform.position - transform.position)).sqrMagnitude <= EncounterDistance * EncounterDistance)
                     .OrderBy(x => ((Vector2)(x.transform.position - transform.position)).sqrMagnitude)
@@ -151,7 +172,7 @@ namespace Script
                 else if (AttackTarget != null)
                 {
                     Vector2 toward = TargetPosition(AttackTarget) - position;
-                    desired = shipClass <= BattleshipAnimalClass.Destroyer
+                    desired = shipClass <= BattleshipClass.Destroyer
                         ? toward
                         : new Vector2(toward.y, -toward.x);
                 }
@@ -176,6 +197,15 @@ namespace Script
         {
             foreach (BattleshipSection section in sections)
                 if (section != null && section.IsAttached) section.TickWeapon(seconds);
+        }
+
+        internal void ReceiveSingleSectionHit(BattleshipSection section, double damage)
+        {
+            if (!IsAlive || section == null || !section.IsAttached || damage <= 0) return;
+            double before = section.CurrentHealth;
+            section.ApplyDamage(damage);
+            coreHealth -= before - section.CurrentHealth;
+            ProcessDestroyedSections();
         }
 
         internal void ReceiveHit(BattleshipSection hitSection, double power)
@@ -257,21 +287,21 @@ namespace Script
 
         private bool ValidTarget(object target) => target switch
         {
-            BattleshipAnimalInstance ship => ship != null && ship.IsAlive,
+            BattleshipInstance ship => ship != null && ship.IsAlive,
             Player body => body != null && body.isActiveAndEnabled && body.Health > 0,
             _ => false
         };
 
         private Vector2 TargetPosition(object target) => target switch
         {
-            BattleshipAnimalInstance ship => ship.transform.position,
+            BattleshipInstance ship => ship.transform.position,
             Player body => body.transform.position,
             _ => transform.position
         };
 
         private double CurrentHealth(object target) => target switch
         {
-            BattleshipAnimalInstance ship => ship.coreHealth,
+            BattleshipInstance ship => ship.coreHealth,
             Player body => body.Health,
             _ => 0
         };
@@ -280,19 +310,19 @@ namespace Script
 
         private float DistanceSquared(object target) => (TargetPosition(target) - (Vector2)transform.position).sqrMagnitude;
 
-        private static float SpeedFor(BattleshipAnimalClass value) => value switch
+        private static float SpeedFor(BattleshipClass value) => value switch
         {
-            BattleshipAnimalClass.Frigate => 100f,
-            BattleshipAnimalClass.Destroyer => 80f,
-            BattleshipAnimalClass.Cruiser => 50f,
+            BattleshipClass.Frigate => 100f,
+            BattleshipClass.Destroyer => 80f,
+            BattleshipClass.Cruiser => 50f,
             _ => 30f
         };
 
-        private static float TurnSpeedFor(BattleshipAnimalClass value) => value switch
+        private static float TurnSpeedFor(BattleshipClass value) => value switch
         {
-            BattleshipAnimalClass.Frigate => 120f,
-            BattleshipAnimalClass.Destroyer => 90f,
-            BattleshipAnimalClass.Cruiser => 60f,
+            BattleshipClass.Frigate => 120f,
+            BattleshipClass.Destroyer => 90f,
+            BattleshipClass.Cruiser => 60f,
             _ => 30f
         };
     }

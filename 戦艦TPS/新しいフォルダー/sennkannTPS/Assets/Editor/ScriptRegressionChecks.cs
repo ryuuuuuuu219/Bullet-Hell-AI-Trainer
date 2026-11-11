@@ -17,12 +17,12 @@ public static class ScriptRegressionChecks
         => target.GetType().GetField(name, Private).GetValue(target);
     private static void Check(bool condition, string message)
     { if (!condition) throw new Exception(message); }
-    private static BattleshipAnimalInstance Ship(bool friend, float x)
+    private static BattleshipInstance Ship(bool friend, float x)
     {
         var go = new GameObject("Regression ship"); created.Add(go);
         go.transform.position = new Vector3(x, 0);
-        var ship = go.AddComponent<BattleshipAnimalInstance>();
-        var iff = go.AddComponent(typeof(BattleshipAnimalInstance).Assembly.GetType("Script.IFF"));
+        var ship = go.AddComponent<BattleshipInstance>();
+        var iff = go.AddComponent(typeof(BattleshipInstance).Assembly.GetType("Script.IFF"));
         iff.GetType().GetField("IsFriend").SetValue(iff, friend);
         iff.GetType().GetMethod("RegistryToManager").Invoke(iff, null);
         var sections = new List<BattleshipSection>();
@@ -35,11 +35,20 @@ public static class ScriptRegressionChecks
         }
         Call(sections[0], "AddNeighbor", sections[1]);
         Call(sections[0], "AddNeighbor", sections[2]);
-        Call(ship, "Initialize", BattleshipAnimalClass.Frigate, 3, 3, 1, sections, false);
+        Call(ship, "Initialize", BattleshipClass.Frigate, 3, 3, 1, sections, false);
         return ship;
     }
     public static void Run() => RunChecks(false);
     public static void RunProtection() => RunChecks(true);
+
+    public static void RunEffectsInPlayMode()
+    {
+        EditorSceneManager.OpenScene("Assets/Scenes/TilingTest.unity");
+        SessionState.SetBool("ScriptRegressionChecks.Effects", true);
+        SessionState.SetBool("ScriptRegressionChecks.PlayMode", true);
+        InstallPlayModeCheck();
+        EditorApplication.EnterPlaymode();
+    }
 
     // Batch entry point without -quit: wait for the actual Play Mode physics world.
     public static void RunInPlayMode()
@@ -62,7 +71,15 @@ public static class ScriptRegressionChecks
         if (state != PlayModeStateChange.EnteredPlayMode ||
             !SessionState.GetBool("ScriptRegressionChecks.PlayMode", false)) return;
         SessionState.SetBool("ScriptRegressionChecks.PlayMode", false);
-        try { RunChecks(false); EditorApplication.Exit(0); }
+        try
+        {
+            if (SessionState.GetBool("ScriptRegressionChecks.Effects", false))
+            {
+                SessionState.SetBool("ScriptRegressionChecks.Effects", false);
+                RunEffectsChecks();
+            }
+            RunChecks(false); EditorApplication.Exit(0);
+        }
         catch (Exception exception) { Debug.LogException(exception); EditorApplication.Exit(1); }
     }
 
@@ -75,13 +92,13 @@ public static class ScriptRegressionChecks
             ProjectilePenetration.RemainingPower(40, 1, 0, 100, out double hp);
             Check(hp == 60, "Penetration damage");
             var playerObject = new GameObject("Regression player"); created.Add(playerObject);
-            var player = playerObject.AddComponent(typeof(BattleshipAnimalInstance).Assembly.GetType("Script.Player"));
+            var player = playerObject.AddComponent(typeof(BattleshipInstance).Assembly.GetType("Script.Player"));
             Call(player, "Hit", 40d, 1d);
             Check((double)player.GetType().GetField("Health").GetValue(player) == 60, "Player damage");
             var ally = Ship(true, 0); var near = Ship(false, 100); var far = Ship(false, 500);
             Call(ally, "SelectAttackTarget");
             Check(ReferenceEquals(Field(ally, "attackTarget"), near), "Closest target component");
-            ally.targetSelectionMode = BattleshipAnimalInstance.TargetSelectionMode.Farthest;
+            ally.targetSelectionMode = BattleshipInstance.TargetSelectionMode.Farthest;
             Call(ally, "SelectAttackTarget");
             Check(ReferenceEquals(Field(ally, "attackTarget"), far), "Farthest target");
             Call(near, "SelectAttackTarget");
@@ -89,7 +106,7 @@ public static class ScriptRegressionChecks
             var parts = (List<BattleshipSection>)Field(near, "sections");
             Call(parts[1], "Hit", 40d, 1d);
             Check(parts[1].CurrentHealth == 60 && near.CoreHealth == 260, "Damage applied exactly once");
-            ally.targetSelectionMode = BattleshipAnimalInstance.TargetSelectionMode.Covered;
+            ally.targetSelectionMode = BattleshipInstance.TargetSelectionMode.Covered;
             Call(ally, "SelectAttackTarget");
             Check(ReferenceEquals(Field(ally, "attackTarget"), near), "Lowest health target");
             Call(parts[0], "Hit", 30d, .5d);
@@ -111,8 +128,13 @@ public static class ScriptRegressionChecks
                 Check(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(root) == 0, "Scene script reference");
             var test = UnityEngine.Object.FindFirstObjectByType<TilingTestScene>();
             Check(test != null, "Tiling component resolved");
+            test.GetType().GetField("armorMode", Private).SetValue(test, ArmorMode.Basic);
+            test.GetType().GetField("armorThickness", Private).SetValue(test, 50f);
+            test.GetType().GetField("eraVectorMagnitude", Private).SetValue(test, 50f);
+            test.GetType().GetField("armorInterception", Private).SetValue(test, .1d);
+            test.GetType().GetField("testBarrierEnabled", Private).SetValue(test, false);
             test.GenerateForValidation();
-            var target = (BattleshipAnimalInstance)Field(test, "testTarget");
+            var target = (BattleshipInstance)Field(test, "testTarget");
             Check(target != null && target.IsAlive && target.LivingSectionCount == test.DisplayedTileCount,
                 "Tiling sections connected to combat target");
             foreach (var section in target.GetComponentsInChildren<BattleshipSection>())
@@ -200,7 +222,7 @@ public static class ScriptRegressionChecks
             foreach (var renderer in core.GetComponentsInChildren<Renderer>())
                 Check(!renderer.enabled, "Destroyed section outline/marker hidden");
             Call(test, "DrawFrame");
-            var restored = (BattleshipAnimalInstance)Field(test, "testTarget");
+            var restored = (BattleshipInstance)Field(test, "testTarget");
             Check(restored != null && restored.IsAlive && restored.CoreHealth == restored.CoreHealthLimit,
                 "Restore rebuilds healthy target");
             Check(((System.Collections.IList)Field(test, "floatingHits")).Count == 0,
@@ -260,13 +282,14 @@ public static class ScriptRegressionChecks
             projectile.Initialize(null, new Vector2(19990, 0), new Vector2(1000, 0),
                 .1f, 15f, ship, 60d, 1d, reports.Add, BattleshipProjectile.Affect.HE, 15f);
             Call(projectile, "SimulateStep", .03f);
-            Check(Math.Abs(parts[1].CurrentHealth - 40d) < 1e-6, "HE uses impact power before armor consumes the projectile");
-            Check(parts[2].CurrentHealth == 40d, "Nearby section receives one independent blast hit despite duplicate colliders");
+            Check(Math.Abs(parts[1].CurrentHealth - 100d) < .01, "HE distance attenuation precedes armor rejection");
+            Check(Math.Abs(parts[2].CurrentHealth - 95d) < .01,
+                $"Distance-attenuated blast hits a section once despite duplicate colliders: HP={parts[2].CurrentHealth}, projectile={projectile.transform.position}, armor={parts[1].transform.position}, turret={parts[2].transform.position}, reports={string.Join(";", reports)}");
             Check(parts[0].CurrentHealth == 100d, "Section outside blast stays intact");
-            Check(Math.Abs(ship.CoreHealth - 180d) < 1e-6, "Blast damage counted once in ship health");
+            Check(Math.Abs(ship.CoreHealth - 295d) < .01, "Attenuated blast damage counted once in ship health");
             Check(projectile.RemainingPower == 0d && reports.Count == 1, "HE detonates once and stops");
             Call(projectile, "SimulateStep", .03f);
-            Check(parts[2].CurrentHealth == 40d && reports.Count == 1, "HE cannot damage again before deferred destruction");
+            Check(Math.Abs(parts[2].CurrentHealth - 95d) < .01 && reports.Count == 1, "HE cannot damage again before deferred destruction");
         }
         finally
         {
@@ -277,6 +300,116 @@ public static class ScriptRegressionChecks
         }
     }
 
+    [MenuItem("戦艦TPS/検証/弾種別効果・バリア")]
+    public static void RunEffectsChecks()
+    {
+        try
+        {
+            Check(ProjectileEffects.BlastPower(100, 0) == 100 && ProjectileEffects.BlastPower(100, .5) == 100 &&
+                ProjectileEffects.BlastPower(100, 4) == 25, "Inverse-distance blast clamp");
+            Vector2 incident = new Vector2(.5f, Mathf.Sqrt(3) * .5f);
+            Vector2 corrected = ProjectileEffects.Refract(incident, Vector2.left, .8f);
+            Check(Math.Abs(corrected.y - incident.y * .8f) < 1e-6 && Math.Abs(corrected.magnitude - 1) < 1e-6,
+                "APC uses Snell ratio, preserving magnitude");
+            Check((ProjectileEffects.Refract(incident, Vector2.left, 1.25f) - incident).sqrMagnitude < 1e-10,
+                "Barrier total-reflection condition preserves heading");
+            Check(ProjectileEffects.Refract(Vector2.right, Vector2.left, 1.25f) == Vector2.right, "Central ray stays straight");
+            var ship = Ship(false, 30000);
+            var parts = (List<BattleshipSection>)Field(ship, "sections");
+            var armor = parts[1];
+            void RestoreTarget()
+            {
+                Call(armor, "Recover", 100d);
+                Call(ship, "Initialize", BattleshipClass.Frigate, 3, 3, 1, new List<BattleshipSection>(parts), true);
+            }
+            Call(armor, "Initialize", ship, 1, BattleshipSectionRole.Armor, null);
+            object[] hit = { 80d, 1d, Vector2.zero, incident, Vector2.left, Vector2.zero,
+                BattleshipProjectile.Affect.APC, true, new ProjectileEffectSettings() };
+            double power = (double)Call(armor, "HitEffect", hit);
+            Check(armor.LastEffectiveArmor < 80 && armor.CurrentHealth == 20 && power > 0,
+                "APC corrected direction opens armor gate before damage");
+            RestoreTarget();
+            hit = new object[] { 60d, 1d, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero,
+                BattleshipProjectile.Affect.APCR, true, new ProjectileEffectSettings() };
+            power = (double)Call(armor, "HitEffect", hit);
+            Check(Math.Abs(power - 57) < 1e-6 && Math.Abs((double)hit[1] - .95d) < 1e-6,
+                "APCR doubles P, subtracts interception, then removes bonus");
+            RestoreTarget();
+            hit[1] = .95d; hit[7] = false;
+            power = (double)Call(armor, "HitEffect", hit);
+            Check(Math.Abs((double)hit[1] - .85d) < 1e-6, "APCR second contact has no bonus");
+            RestoreTarget();
+            armor.Mode = ArmorMode.ERA; armor.EraVectorMagnitude = 0;
+            hit = new object[] { 100d, 1d, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero,
+                BattleshipProjectile.Affect.HEAT, true, new ProjectileEffectSettings() };
+            Check((double)Call(armor, "HitEffect", hit) == 0 && armor.CurrentHealth == 50, "HEAT ERA half-damage and stops");
+            RestoreTarget();
+            hit[3] = new Vector2(Mathf.Cos(51 * Mathf.Deg2Rad), Mathf.Sin(51 * Mathf.Deg2Rad));
+            Call(armor, "HitEffect", hit);
+            Check(armor.CurrentHealth == 100, "HEAT angle limit rejects hit");
+            armor.Mode = ArmorMode.Basic;
+            hit[0] = 60d; hit[3] = incident; hit[6] = BattleshipProjectile.Affect.HESH;
+            Call(armor, "HitEffect", hit);
+            Check(armor.CurrentHealth == 50, "HESH uses physical thickness for both gate and damage");
+            RestoreTarget();
+            var settings = new ProjectileEffectSettings { electronEm = 30f };
+            hit = new object[] { 100d, 1d, Vector2.zero, Vector2.right, Vector2.left, Vector2.zero,
+                BattleshipProjectile.Affect.Electron, true, settings };
+            Call(armor, "HitEffect", hit);
+            Check(armor.CurrentHealth == 100 && ship.EmAccumulation == 30, "Electron adds EM without HP damage");
+            ship.barrierReferenceSections = 1;
+            Check(ship.BarrierRadius == 120f, "Barrier uses current section count and reference cap");
+            var probeObject = new GameObject("Photon regression"); created.Add(probeObject);
+            armor.transform.localPosition = new Vector3(0,0);
+            parts[0].transform.localPosition = new Vector3(0,30);
+            parts[2].transform.localPosition = new Vector3(10,0);
+            armor.ArmorThickness = 0;
+            armor.GetComponent<PolygonCollider2D>().SetPath(0, new[] {
+                new Vector2(-2,-2), new Vector2(2,-2), new Vector2(2,2), new Vector2(-2,2) });
+            var neutronObject = new GameObject("Neutron ray regression"); created.Add(neutronObject);
+            var neutron = neutronObject.AddComponent<ProtectionTestProjectile>();
+            double neutronBefore = armor.CurrentHealth;
+            neutron.Initialize(null, new Vector2(29990, 0), Vector2.right, 10f, 2f, ship, 10d, 1d, null,
+                BattleshipProjectile.Affect.Neutron, 1, new ProjectileEffectSettings { beamRange = 30 });
+            Check(Math.Abs(armor.CurrentHealth - (neutronBefore - 10d)) < .001,
+                "Neutron ray hits immediately without waiting for flight time");
+            Check(neutron.GetComponent<LineRenderer>().positionCount >= 4,
+                "Neutron ray retains entry and exit boundary path");
+            Call(neutron, "SimulateStep", .1f);
+            Check(Math.Abs(armor.CurrentHealth - (neutronBefore - 10d)) < .001,
+                "Neutron beam display does not repeat damage");
+            var missObject = new GameObject("Neutron ray width regression"); created.Add(missObject);
+            missObject.AddComponent<ProtectionTestProjectile>().Initialize(null, new Vector2(29990, 5),
+                Vector2.right, 10f, 2f, ship, 10d, 1d, null, BattleshipProjectile.Affect.Neutron, 1,
+                new ProjectileEffectSettings { beamRange = 30 });
+            Check(Math.Abs(armor.CurrentHealth - (neutronBefore - 10d)) < .001,
+                "Neutron ray has no swept projectile radius");
+            RestoreTarget(); armor.ArmorThickness = 0;
+            var probe = probeObject.AddComponent<ProtectionTestProjectile>();
+            probe.Initialize(null, new Vector2(29990,0), Vector2.right, .1f, 2f, ship, 100, 1, null,
+                BattleshipProjectile.Affect.Photon, 1, new ProjectileEffectSettings { photonDps = 50, photonInterval = .2f, beamDuration = 1 });
+            Call(probe, "SimulateStep", .35f); Call(probe, "SimulateStep", .65f);
+            Check(Math.Abs(armor.CurrentHealth - 50d) < .001, "Photon DPS is invariant to split frame timing");
+            ship.barrierEnabled = true;
+            double beforeBarrier = ship.CoreHealth;
+            var barrierProbeObject = new GameObject("Barrier photon regression"); created.Add(barrierProbeObject);
+            var barrierProbe = barrierProbeObject.AddComponent<ProtectionTestProjectile>();
+            barrierProbe.Initialize(null, ship.CorePosition + Vector2.left * 200, Vector2.right, .1f, 2f, ship, 100, 1, null,
+                BattleshipProjectile.Affect.Photon, 1, new ProjectileEffectSettings { photonDps = 50, photonInterval = .2f, beamDuration = 1 });
+            Call(barrierProbe, "SimulateStep", 1f);
+            Check(Math.Abs(beforeBarrier - ship.CoreHealth - 45d) < .001,
+                "Central photon traverses barrier and receives ten percent reduction before impact");
+            Debug.Log("PROJECTILE_EFFECTS_CHECKS_PASS");
+        }
+        finally
+        {
+            foreach (var go in created) if (go != null) UnityEngine.Object.DestroyImmediate(go);
+            created.Clear();
+        }
+    }
+
+    [MenuItem("戦艦TPS/検証/弾種別効果・バリア", true)]
+    private static bool CanRunEffectsChecks() => Application.isPlaying;
     private static void CheckProtectionProjectile()
     {
         var ship = Ship(false, 10000);
@@ -292,7 +425,7 @@ public static class ScriptRegressionChecks
         }
         var go = new GameObject("Regression probe"); created.Add(go);
         var projectile = go.AddComponent<ProtectionTestProjectile>();
-        var material = new Material(Shader.Find("Aquarium/TilingTest"));
+        var material = new Material(Shader.Find("Battleship/TilingTest"));
         bool previousQueries = Physics2D.queriesHitTriggers;
         var previousSimulation = Physics2D.simulationMode;
         var reports = new List<string>();
@@ -307,7 +440,7 @@ public static class ScriptRegressionChecks
             Call(projectile, "SimulateStep", .01f);
             Check(Math.Abs(parts[1].CurrentHealth - 10d) < 1e-6 &&
                 Math.Abs(projectile.RemainingPower - 81d) < 1e-6,
-                $"Armor hit: HP={parts[1].CurrentHealth}, power={projectile.RemainingPower}, alive={ship.IsAlive}, contacts={((List<RaycastHit2D>)Field(projectile, "contacts")).Count}, position={projectile.transform.position}, armor={parts[1].transform.position}");
+                $"Armor hit: HP={parts[1].CurrentHealth}, power={projectile.RemainingPower}, alive={ship.IsAlive}, position={projectile.transform.position}, armor={parts[1].transform.position}");
             Call(projectile, "SimulateStep", .001f);
             Check(parts[1].CurrentHealth == 10d && reports.Count == 1 && Math.Abs(projectile.Penetration - .9d) < 1e-9,
                 "No repeated damage or penetration loss while overlapping");

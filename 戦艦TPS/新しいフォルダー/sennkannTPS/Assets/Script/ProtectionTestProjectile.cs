@@ -16,25 +16,30 @@ namespace Script
         private double penetration;
         private BattleshipProjectile.Affect affect;
         private float explosionRadius;
+        private ProjectileFlight flight;
+        private ProjectileEffectSettings effects;
+        private float beamElapsed, beamAccumulator;
         public double Penetration => penetration;
-        private BattleshipAnimalInstance target;
+        private BattleshipInstance target;
+        private BattleshipInstance sourceOwner;
         private Action<string> report;
-        private readonly HashSet<BattleshipSection> hitSections = new HashSet<BattleshipSection>();
-        private readonly List<RaycastHit2D> contacts = new List<RaycastHit2D>();
         public double RemainingPower { get; private set; }
 
         public void Initialize(Material material, Vector2 position, Vector2 velocity,
-            float radius, float lifetime, BattleshipAnimalInstance targetShip,
+            float radius, float lifetime, BattleshipInstance targetShip,
             double power, double penetrationValue, Action<string> hitReport = null,
-            BattleshipProjectile.Affect projectileAffect = BattleshipProjectile.Affect.AP, float blastRadius = 1f)
+            BattleshipProjectile.Affect projectileAffect = BattleshipProjectile.Affect.AP, float blastRadius = 1f, ProjectileEffectSettings effectSettings = null,
+            BattleshipInstance source = null)
         {
             if (!ProjectilePenetration.IsValid(penetrationValue) ||
                 double.IsNaN(power) || double.IsInfinity(power) || power <= 0)
                 throw new ArgumentOutOfRangeException(nameof(power), "威力と貫通力には正の有限値が必要です。");
             target = targetShip;
+            sourceOwner = source;
             penetration = penetrationValue;
             affect = projectileAffect;
             explosionRadius = blastRadius;
+            effects = (effectSettings ?? new ProjectileEffectSettings()).Snapshot();
             RemainingPower = power;
             collisionRadius = radius;
             report = hitReport;
@@ -42,6 +47,7 @@ namespace Script
             InitialVelocity = velocity;
             Velocity = velocity;
             remainingSeconds = Mathf.Max(.01f, lifetime);
+            if (affect == BattleshipProjectile.Affect.Photon) remainingSeconds = Mathf.Max(.001f, effects.beamDuration);
             transform.position = new Vector3(position.x, position.y, -.1f);
             var line = GetComponent<LineRenderer>();
             line.sharedMaterial = material;
@@ -57,13 +63,23 @@ namespace Script
             }
             var trail = gameObject.AddComponent<TrailRenderer>();
             trail.sharedMaterial = material;
-            trail.time = 1f;
+            trail.time = affect == BattleshipProjectile.Affect.Plasma ? .8f : 1f;
             trail.minVertexDistance = Mathf.Max(.1f, radius * .1f);
             trail.startWidth = radius;
             trail.endWidth = 0f;
-            trail.startColor = trail.endColor = Color.cyan;
+            trail.startColor = trail.endColor = affect == BattleshipProjectile.Affect.Plasma ? new Color(.7f, 0f, 1f) : Color.cyan;
+            flight = NewFlight(power, penetrationValue);
+            if (affect == BattleshipProjectile.Affect.Photon || affect == BattleshipProjectile.Affect.Neutron) { trail.emitting = false; line.loop = false; line.useWorldSpace = true; line.positionCount = 2; line.SetPosition(0, position); line.SetPosition(1, position); }
+            if (affect == BattleshipProjectile.Affect.Neutron) TraceNeutron();
         }
 
+        private void TraceNeutron()
+        {
+            flight.Sweep(Mathf.Max(1f, effects.beamRange));
+            RemainingPower = flight.Power;
+            penetration = flight.Penetration;
+            ShowBeam(flight);
+        }
         private void Update()
         {
             SimulateStep(Time.deltaTime);
@@ -73,72 +89,59 @@ namespace Script
         {
             if (seconds <= 0 || remainingSeconds <= 0) return;
             float step = Mathf.Min(seconds, remainingSeconds);
-            Vector2 start = transform.position;
-            float distance = Velocity.magnitude * step;
-            Vector2 direction = Velocity.normalized;
-            if (target != null && target.IsAlive && distance > 0)
+            if (affect == BattleshipProjectile.Affect.Photon)
             {
-                // Test sections are solid static colliders, so trigger-query settings cannot hide them.
-                Physics2D.SyncTransforms();
-                var filter = new ContactFilter2D().NoFilter();
-                filter.useTriggers = true;
-                Physics2D.CircleCast(start, collisionRadius, direction, filter, contacts, distance);
-                contacts.Sort((a, b) =>
+                float durationStep = Mathf.Min(step, Mathf.Max(0f, effects.beamDuration - beamElapsed));
+                beamElapsed += durationStep;
+                beamAccumulator += durationStep;
+                float interval = Mathf.Max(.001f, effects.photonInterval);
+                while (beamAccumulator + .000001f >= interval)
                 {
-                    int order = a.distance.CompareTo(b.distance);
-                    if (order != 0) return order;
-                    int aId = a.collider.GetComponent<BattleshipSection>()?.SectionId ?? int.MaxValue;
-                    int bId = b.collider.GetComponent<BattleshipSection>()?.SectionId ?? int.MaxValue;
-                    return aId.CompareTo(bId);
-                });
-                foreach (var hit in contacts)
+                    beamAccumulator = Mathf.Max(0f, beamAccumulator - interval);
+                    var pulse = NewFlight(Mathf.Max(0, effects.photonDps) * interval, penetration);
+                    pulse.Sweep(Mathf.Max(1, effects.beamRange));
+                    ShowBeam(pulse);
+                }
+                if (beamElapsed >= effects.beamDuration)
                 {
-                    if (!target.IsAlive) break;
-                    var section = hit.collider.GetComponent<BattleshipSection>();
-                    if (section == null || section.Owner != target || !section.IsAttached ||
-                        !hitSections.Add(section)) continue;
-                    if (affect == BattleshipProjectile.Affect.HE)
+                    if (beamAccumulator > .000001f)
                     {
-                        ExplosionEffect.Detonate(hit.point, explosionRadius, RemainingPower, penetration,
-                            null, default, GetComponent<LineRenderer>().sharedMaterial, target);
-                        report?.Invoke($"HE着弾 / 爆発半径 {explosionRadius:0.##} / 威力 {RemainingPower:0.##}");
-                        RemainingPower = 0;
-                        remainingSeconds = 0;
-                        transform.position = new Vector3(hit.centroid.x, hit.centroid.y, transform.position.z);
-                        Destroy(gameObject);
-                        return;
+                        var pulse = NewFlight(Mathf.Max(0, effects.photonDps) * beamAccumulator, penetration);
+                        pulse.Sweep(Mathf.Max(1, effects.beamRange)); ShowBeam(pulse);
                     }
-                    double beforePower = RemainingPower, beforeHealth = section.CurrentHealth, beforePenetration = penetration;
-                    RemainingPower = section.HitProjectile(RemainingPower, ref penetration, hit.point, direction, hit.normal,
-                        out Vector2 outgoingDirection);
-                    bool stopped = RemainingPower <= 1e-9;
-                    string thickness = double.IsPositiveInfinity(section.LastEffectiveArmor) ? "∞" : section.LastEffectiveArmor.ToString("0.##");
-                    report?.Invoke($"区画{section.SectionId + 1} ({section.Role}) / 入射角 {section.LastImpactAngle:0.##}° / 実装甲厚 {section.Armor:0.##} / 実効装甲厚 {thickness} / HP {beforeHealth:0.##} → {section.CurrentHealth:0.##} / 威力 {beforePower:0.##} → {RemainingPower:0.##} / 貫通力 {beforePenetration:0.##} → {penetration:0.##} / {(stopped ? "停止" : "通過")}");
-                    if (stopped)
-                    {
-                        // The cast centroid is the projectile centre at first contact.
-                        transform.position = new Vector3(hit.centroid.x, hit.centroid.y, transform.position.z);
-                        remainingSeconds = 0;
-                        Destroy(gameObject);
-                        return;
-                    }
-                    Vector2 nextDirection = outgoingDirection.normalized;
-                    if ((nextDirection - direction).sqrMagnitude > .00000001f)
-                    {
-                        float speed = Velocity.magnitude;
-                        float travelledSeconds = Mathf.Clamp(hit.distance / speed, 0f, step);
-                        Velocity = nextDirection * speed;
-                        transform.position = new Vector3(hit.centroid.x, hit.centroid.y, transform.position.z);
-                        remainingSeconds -= travelledSeconds;
-                        // Discard contacts along the old heading and sweep the remaining time anew.
-                        SimulateStep(step - travelledSeconds);
-                        return;
-                    }
+                    remainingSeconds = 0; Destroy(gameObject); return;
                 }
             }
-            transform.position += (Vector3)(Velocity * step);
+            else
+            {
+                if (affect == BattleshipProjectile.Affect.Neutron)
+                {
+                    remainingSeconds -= step;
+                    if (remainingSeconds <= 0) Destroy(gameObject);
+                    return;
+                }
+                flight.Advance(step, Velocity.magnitude);
+                Velocity = flight.Direction * Velocity.magnitude;
+                transform.position = new Vector3(flight.Position.x, flight.Position.y, transform.position.z);
+                RemainingPower = flight.Power; penetration = flight.Penetration;
+                if (flight.Stopped) { remainingSeconds = 0; Destroy(gameObject); return; }
+            }
             remainingSeconds -= step;
-            if (remainingSeconds <= 0f) Destroy(gameObject);
+            if (remainingSeconds <= 0) Destroy(gameObject);
+        }
+
+        private ProjectileFlight NewFlight(double power, double p) => new ProjectileFlight {
+            Position = InitialPosition, Direction = InitialVelocity.normalized, Power = power, Penetration = p,
+            Affect = affect, Settings = effects, Radius = collisionRadius, BlastRadius = explosionRadius,
+            OnlyTarget = target, Owner = sourceOwner, SourceClass = sourceOwner != null ? sourceOwner.ShipClass : default,
+            Material = GetComponent<LineRenderer>().sharedMaterial, Report = report
+        };
+
+        private void ShowBeam(ProjectileFlight pulse)
+        {
+            var line = GetComponent<LineRenderer>();
+            line.positionCount = pulse.Path.Count;
+            line.SetPositions(pulse.Path.ToArray());
         }
     }
 }

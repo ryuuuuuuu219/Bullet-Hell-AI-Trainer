@@ -83,6 +83,11 @@ namespace Script
         [SerializeField, Min(.01f)] private float testProjectilePower = 100f;
         [SerializeField, Min(.01f)] private float testProjectilePenetration = 1f;
         [SerializeField, InspectorName("試験弾の弾種")] private BattleshipProjectile.Affect testProjectileAffect = BattleshipProjectile.Affect.AP;
+        [SerializeField] private ProjectileEffectSettings projectileEffects = new ProjectileEffectSettings();
+        [SerializeField, InspectorName("電磁バリア有効")] private bool testBarrierEnabled;
+        [SerializeField, Min(1), InspectorName("バリア目安区画数（試験設定）")] private int barrierReferenceSections = 24;
+        [SerializeField, InspectorName("バリア退出時にも軽減（未確定・試験設定）")] private bool barrierReduceOnExit;
+        private LineRenderer barrierOutline;
         [SerializeField, Min(.01f), InspectorName("HE爆発半径")] private float testExplosionRadius = 100f;
         [SerializeField, InspectorName("試験標的の装甲モード")] private ArmorMode armorMode = ArmorMode.Basic;
         [SerializeField, Min(0f), InspectorName("試験標的の実装甲厚")] private float armorThickness = 50f;
@@ -92,7 +97,7 @@ namespace Script
         private double armorInterception = 0.1d;
         private double appliedArmorInterception = double.NaN;
         private float appliedEraVectorMagnitude = float.NaN;
-        private BattleshipAnimalInstance testTarget;
+        private BattleshipInstance testTarget;
         private readonly Queue<string> hitLog = new Queue<string>();
         private ProtectionTestLauncher testLauncher;
         private GameObject testProjectiles;
@@ -158,7 +163,7 @@ namespace Script
             }
             if (material == null)
             {
-                var shader = tileShader != null ? tileShader : Shader.Find("Aquarium/TilingTest");
+                var shader = tileShader != null ? tileShader : Shader.Find("Battleship/TilingTest");
                 if (shader == null) throw new System.InvalidOperationException("TilingTest shader is missing.");
                 material = new Material(shader);
             }
@@ -292,7 +297,7 @@ namespace Script
             maximumShipSp = Mathf.Max(0f, spPerSection) * tiles.Length;
             shipSp = maximumShipSp;
             if (tiles.Length == 0) return;
-            testTarget = drawing.AddComponent<BattleshipAnimalInstance>();
+            testTarget = drawing.AddComponent<BattleshipInstance>();
             var sections = new List<BattleshipSection>(tiles.Length);
 
             var roles = new List<SectionRole>(tiles.Length - 1);
@@ -336,8 +341,18 @@ namespace Script
                 sections[i].AddNeighbor(sections[j]);
                 sections[j].AddNeighbor(sections[i]);
             }
-            testTarget.Initialize((BattleshipAnimalClass)shipClass, targetSections, tiles.Length,
+            testTarget.Initialize((BattleshipClass)shipClass, targetSections, tiles.Length,
                 seed, sections, stationary: true);
+            var barrierObject = new GameObject("電磁バリア");
+            barrierObject.transform.SetParent(testTarget.transform, false);
+            barrierOutline = barrierObject.AddComponent<LineRenderer>();
+            barrierOutline.sharedMaterial = material;
+            barrierOutline.useWorldSpace = true;
+            barrierOutline.loop = true;
+            barrierOutline.positionCount = 96;
+            barrierOutline.startColor = barrierOutline.endColor = new Color(.1f, .8f, 1f, .5f);
+            barrierOutline.widthMultiplier = 1f;
+            UpdateBarrier();
             Physics2D.SyncTransforms();
         }
 
@@ -672,7 +687,7 @@ namespace Script
                 GUILayout.BeginHorizontal();
                 GUILayout.Label("装甲モード", GUILayout.Width(85));
                 var selectedArmor = (ArmorMode)GUILayout.SelectionGrid((int)armorMode,
-                    new[] { "ベーシック", "ERA" }, 2, GUILayout.Width(220));
+                    new[] { "ベーシック", "ERA", "対電磁" }, 3, GUILayout.Width(280));
                 if (selectedArmor != armorMode)
                 {
                     armorMode = selectedArmor;
@@ -685,6 +700,7 @@ namespace Script
                 if (testTarget != null)
                     GUILayout.Label($"標的HP {testTarget.CoreHealth:0.##}/{testTarget.CoreHealthLimit:0.##} / 残存区画 {testTarget.LivingSectionCount}/{DisplayedTileCount}", labelStyle);
                 else GUILayout.Label("生成完了後、最終過程で試験弾を発射できます。", labelStyle);
+                if (testTarget != null) GUILayout.Label($"熱量 {testTarget.HeatAccumulation:0.##}% / EM {testTarget.EmAccumulation:0.##}% / バリア半径 {testTarget.BarrierRadius:0.##}", labelStyle);
                 foreach (string entry in hitLog) GUILayout.Label(entry, labelStyle);
             }
             GUILayout.EndScrollView();
@@ -694,6 +710,7 @@ namespace Script
         private void OnDestroy() { ClearDrawing(); if (material != null) Release(material); }
         private void Update()
         {
+            UpdateBarrier();
             if (testTarget != null && (appliedArmorThickness != armorThickness || appliedEraVectorMagnitude != eraVectorMagnitude ||
                 appliedArmorInterception != armorInterception))
             {
@@ -716,8 +733,25 @@ namespace Script
                     testProjectilePower > 0 && !float.IsInfinity(testProjectilePower),
                     Mathf.Max(.01f, launchVelocityScale), Mathf.Max(.1f, testProjectileRadius),
                     Mathf.Max(.1f, testProjectileLifetime), testTarget, testProjectilePower,
-                    testProjectilePenetration, RecordTestHit, testProjectileAffect, testExplosionRadius);
+                    testProjectilePenetration, RecordTestHit, testProjectileAffect, testExplosionRadius, projectileEffects);
             TickTurrets();
+        }
+
+        private void UpdateBarrier()
+        {
+            if (testTarget == null) return;
+            testTarget.barrierEnabled = testBarrierEnabled;
+            testTarget.barrierReferenceSections = Mathf.Max(1, barrierReferenceSections);
+            testTarget.barrierReduceOnExit = barrierReduceOnExit;
+            if (barrierOutline == null) return;
+            barrierOutline.enabled = testBarrierEnabled && testTarget.IsAlive;
+            Vector2 center = testTarget.CorePosition;
+            for (int i = 0; i < barrierOutline.positionCount; i++)
+            {
+                float angle = 2f * Mathf.PI * i / barrierOutline.positionCount;
+                Vector2 p = center + new Vector2(Mathf.Cos(angle), Mathf.Sin(angle)) * testTarget.BarrierRadius;
+                barrierOutline.SetPosition(i, new Vector3(p.x, p.y, -.2f));
+            }
         }
     }
 }

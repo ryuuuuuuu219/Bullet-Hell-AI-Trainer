@@ -1,11 +1,11 @@
-﻿using System;
+using System;
 using System.Collections.Generic;
 using UnityEngine;
 
 namespace Script
 {
     public enum BattleshipSectionRole { Core, Armor, Turret }
-    public enum ArmorMode { [InspectorName("ベーシック")] Basic, ERA }
+    public enum ArmorMode { [InspectorName("ベーシック")] Basic, ERA, [InspectorName("対電磁処理装甲")] AntiEM }
     internal enum BattleshipWeaponKind { SmallGun, HeavyGun, AntiShipMissile, MachineGun }
 
     internal sealed class BattleshipWeaponRuntime
@@ -15,6 +15,7 @@ namespace Script
         public float Power;
         public BattleshipProjectile.Affect Affect = BattleshipProjectile.Affect.AP;
         public double ExplosionRadius = 1d;
+        public ProjectileEffectSettings Effects = new ProjectileEffectSettings();
         public float Interval;
         public float Speed;
         public float Decay;
@@ -30,7 +31,7 @@ namespace Script
     public sealed class BattleshipSection : MonoBehaviour
     {
         private readonly List<BattleshipSection> neighbors = new List<BattleshipSection>();
-        private BattleshipAnimalInstance owner;
+        private BattleshipInstance owner;
         private BattleshipWeaponRuntime weapon;
         private Renderer sectionRenderer;
         private Collider2D sectionCollider;
@@ -58,10 +59,10 @@ namespace Script
         public double LastEffectiveArmor { get; private set; }
         public double Interception => Role == BattleshipSectionRole.Armor ? ArmorInterception : 0.0d;
         public bool IsAttached { get; private set; } = true;
-        public BattleshipAnimalInstance Owner => owner;
+        public BattleshipInstance Owner => owner;
         public IReadOnlyList<BattleshipSection> Neighbors => neighbors;
 
-        internal void Initialize(BattleshipAnimalInstance value, int id, BattleshipSectionRole role,
+        internal void Initialize(BattleshipInstance value, int id, BattleshipSectionRole role,
             BattleshipWeaponRuntime assignedWeapon)
         {
             owner = value;
@@ -119,13 +120,22 @@ namespace Script
 
         internal double HitProjectile(double power, ref double penetration, Vector2 position,
             Vector2 incomingDirection, Vector2 surfaceNormal, out Vector2 outgoingDirection)
+            => HitEffect(power, ref penetration, position, incomingDirection, surfaceNormal, out outgoingDirection,
+                BattleshipProjectile.Affect.AP, false, null);
+
+        internal double HitEffect(double power, ref double penetration, Vector2 position,
+            Vector2 incomingDirection, Vector2 surfaceNormal, out Vector2 outgoingDirection,
+            BattleshipProjectile.Affect affect, bool firstContact, ProjectileEffectSettings settings)
         {
             // Change this output to apply deflection/reflection after impact.
             // Zero stops movement; a non-zero vector supplies the new heading (speed is preserved).
             outgoingDirection = incomingDirection;
             if (!IsAttached || owner == null || power <= 0) return power;
-            if (Role == BattleshipSectionRole.Armor && armorMode == ArmorMode.ERA)
+            bool physical = !ProjectileEffects.IsEnergy(affect);
+            if (physical && Role == BattleshipSectionRole.Armor && armorMode == ArmorMode.ERA)
                 outgoingDirection += surfaceNormal.normalized * EraVectorMagnitude;
+            if (affect == BattleshipProjectile.Affect.APC)
+                outgoingDirection = ProjectileEffects.Refract(outgoingDirection, surfaceNormal, .8f);
             // Angle is measured from the face normal: 0 degrees is perpendicular impact.
             float cosine = outgoingDirection.sqrMagnitude > .000001f && surfaceNormal.sqrMagnitude > .000001f
                 ? Mathf.Clamp01(Mathf.Abs(Vector2.Dot(outgoingDirection.normalized, surfaceNormal.normalized)))
@@ -134,23 +144,35 @@ namespace Script
             LastEffectiveArmor = Armor <= 0 ? 0 : cosine <= .000001f ? double.PositiveInfinity : Armor / cosine;
             double before = CurrentHealth;
             // Thickness >= current power blocks the projectile, including equality.
-            if (LastEffectiveArmor >= power)
+            double gateArmor = affect == BattleshipProjectile.Affect.HESH ? Armor : LastEffectiveArmor;
+            if (gateArmor >= power || (affect == BattleshipProjectile.Affect.HEAT && LastImpactAngle >= 50f))
             {
                 outgoingDirection = Vector2.zero;
                 HitResolved?.Invoke(position, CurrentHealth, 0d, MaximumHealth);
                 return 0d;
             }
-            double remaining = ProjectilePenetration.RemainingPower(power, penetration, Interception, before,
+            double interception = Interception * (!physical && armorMode == ArmorMode.AntiEM ? 1.5d : 1d);
+            bool bonus = affect == BattleshipProjectile.Affect.APCR && firstContact;
+            double workingPenetration = penetration * (bonus ? 2d : 1d);
+            double remaining = ProjectilePenetration.RemainingPower(power, workingPenetration, interception, before,
                 out double afterHealth, out double afterPenetration);
             // Armor is only a passage gate; apply the shared HP calculation without subtracting it again.
             double damage = Role == BattleshipSectionRole.Core
                 ? power
                 : before - afterHealth;
-            owner.ReceiveHitWithArmor(this, damage, 0d);
+            bool singleSection = affect == BattleshipProjectile.Affect.HEAT || affect == BattleshipProjectile.Affect.HESH;
+            if (affect == BattleshipProjectile.Affect.HEAT)
+                damage = armorMode == ArmorMode.ERA && Role == BattleshipSectionRole.Armor ? 50d : 100d;
+            if (affect == BattleshipProjectile.Affect.HESH) damage = Armor;
+            if (affect == BattleshipProjectile.Affect.Electron) damage = 0;
+            if (singleSection) owner.ReceiveSingleSectionHit(this, damage);
+            else owner.ReceiveHitWithArmor(this, damage, 0d);
+            if (settings != null) owner.AccumulateImpact(settings.heat,
+                affect == BattleshipProjectile.Affect.Electron ? settings.electronEm : settings.em);
             UpdateOpacity();
             HitResolved?.Invoke(position, CurrentHealth, before - CurrentHealth, MaximumHealth);
-            penetration = afterPenetration;
-            if (penetration <= 0d)
+            penetration = afterPenetration / (bonus ? 2d : 1d);
+            if (penetration <= 0d || singleSection || affect == BattleshipProjectile.Affect.Electron)
             {
                 outgoingDirection = Vector2.zero;
                 return 0d;
