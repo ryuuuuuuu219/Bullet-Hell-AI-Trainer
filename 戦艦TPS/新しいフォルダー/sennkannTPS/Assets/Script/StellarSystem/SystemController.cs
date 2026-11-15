@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 // 単位: currentTime / SortieTime = 日, timeScale = 日/実秒

@@ -54,13 +54,14 @@ namespace StellarSystem
         [Header("試作値：距離 AU／質量 太陽質量／位相 度")]
         public double starMassSolar = 1;
         public PlanetDefinition[] planets = {
-            new PlanetDefinition("第1惑星・岩石惑星", new EllipticalOrbitData(0.4, 0.02, 110, 90, 120), .000001, new Color(.7f,.6f,.5f)),
-            new PlanetDefinition("第2惑星・岩石惑星", new EllipticalOrbitData(0.5, 0.01, 240, 160, 60), .000002, new Color(.95f,.7f,.35f)),
-            new PlanetDefinition("第3惑星・ガス惑星", new EllipticalOrbitData(1.5, 0.03, 30, 200, 0), .0007, new Color(.8f,.65f,.9f)),
-            new PlanetDefinition("第4惑星・岩石惑星", new EllipticalOrbitData(4, 0.05,0,365.25,0), .000003, new Color(.4f,.8f,1)),
-            new PlanetDefinition("第5惑星（種別仮）", new EllipticalOrbitData(6, 0.08,15,1235,35), .001, new Color(.9f,.65f,.35f)),
-            new PlanetDefinition("第6惑星・氷巨大惑星", new EllipticalOrbitData(12, 0.03,195,3524,80), .00005, new Color(.4f,.95f,.9f)),
-            new PlanetDefinition("第7惑星・褐色矮星", new EllipticalOrbitData(24, 0.2,200,8200,170), .015, new Color(.9f,.4f,.3f))
+            new PlanetDefinition("第1惑星・ガス惑星", new EllipticalOrbitData(0.4, 0.02, 110, 92.34, 120), .0013, new Color(.7f,.6f,.5f)),
+            new PlanetDefinition("第2惑星・ガス惑星", new EllipticalOrbitData(0.5, 0.01, 240, 129.02, 60), .0018, new Color(.95f,.7f,.35f)),
+            new PlanetDefinition("第3惑星・岩石惑星", new EllipticalOrbitData(1.5, 0.03, 30, 671.02, 0), .000007, new Color(.8f,.65f,.9f)),
+            new PlanetDefinition("第4惑星・岩石惑星", new EllipticalOrbitData(4, 0.05, 0, 2922.01, 0), .00003, new Color(.4f,.8f,1)),
+            new PlanetDefinition("第5惑星（種別仮）", new EllipticalOrbitData(6, 0.08, 15, 5367.88, 35), .0001, new Color(.9f,.65f,.35f)),
+            new PlanetDefinition("第6惑星・氷巨大惑星", new EllipticalOrbitData(12, 0.03, 195, 15183.04, 80), .00005, new Color(.4f,.95f,.9f)),
+            new PlanetDefinition("第7惑星・褐色矮星", new EllipticalOrbitData(24, 0.2, 200, 42522.09, 170), .02, new Color(.9f,.4f,.3f)),
+            new PlanetDefinition("第?惑星・彗星", new EllipticalOrbitData(40, 0.95, 20, 92403.37, 20), 1e-15, new Color(.9f,.4f,.3f))
         };
         [Header("要塞配置：第5惑星L3以外は表示確認用の仮配置")]
         public FortressDefinition[] fortresses = {
@@ -76,7 +77,7 @@ namespace StellarSystem
         private Camera mapCamera;
         private Material orbitMaterial;
         private LineRenderer[] orbitLines;
-        private const int OrbitSegments = 256;
+        private const int OrbitSegments = 4096;
         private int selectedPlanet = 4, selectedFortress = -1;
         private bool follow, showPoints = true;
         private double halfHeightAU = 29;
@@ -87,6 +88,19 @@ namespace StellarSystem
         private GUIStyle title, body, small, button, selectedButton, toggle;
         private string validationError;
         private const float Side = 300;
+        private const float DetailSide = 300;
+        // 目的地から除外するのは主人公の出撃拠点（第4惑星 L2）だけ。
+        // 敵要塞や敵拠点は通常のステージとして選択・出撃できる。
+        private const int PlayerBasePlanetID = 4;
+        private const int PlayerBaseLagrangeID = 2;
+        private StageManager[] planetStages;
+        private StageManager[,] lagrangeStages;
+        private StageManager selectedStage;
+        private string sortieMessage = "";
+        private Vector2 stageInfoScroll;
+
+        // 次の工程で FleetManager などが購読する。lagrangeID=-1 は惑星本体。
+        public event Action<int, int> SortieRequested;
         private bool rotatingView;
 
         private void Awake()
@@ -129,7 +143,12 @@ namespace StellarSystem
             else
                 orbitMaterial = new Material(shader) { name = "Stellar Orbit Lines (Runtime)" };
 
-            try { Rebuild(); }
+            try
+            {
+                Rebuild();
+                if (GetComponent<FleetManager>() == null) gameObject.AddComponent<FleetManager>();
+                if (GetComponent<EncounterManager>() == null) gameObject.AddComponent<EncounterManager>();
+            }
             catch (Exception e) { validationError = e.Message; Debug.LogError(e); }
         }
 
@@ -159,6 +178,7 @@ namespace StellarSystem
             selectedFortress = -1;
             FitSystem();
             BuildOrbitLines();
+            EnsureStagePoints();
             SyncCamera();
             validationError = null;
         }
@@ -187,7 +207,7 @@ namespace StellarSystem
                 o.semiMajorAxis * Math.Sqrt(1 - o.eccentricity * o.eccentricity) * Math.Cos(E) * speed),
                 o.periapsisDeg * Math.PI / 180);
         }
-        private Position2D SelectionPosition() => selectedFortress >= 0 ? FortressPosition(selectedFortress,ElapsedDays) : PlanetPosition(selectedPlanet,ElapsedDays);
+        private Position2D SelectionPosition() => selectedFortress >= 0 ? FortressPosition(selectedFortress, ElapsedDays) : PlanetPosition(selectedPlanet, ElapsedDays);
         public Position2D PlanetPosition(int index, double days)
         {
             var p = planets[index];
@@ -248,7 +268,9 @@ namespace StellarSystem
             if (mapCamera == null) return;
             float screenWidth = Mathf.Max(1, Screen.width);
             float sidebarWidth = Mathf.Min(Side, screenWidth - 1);
-            mapCamera.rect = new Rect(sidebarWidth / screenWidth, 0, 1 - sidebarWidth / screenWidth, 1);
+            float detailWidth = Mathf.Min(DetailSide, Mathf.Max(0, screenWidth - sidebarWidth - 1));
+            mapCamera.rect = new Rect(sidebarWidth / screenWidth, 0,
+                (screenWidth - sidebarWidth - detailWidth) / screenWidth, 1);
             mapCamera.orthographicSize = (float)halfHeightAU;
             mapCamera.transform.position = new Vector3((float)center.X, (float)center.Y, -10);
             mapCamera.transform.rotation = Quaternion.Euler(0, 0, (float)(ViewAngle(ElapsedDays) * Mathf.Rad2Deg));
@@ -256,144 +278,338 @@ namespace StellarSystem
 
         private void FitSystem()
         {
-            double radius=1;
-            foreach(var p in planets) radius=Math.Max(radius,p.orbitData.semiMajorAxis *1.25);
-            double aspect=Math.Max(.1,(Screen.width-Side)/Math.Max(1,Screen.height));
-            halfHeightAU=radius/Math.Min(1,aspect); center=new Position2D(); follow=false;
+            double radius = 1;
+            foreach (var p in planets) radius = Math.Max(radius, p.orbitData.semiMajorAxis * 1.25);
+            double aspect = Math.Max(.1, (Screen.width - Side - DetailSide) / Math.Max(1, Screen.height));
+            halfHeightAU = radius / Math.Min(1, aspect); center = new Position2D(); follow = false;
         }
         private void Styles()
         {
-            if(title!=null) return;
-            title=new GUIStyle(GUI.skin.label){font=font,fontSize=22,fontStyle=FontStyle.Bold};
-            body=new GUIStyle(GUI.skin.label){font=font,fontSize=14,wordWrap=true};
-            small=new GUIStyle(body){fontSize=12};
-            button=new GUIStyle(GUI.skin.button){font=font,fontSize=13,alignment=TextAnchor.MiddleLeft,padding=new RectOffset(10,8,5,5),wordWrap=true};
-            selectedButton=new GUIStyle(button); selectedButton.normal.textColor=new Color(.35f,.95f,1);
-            toggle=new GUIStyle(GUI.skin.toggle){font=font,fontSize=14};
+            if (title != null) return;
+            title = new GUIStyle(GUI.skin.label) { font = font, fontSize = 22, fontStyle = FontStyle.Bold };
+            body = new GUIStyle(GUI.skin.label) { font = font, fontSize = 14, wordWrap = true };
+            small = new GUIStyle(body) { fontSize = 12 };
+            button = new GUIStyle(GUI.skin.button) { font = font, fontSize = 13, alignment = TextAnchor.MiddleLeft, padding = new RectOffset(10, 8, 5, 5), wordWrap = true };
+            selectedButton = new GUIStyle(button); selectedButton.normal.textColor = new Color(.35f, .95f, 1);
+            toggle = new GUIStyle(GUI.skin.toggle) { font = font, fontSize = 14 };
         }
         private void OnGUI()
         {
             Styles();
-            if(validationError!=null) { GUI.Label(new Rect(20,20,700,200),validationError,body); return; }
-            float width=Mathf.Max(100,Screen.width-Side);
-            Rect map=new Rect(Side,0,width,Screen.height);
+            if (validationError != null) { GUI.Label(new Rect(20, 20, 700, 200), validationError, body); return; }
+            float width = Mathf.Max(1, Screen.width - Side - DetailSide);
+            Rect map = new Rect(Side, 0, width, Screen.height);
             InputMap(map);
             GUI.BeginGroup(map);
-            DrawMap(width,Screen.height);
+            DrawMap(width, Screen.height);
             GUI.EndGroup();
             DrawSidebar();
+            DrawStageDetails();
         }
-        private Vector2 ScreenPoint(Position2D position,float width,float height)
-            => ScreenPointAt(position,width,height,ElapsedDays);
+        private Vector2 ScreenPoint(Position2D position, float width, float height)
+            => ScreenPointAt(position, width, height, ElapsedDays);
         private double ViewAngle(double day)
         {
             if (!rotatingView) return 0;
             var p = PlanetPosition(selectedPlanet, day);
             return Math.Atan2(p.Y, p.X);
         }
-        private Vector2 ScreenPointAt(Position2D position,float width,float height,double day)
+        private Vector2 ScreenPointAt(Position2D position, float width, float height, double day)
         {
-            var relative=OrbitMath.Rotate(position,-ViewAngle(day))-OrbitMath.Rotate(center,-ViewAngle(ElapsedDays));
-            double scale=height/(2*halfHeightAU);
-            return new Vector2((float)(width/2+relative.X*scale),(float)(height/2-relative.Y*scale));
+            var relative = OrbitMath.Rotate(position, -ViewAngle(day)) - OrbitMath.Rotate(center, -ViewAngle(ElapsedDays));
+            double scale = height / (2 * halfHeightAU);
+            return new Vector2((float)(width / 2 + relative.X * scale), (float)(height / 2 - relative.Y * scale));
         }
-        private void DrawMap(float w,float h)
+        private void DrawMap(float w, float h)
         {
-            for(int i=0;i<130;i++)
-                Fill(new Rect((i*197.31f)%w,(i*371.73f)%h,1,1),new Color(.25f,.32f,.43f));
-            var sun=ScreenPoint(new Position2D(),w,h);
-            Circle(sun,15,new Color(1,.78f,.3f));
-            GUI.Label(new Rect(sun.x+18,sun.y-10,100,24),"恒星",body);
-            if(showPoints)
-                for(int j=1;j<=5;j++)
+            for (int i = 0; i < 130; i++)
+                Fill(new Rect((i * 197.31f) % w, (i * 371.73f) % h, 1, 1), new Color(.25f, .32f, .43f));
+            var sun = ScreenPoint(new Position2D(), w, h);
+            Circle(sun, 15, new Color(1, .78f, .3f));
+            GUI.Label(new Rect(sun.x + 18, sun.y - 10, 100, 24), "恒星", body);
+            if (showPoints)
+                for (int j = 1; j <= 5; j++)
                 {
-                    var pt=ScreenPoint(LagrangePosition(selectedPlanet,j,ElapsedDays),w,h);
-                    Line(pt+Vector2.left*5,pt+Vector2.right*5,new Color(.3f,.65f,.65f),2);
-                    Line(pt+Vector2.up*5,pt+Vector2.down*5,new Color(.3f,.65f,.65f),2);
-                    GUI.Label(new Rect(pt.x+7,pt.y-23,50,22),"L"+j,small);
+                    var pt = ScreenPoint(LagrangePosition(selectedPlanet, j, ElapsedDays), w, h);
+                    Line(pt + Vector2.left * 5, pt + Vector2.right * 5, new Color(.3f, .65f, .65f), 2);
+                    Line(pt + Vector2.up * 5, pt + Vector2.down * 5, new Color(.3f, .65f, .65f), 2);
+                    var stage = lagrangeStages != null ? lagrangeStages[selectedPlanet, j - 1] : null;
+                    if (stage != null && !stage.isBase)
+                    {
+                        if (selectedStage == stage) Circle(pt, 5, new Color(.95f, .9f, .3f));
+                        if (GUI.Button(new Rect(pt.x - 9, pt.y - 9, 18, 18), GUIContent.none, GUIStyle.none))
+                            SelectStage(stage);
+                    }
+                    GUI.Label(new Rect(pt.x + 7, pt.y - 23, 50, 22), "L" + j, small);
                 }
-            for(int i=0;i<planets.Length;i++)
+            for (int i = 0; i < planets.Length; i++)
             {
-                var pt=ScreenPoint(PlanetPosition(i,ElapsedDays),w,h);
-                if(i==selectedPlanet && selectedFortress<0) Circle(pt,12,new Color(.8f,.95f,1));
-                Circle(pt,8,planets[i].color);
-                if(GUI.Button(new Rect(pt.x-10,pt.y-10,20,20),GUIContent.none,GUIStyle.none)) { selectedPlanet=i; selectedFortress=-1; }
-                GUI.Label(new Rect(pt.x+12,pt.y+4,130,22),"第"+(i+1)+"惑星",small);
+                var pt = ScreenPoint(PlanetPosition(i, ElapsedDays), w, h);
+                if (i == selectedPlanet && selectedFortress < 0) Circle(pt, 12, new Color(.8f, .95f, 1));
+                Circle(pt, 8, planets[i].color);
+                if (GUI.Button(new Rect(pt.x - 10, pt.y - 10, 20, 20), GUIContent.none, GUIStyle.none))
+                    SelectStage(planetStages != null ? planetStages[i] : null);
+                GUI.Label(new Rect(pt.x + 12, pt.y + 4, 130, 22), "第" + (i + 1) + "惑星", small);
             }
-            for(int i=0;i<fortresses.Length;i++)
+            for (int i = 0; i < fortresses.Length; i++)
             {
-                var f=fortresses[i]; var pt=ScreenPoint(FortressPosition(i,ElapsedDays),w,h);
-                Color color=i==selectedFortress ? Color.white : new Color(1,.45f,.3f);
-                Line(pt+Vector2.up*8,pt+Vector2.right*8,color,2); Line(pt+Vector2.right*8,pt+Vector2.down*8,color,2);
-                Line(pt+Vector2.down*8,pt+Vector2.left*8,color,2); Line(pt+Vector2.left*8,pt+Vector2.up*8,color,2);
-                if(GUI.Button(new Rect(pt.x-9,pt.y-9,18,18),GUIContent.none,GUIStyle.none)) { selectedFortress=i; selectedPlanet=f.planetIndex; }
-                GUI.Label(new Rect(pt.x+12,pt.y-21,160,22),"要塞 P"+(f.planetIndex+1)+" · L"+f.point,small);
+                var f = fortresses[i]; var pt = ScreenPoint(FortressPosition(i, ElapsedDays), w, h);
+                Color color = i == selectedFortress ? Color.white : new Color(1, .45f, .3f);
+                Line(pt + Vector2.up * 8, pt + Vector2.right * 8, color, 2); Line(pt + Vector2.right * 8, pt + Vector2.down * 8, color, 2);
+                Line(pt + Vector2.down * 8, pt + Vector2.left * 8, color, 2); Line(pt + Vector2.left * 8, pt + Vector2.up * 8, color, 2);
+                if (GUI.Button(new Rect(pt.x - 9, pt.y - 9, 18, 18), GUIContent.none, GUIStyle.none))
+                {
+                    var destination = lagrangeStages != null ? lagrangeStages[f.planetIndex, f.point - 1] : null;
+                    if (destination != null && !destination.isBase)
+                    {
+                        SelectStage(destination);
+                        selectedFortress = i;
+                    }
+                    else
+                    {
+                        selectedPlanet = f.planetIndex;
+                        selectedFortress = i;
+                        selectedStage = null;
+                        sortieMessage = "主人公拠点は出撃先に選択できません。";
+                    }
+                }
+                GUI.Label(new Rect(pt.x + 12, pt.y - 21, 160, 22), "要塞 P" + (f.planetIndex + 1) + " · L" + f.point, small);
             }
-            GUI.Label(new Rect(20,16,w-30,30),"恒星系マップ",title);
-            GUI.Label(new Rect(20,h-55,w-30,45),"ホイール：拡大縮小   右ドラッグ：移動   天体・要塞：クリックで選択\n円軌道の試作配置 ／ 天体・要塞のマーカーサイズは距離縮尺とは別",small);
-            GUI.Label(new Rect(20,48,w-30,25),"表示幅 "+(2*halfHeightAU*w/h).ToString("F2")+" AU",small);
-            GUI.Label(new Rect(20,75,w-30,48),(rotatingView?"選択惑星と共回転する表示":"恒星基準の表示"));
+            var fleet = GetComponent<FleetManager>();
+            if (fleet != null && fleet.HasPosition)
+            {
+                var fleetScreen = ScreenPoint(fleet.CurrentPosition, w, h);
+                Circle(fleetScreen, 7, new Color(.35f, 1f, .4f));
+                GUI.Label(new Rect(fleetScreen.x + 10, fleetScreen.y - 10, 115, 22),
+                    "自艦隊" + (fleet.IsTraveling ? "（航行中）" : ""), small);
+            }
+            GUI.Label(new Rect(20, 16, w - 30, 30), "恒星系マップ", title);
+            GUI.Label(new Rect(20, h - 55, w - 30, 45), "ホイール：拡大縮小   右ドラッグ：移動   天体・要塞：クリックで選択\n円軌道の試作配置 ／ 天体・要塞のマーカーサイズは距離縮尺とは別", small);
+            GUI.Label(new Rect(20, 48, w - 30, 25), "表示幅 " + (2 * halfHeightAU * w / h).ToString("F2") + " AU", small);
+            GUI.Label(new Rect(20, 75, w - 30, 48), (rotatingView ? "選択惑星と共回転する表示" : "恒星基準の表示"));
         }
         private void DrawSidebar()
         {
-            Fill(new Rect(0,0,Side,Screen.height),new Color(.045f,.07f,.11f));
-            GUILayout.BeginArea(new Rect(14,14,Side-28,Screen.height-28));
-            scroll=GUILayout.BeginScrollView(scroll);
-            GUILayout.Label("恒星系と要塞",title);
-            GUILayout.Label("配置検討用プロトタイプ",small);
+            Fill(new Rect(0, 0, Side, Screen.height), new Color(.045f, .07f, .11f));
+            GUILayout.BeginArea(new Rect(14, 14, Side - 28, Screen.height - 28));
+            scroll = GUILayout.BeginScrollView(scroll);
+            GUILayout.Label("恒星系と要塞", title);
+            GUILayout.Label("配置検討用プロトタイプ", small);
             GUILayout.Space(12);
-            GUILayout.Label("経過 "+ElapsedDays.ToString("F2")+" 日",body);
+            GUILayout.Label("経過 " + ElapsedDays.ToString("F2") + " 日", body);
+            var fleetStatus = GetComponent<FleetManager>();
+            if (fleetStatus != null)
+            {
+                GUILayout.Label(fleetStatus.StatusText, small);
+                if (fleetStatus.IsTraveling)
+                {
+                    GUILayout.Label("到着予定：" + fleetStatus.ArrivalDay.ToString("F2") + " 日", small);
+                    GUILayout.Label("航行進捗：" + (fleetStatus.Progress * 100).ToString("F1") + "%", small);
+                }
+            }
             GUILayout.BeginHorizontal();
-            if(GUILayout.Button(systemController.isPaused?"▶ 再生":"Ⅱ 一時停止",button))
-                { if (systemController.isPaused) systemController.Resume(); else systemController.Pause(); }
+            if (GUILayout.Button(systemController.isPaused ? "▶ 再生" : "Ⅱ 一時停止", button))
+            { if (systemController.isPaused) systemController.Resume(); else systemController.Pause(); }
             GUILayout.EndHorizontal();
-            GUILayout.Label("時間送り："+systemController.timeScale+" 日／秒",small);
+            GUILayout.Label("時間送り：" + systemController.timeScale + " 日／秒", small);
             GUILayout.BeginHorizontal();
-            foreach(double rate in new[]{1d,10d,100d,1000d})
-                if(GUILayout.Button(rate.ToString(),systemController.timeScale==rate?selectedButton:button)) systemController.SetTimeScale(rate);
+            foreach (double rate in new[] { 1d, 10d, 100d, 1000d })
+                if (GUILayout.Button(rate.ToString(), systemController.timeScale == rate ? selectedButton : button)) systemController.SetTimeScale(rate);
             GUILayout.EndHorizontal();
-            if(GUILayout.Button("恒星系全体を表示",button)) FitSystem();
-            if(GUILayout.Button("選択対象を拡大・追従",button)) { follow=true;center=SelectionPosition();halfHeightAU=planets[selectedPlanet].orbitData.semiMajorAxis*.12; }
-            follow=GUILayout.Toggle(follow,"選択対象を追従",toggle);
-            showPoints=GUILayout.Toggle(showPoints,"選択惑星の L1〜L5 を表示",toggle);
-            rotatingView=GUILayout.Toggle(rotatingView,"選択惑星の共回転表示",toggle);
+            if (GUILayout.Button("恒星系全体を表示", button)) FitSystem();
+            if (GUILayout.Button("選択対象を拡大・追従", button)) { follow = true; center = SelectionPosition(); halfHeightAU = planets[selectedPlanet].orbitData.semiMajorAxis * .12; }
+            follow = GUILayout.Toggle(follow, "選択対象を追従", toggle);
+            showPoints = GUILayout.Toggle(showPoints, "選択惑星の L1〜L5 を表示", toggle);
+            rotatingView = GUILayout.Toggle(rotatingView, "選択惑星の共回転表示", toggle);
             GUILayout.Space(12);
-            GUILayout.Label("惑星",body);
-            for(int i=0;i<planets.Length;i++)
-                if(GUILayout.Button(planets[i].name,selectedPlanet==i&&selectedFortress<0?selectedButton:button)) {selectedPlanet=i;selectedFortress=-1;}
+            GUILayout.Label("惑星", body);
+            for (int i = 0; i < planets.Length; i++)
+                if (GUILayout.Button(planets[i].name, selectedPlanet == i && selectedFortress < 0 ? selectedButton : button))
+                    SelectStage(planetStages != null ? planetStages[i] : null);
             GUILayout.Space(10);
-            GUILayout.Label("要塞・拠点",body);
-            for(int i=0;i<fortresses.Length;i++)
-                if(GUILayout.Button(fortresses[i].name+"\n第"+(fortresses[i].planetIndex+1)+"惑星 / L"+fortresses[i].point,selectedFortress==i?selectedButton:button)) {selectedFortress=i;selectedPlanet=fortresses[i].planetIndex;}
+            GUILayout.Label("要塞・拠点", body);
+            for (int i = 0; i < fortresses.Length; i++)
+                if (GUILayout.Button(fortresses[i].name + "\n第" + (fortresses[i].planetIndex + 1) + "惑星 / L" + fortresses[i].point, selectedFortress == i ? selectedButton : button))
+                {
+                    var fort = fortresses[i];
+                    var destination = lagrangeStages != null ? lagrangeStages[fort.planetIndex, fort.point - 1] : null;
+                    if (destination != null && !destination.isBase)
+                    {
+                        SelectStage(destination);
+                        selectedFortress = i;
+                    }
+                    else
+                    {
+                        selectedPlanet = fort.planetIndex;
+                        selectedFortress = i;
+                        selectedStage = null;
+                        sortieMessage = "主人公拠点は出撃先に選択できません。";
+                    }
+                }
             GUILayout.Space(12);
-            var p=planets[selectedPlanet];var pos=SelectionPosition();
-            GUILayout.Label(selectedFortress>=0?fortresses[selectedFortress].name:p.name,body);
-            GUILayout.Label("公転半径："+p.orbitData.semiMajorAxis +" AU\n公転周期："+ planets[selectedPlanet].orbitData.periodDays.ToString("F1")+" 日\nX："+pos.X.ToString("F5")+" AU\nY："+pos.Y.ToString("F5")+" AU",small);
-            GUILayout.Label("各要塞は対応するL点を自動維持。惑星同士の重力干渉・要塞内部・戦闘は未実装。数値と仮配置は Inspector で変更できます。",small);
-            GUILayout.EndScrollView();GUILayout.EndArea();
+            var p = planets[selectedPlanet]; var pos = SelectionPosition();
+            GUILayout.Label(selectedFortress >= 0 ? fortresses[selectedFortress].name : p.name, body);
+            GUILayout.Label("公転半径：" + p.orbitData.semiMajorAxis + " AU\n公転周期：" + planets[selectedPlanet].orbitData.periodDays.ToString("F1") + " 日\nX：" + pos.X.ToString("F5") + " AU\nY：" + pos.Y.ToString("F5") + " AU", small);
+            GUILayout.Label("各要塞は対応するL点を自動維持。惑星同士の重力干渉・要塞内部・戦闘は未実装。数値と仮配置は Inspector で変更できます。", small);
+            GUILayout.EndScrollView(); GUILayout.EndArea();
         }
+        // シーン内に一度構築すれば、StageManager の概要・攻略状態などを Inspector で編集できる。
+        // Awake 時にも未構築の子だけ作るため、既存シーンへの導入でも動作する。
+        public void EnsureStagePoints()
+        {
+            if (planets == null || planets.Length == 0) return;
+            var root = Child(transform, "StagePoints");
+            planetStages = new StageManager[planets.Length];
+            lagrangeStages = new StageManager[planets.Length, 5];
+            for (int i = 0; i < planets.Length; i++)
+            {
+                var planet = Child(root, "Planet_" + (i + 1).ToString("00"));
+                var main = GetOrAddStage(planet);
+                main.planetID = i + 1;
+                main.lagrangeID = -1;
+                if (string.IsNullOrEmpty(main.displayName)) main.displayName = planets[i].name;
+                planetStages[i] = main;
+
+                var children = Child(planet, "LagrangePoints");
+                for (int j = 1; j <= 5; j++)
+                {
+                    var lp = GetOrAddStage(Child(children, "L" + j));
+                    lp.planetID = i + 1;
+                    lp.lagrangeID = j;
+                    if (string.IsNullOrEmpty(lp.displayName)) lp.displayName = "第" + (i + 1) + "惑星 L" + j;
+                    // 既存シーンの旧isBase値も上書きし、敵要塞を選択可能に戻す。
+                    lp.isBase = (i + 1 == PlayerBasePlanetID && j == PlayerBaseLagrangeID);
+                    foreach (var fort in fortresses)
+                    {
+                        if (fort.planetIndex != i || fort.point != j) continue;
+                        string defaultName = "第" + (i + 1) + "惑星 L" + j;
+                        if (string.IsNullOrEmpty(lp.displayName) || lp.displayName == defaultName)
+                            lp.displayName = fort.name;
+                        break;
+                    }
+                    lagrangeStages[i, j - 1] = lp;
+                }
+            }
+        }
+
+        private static Transform Child(Transform parent, string name)
+        {
+            var found = parent.Find(name);
+            if (found != null) return found;
+            var created = new GameObject(name);
+            created.transform.SetParent(parent, false);
+            return created.transform;
+        }
+
+        private static StageManager GetOrAddStage(Transform holder)
+        {
+            var stage = holder.GetComponent<StageManager>();
+            return stage != null ? stage : holder.gameObject.AddComponent<StageManager>();
+        }
+
+        private void SelectStage(StageManager stage)
+        {
+            if (stage == null || stage.isBase) return;
+            stage.Select(OnStageSelected);
+        }
+
+        private void OnStageSelected(StageManager stage)
+        {
+            selectedStage = stage;
+            selectedPlanet = stage.planetID - 1;
+            selectedFortress = -1;
+            sortieMessage = "";
+        }
+
+        private void DrawStageDetails()
+        {
+            float x = Mathf.Max(Side, Screen.width - DetailSide);
+            float panelWidth = Screen.width - x;
+            float contentWidth = Mathf.Max(1, panelWidth - 28);
+            float footerHeight = 100f;
+            float footerY = Screen.height - footerHeight - 14f;
+
+            Fill(new Rect(x, 0, panelWidth, Screen.height), new Color(.045f, .07f, .11f));
+
+            // ステージ名や概要はスクロール可能な領域にまとめる。
+            GUILayout.BeginArea(new Rect(x + 14, 14, contentWidth, 42));
+            GUILayout.Label("ステージ情報", title);
+            GUILayout.EndArea();
+
+            float informationHeight = Mathf.Max(1, footerY - 66f - 10f);
+            GUILayout.BeginArea(new Rect(x + 14, 66, contentWidth, informationHeight));
+            stageInfoScroll = GUILayout.BeginScrollView(stageInfoScroll);
+            if (selectedStage == null)
+            {
+                GUILayout.Label("惑星またはL1～L5を選択してください。", body);
+                GUILayout.Label("第4惑星L2の主人公拠点のみ出撃先にできません。敵側の拠点は選択可能です。", small);
+            }
+            else
+            {
+                GUILayout.Label(selectedStage.displayName, body);
+                GUILayout.Label("進行先: Planet " + selectedStage.planetID +
+                    (selectedStage.lagrangeID < 0 ? " / 惑星" : " / L" + selectedStage.lagrangeID), small);
+                GUILayout.Space(12);
+                GUILayout.Label("敵勢力: " + (string.IsNullOrWhiteSpace(selectedStage.enemyFaction) ? "未登録" : selectedStage.enemyFaction), small);
+                GUILayout.Label("攻略状態: " + selectedStage.progress, small);
+                GUILayout.Space(8);
+                GUILayout.Label(string.IsNullOrWhiteSpace(selectedStage.briefing) ? "ステージ概要は未登録です。" : selectedStage.briefing, body);
+            }
+            GUILayout.EndScrollView();
+            GUILayout.EndArea();
+
+            // 下端固定：ステージ情報が長くても出撃操作が隠れない。
+            var currentFleet = GetComponent<FleetManager>();
+            bool canSortie = selectedStage != null && selectedStage.allowSortie && !selectedStage.isBase &&
+                             (currentFleet == null || !currentFleet.IsTraveling);
+            GUILayout.BeginArea(new Rect(x + 14, footerY, contentWidth, footerHeight));
+            string status = !string.IsNullOrEmpty(sortieMessage)
+                ? sortieMessage
+                : selectedStage == null ? "目的地を選択してください。"
+                : !canSortie ? "この地点へは現在出撃できません。" : "";
+            GUILayout.Label(status, small, GUILayout.Height(36));
+            bool previousEnabled = GUI.enabled;
+            GUI.enabled = previousEnabled && canSortie;
+            if (GUILayout.Button("出撃", GUILayout.Height(42))) RequestSortie();
+            GUI.enabled = previousEnabled;
+            GUILayout.EndArea();
+        }
+
+        private void RequestSortie()
+        {
+            if (selectedStage == null || selectedStage.isBase || !selectedStage.allowSortie) return;
+            if (SortieRequested == null)
+            {
+                sortieMessage = "出撃先は選択済みです。艦隊航行処理はまだ接続されていません。";
+                return;
+            }
+            systemController.MarkSortie();
+            SortieRequested.Invoke(selectedStage.planetID, selectedStage.lagrangeID);
+            sortieMessage = "出撃要求を送信しました。";
+        }
+
         private void InputMap(Rect map)
         {
-            var e=Event.current;
-            if(!map.Contains(e.mousePosition)) return;
-            if(e.type==EventType.ScrollWheel)
+            var e = Event.current;
+            if (!map.Contains(e.mousePosition)) return;
+            if (e.type == EventType.ScrollWheel)
             {
-                double old=halfHeightAU;
-                halfHeightAU=Math.Max(.0001,Math.Min(10000,halfHeightAU*Math.Exp(e.delta.y*.08)));
-                if(!follow)
+                double old = halfHeightAU;
+                halfHeightAU = Math.Max(.0001, Math.Min(10000, halfHeightAU * Math.Exp(e.delta.y * .08)));
+                if (!follow)
                 {
-                    double sx=e.mousePosition.x-map.x-map.width/2,sy=-(e.mousePosition.y-map.height/2);
-                    center+=OrbitMath.Rotate(new Position2D(sx,sy)*(2*(old-halfHeightAU)/map.height),ViewAngle(ElapsedDays));
+                    double sx = e.mousePosition.x - map.x - map.width / 2, sy = -(e.mousePosition.y - map.height / 2);
+                    center += OrbitMath.Rotate(new Position2D(sx, sy) * (2 * (old - halfHeightAU) / map.height), ViewAngle(ElapsedDays));
                 }
                 e.Use();
             }
-            if(e.type==EventType.MouseDrag&&e.button==1)
-            { follow=false;center+=OrbitMath.Rotate(new Position2D(-e.delta.x,e.delta.y)*(2*halfHeightAU/map.height),ViewAngle(ElapsedDays));e.Use(); }
+            if (e.type == EventType.MouseDrag && e.button == 1)
+            { follow = false; center += OrbitMath.Rotate(new Position2D(-e.delta.x, e.delta.y) * (2 * halfHeightAU / map.height), ViewAngle(ElapsedDays)); e.Use(); }
         }
-        private void Circle(Vector2 p,float radius,Color color)
-        {GUI.color=color;GUI.DrawTexture(new Rect(p.x-radius,p.y-radius,2*radius,2*radius),disc);GUI.color=Color.white;}
-        private static void Fill(Rect rect,Color color)
-        {GUI.color=color;GUI.DrawTexture(rect,Texture2D.whiteTexture);GUI.color=Color.white;}
+        private void Circle(Vector2 p, float radius, Color color)
+        { GUI.color = color; GUI.DrawTexture(new Rect(p.x - radius, p.y - radius, 2 * radius, 2 * radius), disc); GUI.color = Color.white; }
+        private static void Fill(Rect rect, Color color)
+        { GUI.color = color; GUI.DrawTexture(rect, Texture2D.whiteTexture); GUI.color = Color.white; }
 
         private void Line(Vector2 a, Vector2 b, Color color, float width)
         {

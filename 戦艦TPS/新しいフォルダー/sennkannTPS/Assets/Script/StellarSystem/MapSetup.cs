@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -27,6 +27,17 @@ namespace StellarSystem.Editor
             root.AddComponent<StellarSystemMap>();
             EditorSceneManager.SaveScene(scene,ScenePath);
             AssetDatabase.Refresh();
+        }
+
+        // 既存シーンでもStagePoints階層を保存可能なオブジェクトとして構築する。
+        [MenuItem("戦艦TPS/現在のマップにステージ地点を構築")]
+        public static void BuildStagePointsInOpenScene()
+        {
+            var map = UnityEngine.Object.FindFirstObjectByType<StellarSystemMap>();
+            if (map == null) { Debug.LogWarning("StellarSystemMapが見つかりません。"); return; }
+            map.EnsureStagePoints();
+            EditorSceneManager.MarkSceneDirty(map.gameObject.scene);
+            Debug.Log("StagePointsを構築しました。シーンを保存してください。");
         }
 
         // Run in an isolated validation project; does not change the user's current scene/build settings.
