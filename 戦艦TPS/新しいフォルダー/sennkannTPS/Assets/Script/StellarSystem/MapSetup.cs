@@ -22,7 +22,9 @@ namespace StellarSystem.Editor
         {
             Directory.CreateDirectory("Assets/StellarSystem/Scenes");
             var scene=EditorSceneManager.NewScene(NewSceneSetup.EmptyScene,NewSceneMode.Single);
-            new GameObject("Stellar System").AddComponent<StellarSystemMap>();
+            var root = new GameObject("Stellar System");
+            root.AddComponent<SystemController>();
+            root.AddComponent<StellarSystemMap>();
             EditorSceneManager.SaveScene(scene,ScenePath);
             AssetDatabase.Refresh();
         }
