@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.IO;
 using UnityEditor;
 using UnityEditor.SceneManagement;
@@ -48,11 +48,11 @@ namespace StellarSystem.Editor
             map.Rebuild();
             for(int i=0;i<map.planets.Length;i++)
             {
-                var p=map.planets[i];double period=OrbitMath.Period(p.orbitAU,map.starMassSolar,p.massSolar);
+                var p=map.planets[i];double period=OrbitMath.Period(p.orbitData.semiMajorAxis,map.starMassSolar,p.massSolar);
                 foreach(double day in new[] {0d,1d,1000d,1000000d})
                 {
                     var position=map.PlanetPosition(i,day);
-                    Assert(Math.Abs(position.Length-p.orbitAU)<1e-10,"Circular radius after time acceleration");
+                    Assert(Math.Abs(position.Length-p.orbitData.semiMajorAxis)<1e-10,"Circular radius after time acceleration");
                     Assert((position-map.PlanetPosition(i,day+period)).Length<1e-8,"Period wrap");
                     double dt=.001;
                     var derivative=(map.PlanetPosition(i,day+dt)-map.PlanetPosition(i,day-dt))*(.5/dt);
