@@ -162,29 +162,29 @@ MonoBehaviour:
   m_EditorHideFlags: 0
   m_Script: {fileID: 11500000, guid: 0f34e5b1f8c1cb941b5b0df09559bf59, type: 3}
   m_Name: 
-  m_EditorClassIdentifier: 
-  seed: 4506
-  targetSections: 42
-  maximumAttempts: 55
+  m_EditorClassIdentifier: Assembly-CSharp::Script.TilingTestScene
+  seed: 2
+  targetSections: 24
+  maximumAttempts: 160
   triangleStart: 0
   squareStartAngle: 0
   triangleStartAngle: 30
   formEnds: 1
   endSearchDepth: 6
   endSearchLimit: 1200
-  tileShader: {fileID: 4800000, guid: 330e4c1ee6f59274590126e452114c91, type: 3}
-  enableTurretTest: 1
-  shipClass: 3
+  tileShader: {fileID: 0}
+  enableTurretTest: 0
+  shipClass: 2
   sectionWorldSize: 100
   spPerSection: 100
   bodyForward: {x: 0, y: 1}
-  protectionTestMode: 1
+  protectionTestMode: 0
   launchVelocityScale: 1
   testProjectileRadius: 5
   testProjectileLifetime: 15
-  testProjectilePower: 46
-  testProjectilePenetration: 0.26
-  testProjectileAffect: 3
+  testProjectilePower: 100
+  testProjectilePenetration: 1
+  testProjectileAffect: 0
   projectileEffects:
     photonDps: 50
     photonInterval: 0.2
@@ -201,9 +201,9 @@ MonoBehaviour:
   barrierReferenceSections: 24
   barrierReduceOnExit: 0
   testExplosionRadius: 100
-  armorMode: 1
-  armorThickness: 10
-  eraVectorMagnitude: 0.15
+  armorMode: 0
+  armorThickness: 50
+  eraVectorMagnitude: 50
   armorInterception: 0.1
 --- !u!1 &256381868
 GameObject:
