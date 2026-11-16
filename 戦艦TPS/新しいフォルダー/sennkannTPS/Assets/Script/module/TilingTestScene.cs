@@ -247,6 +247,7 @@ namespace Script
         {
             if (Application.isPlaying) Destroy(value); else DestroyImmediate(value);
         }
+        private const float OutlineWidthScale = .018f;
         private void DrawFrame()
         {
             lastWidth = Screen.width; lastHeight = Screen.height;
@@ -270,7 +271,7 @@ namespace Script
                 mesh.colors = Enumerable.Repeat(color, vertices.Length).ToArray(); mesh.RecalculateBounds();
                 go.AddComponent<MeshFilter>().sharedMesh = mesh;
                 go.AddComponent<MeshRenderer>().sharedMaterial = material;
-                AddLine(go, vertices, true, new Color(.08f, .12f, .17f), .018f * sectionWorldSize);
+                AddLine(go, vertices, true, new Color(.08f, .12f, .17f), OutlineWidthScale * sectionWorldSize);
             }
             UpdateView();
             float ymin = viewCamera.transform.position.y - viewCamera.orthographicSize;
@@ -348,6 +349,9 @@ namespace Script
                 if (role == SectionRole.Armor)
                 {
                     if (manualArmorAllocation) sections[i].Mode = armorAssignments[nextArmorIndex++];
+
+                    RefreshArmorMarker(sectionObjects[i], sections[i]);
+
                     ColorizeSection(sectionObjects[i], new Color(.86f, .30f, .30f), "Armor");
                     AddMarker(sectionObjects[i], Centroid(tiles[i]) * sectionWorldSize,
                         new Color(1f, .18f, .18f), .18f * sectionWorldSize);
@@ -386,6 +390,8 @@ namespace Script
             Physics2D.SyncTransforms();
         }
 
+        #region marker
+        #endregion
         private BattleshipSection CreateTestSection(GameObject section, int id, BattleshipSectionRole role)
         {
             var collider = section.AddComponent<PolygonCollider2D>();
@@ -402,7 +408,79 @@ namespace Script
             // Static analysis geometry: the probe uses casts, not trigger callbacks.
             // Solid colliders remain queryable when queriesHitTriggers is disabled.
             collider.isTrigger = false;
+
+
+            RefreshArmorMarker(section, runtime);
+
             return runtime;
+        }
+
+        private const string ArmorMarkerObjectName = "Armor Marker";
+        private const float EraScale = 0.9f;
+
+        private void RefreshArmorMarker(GameObject sectionObject, BattleshipSection runtime)
+        {
+            if (sectionObject == null || runtime == null) return;
+
+            var old = sectionObject.transform.Find(ArmorMarkerObjectName);
+            if (old != null) Destroy(old.gameObject);
+
+            if (runtime.Role != BattleshipSectionRole.Armor) return;
+            if (runtime.Mode == ArmorMode.Basic) return;
+
+            var meshFilter = sectionObject.GetComponent<MeshFilter>();
+            if (meshFilter == null || meshFilter.sharedMesh == null) return;
+
+            Vector3[] vertices3 = meshFilter.sharedMesh.vertices;
+            if (vertices3 == null || vertices3.Length < 3) return;
+
+            Vector3[] markerPoints;
+
+            if (runtime.Mode == ArmorMode.ERA)
+            {
+                Vector3 center = Vector3.zero;
+                foreach (var v in vertices3) center += v;
+                center /= vertices3.Length;
+
+                markerPoints = vertices3
+                    .Select(v => center + (v - center) * EraScale + new Vector3(0, 0, -0.015f))
+                    .ToArray();
+            }
+            else // ArmorMode.AntiEM
+            {
+                int n = vertices3.Length;
+                markerPoints = new Vector3[n];
+                for (int i = 0; i < n; i++)
+                {
+                    Vector3 a = vertices3[i];
+                    Vector3 b = vertices3[(i + 1) % n];
+                    markerPoints[i] = (a + b) * 0.5f + new Vector3(0, 0, -0.015f);
+                }
+            }
+
+            var marker = new GameObject(ArmorMarkerObjectName);
+            marker.transform.SetParent(sectionObject.transform, false);
+
+            var line = marker.AddComponent<LineRenderer>();
+            line.sharedMaterial = material;
+            line.useWorldSpace = false;
+            line.loop = true;
+            line.positionCount = markerPoints.Length;
+            line.SetPositions(markerPoints);
+            line.startWidth = OutlineWidthScale * sectionWorldSize;
+            line.endWidth = OutlineWidthScale * sectionWorldSize;
+            line.startColor = Color.white;
+            line.endColor = Color.white;
+        }
+
+        private void RefreshAllArmorMarkers()
+        {
+            if (testTarget == null) return;
+
+            foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
+            {
+                RefreshArmorMarker(section.gameObject, section);
+            }
         }
 
         private void RecordTestHit(string result)
@@ -906,9 +984,17 @@ namespace Script
             if (selectedArmor != armorMode)
             {
                 armorMode = selectedArmor;
+
                 if (testTarget != null)
+                {
                     foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
-                        section.Mode = armorMode;
+                    {
+                        if (section.Role == BattleshipSectionRole.Armor)
+                            section.Mode = armorMode;
+                    }
+
+                    RefreshAllArmorMarkers();
+                }
             }
             GUILayout.Label($"装甲厚 {armorThickness:0.#} / ERAベクトル {eraVectorMagnitude:0.#} / 迎撃力 {armorInterception:0.###}", labelStyle);
             testBarrierEnabled = GUILayout.Toggle(testBarrierEnabled, "電磁バリア有効");
