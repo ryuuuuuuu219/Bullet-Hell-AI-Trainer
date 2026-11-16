@@ -185,13 +185,73 @@ MonoBehaviour:
   testProjectilePower: 46
   testProjectilePenetration: 0.26
   testProjectileAffect: 3
+  projectileEffects:
+    photonDps: 50
+    photonInterval: 0.2
+    beamDuration: 1
+    beamRange: 2000
+    heat: 0
+    em: 0
+    electronEm: 25
+    photonBarrierMultiplier: 1
+    neutronBarrierMultiplier: 1
+    plasmaBarrierMultiplier: 1
+    electronBarrierMultiplier: 1
+  testBarrierEnabled: 0
+  barrierReferenceSections: 24
+  barrierReduceOnExit: 0
   testExplosionRadius: 100
   armorMode: 1
   armorThickness: 10
   eraVectorMagnitude: 0.15
   armorInterception: 0.1
+--- !u!1 &256381868
+GameObject:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  serializedVersion: 6
+  m_Component:
+  - component: {fileID: 256381870}
+  - component: {fileID: 256381869}
+  m_Layer: 0
+  m_Name: Return To Stellar Map
+  m_TagString: Untagged
+  m_Icon: {fileID: 0}
+  m_NavMeshLayer: 0
+  m_StaticEditorFlags: 0
+  m_IsActive: 1
+--- !u!114 &256381869
+MonoBehaviour:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256381868}
+  m_Enabled: 1
+  m_EditorHideFlags: 0
+  m_Script: {fileID: 11500000, guid: 2cd75d6d11724d34699c2f105b1dd1bd, type: 3}
+  m_Name: 
+  m_EditorClassIdentifier: Assembly-CSharp::StellarSystem.ShipConstructionReturnUI
+--- !u!4 &256381870
+Transform:
+  m_ObjectHideFlags: 0
+  m_CorrespondingSourceObject: {fileID: 0}
+  m_PrefabInstance: {fileID: 0}
+  m_PrefabAsset: {fileID: 0}
+  m_GameObject: {fileID: 256381868}
+  serializedVersion: 2
+  m_LocalRotation: {x: 0, y: 0, z: 0, w: 1}
+  m_LocalPosition: {x: 0, y: 0, z: 0}
+  m_LocalScale: {x: 1, y: 1, z: 1}
+  m_ConstrainProportionsScale: 0
+  m_Children: []
+  m_Father: {fileID: 0}
+  m_LocalEulerAnglesHint: {x: 0, y: 0, z: 0}
 --- !u!1660057539 &9223372036854775807
 SceneRoots:
   m_ObjectHideFlags: 0
   m_Roots:
   - {fileID: 1001}
+  - {fileID: 256381870}

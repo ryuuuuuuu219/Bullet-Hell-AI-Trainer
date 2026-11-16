@@ -1,4 +1,4 @@
-﻿using System;
+using System;
 using UnityEngine;
 
 namespace StellarSystem
@@ -148,6 +148,7 @@ namespace StellarSystem
                 Rebuild();
                 if (GetComponent<FleetManager>() == null) gameObject.AddComponent<FleetManager>();
                 if (GetComponent<EncounterManager>() == null) gameObject.AddComponent<EncounterManager>();
+                SceneTransitionManager.TryRestoreMap(this, systemController);
             }
             catch (Exception e) { validationError = e.Message; Debug.LogError(e); }
         }
@@ -334,7 +335,7 @@ namespace StellarSystem
                     Line(pt + Vector2.left * 5, pt + Vector2.right * 5, new Color(.3f, .65f, .65f), 2);
                     Line(pt + Vector2.up * 5, pt + Vector2.down * 5, new Color(.3f, .65f, .65f), 2);
                     var stage = lagrangeStages != null ? lagrangeStages[selectedPlanet, j - 1] : null;
-                    if (stage != null && !stage.isBase)
+                    if (stage != null)
                     {
                         if (selectedStage == stage) Circle(pt, 5, new Color(.95f, .9f, .3f));
                         if (GUI.Button(new Rect(pt.x - 9, pt.y - 9, 18, 18), GUIContent.none, GUIStyle.none))
@@ -360,7 +361,7 @@ namespace StellarSystem
                 if (GUI.Button(new Rect(pt.x - 9, pt.y - 9, 18, 18), GUIContent.none, GUIStyle.none))
                 {
                     var destination = lagrangeStages != null ? lagrangeStages[f.planetIndex, f.point - 1] : null;
-                    if (destination != null && !destination.isBase)
+                    if (destination != null)
                     {
                         SelectStage(destination);
                         selectedFortress = i;
@@ -370,7 +371,7 @@ namespace StellarSystem
                         selectedPlanet = f.planetIndex;
                         selectedFortress = i;
                         selectedStage = null;
-                        sortieMessage = "主人公拠点は出撃先に選択できません。";
+                        sortieMessage = "ステージ情報が見つかりません。";
                     }
                 }
                 GUI.Label(new Rect(pt.x + 12, pt.y - 21, 160, 22), "要塞 P" + (f.planetIndex + 1) + " · L" + f.point, small);
@@ -433,7 +434,7 @@ namespace StellarSystem
                 {
                     var fort = fortresses[i];
                     var destination = lagrangeStages != null ? lagrangeStages[fort.planetIndex, fort.point - 1] : null;
-                    if (destination != null && !destination.isBase)
+                    if (destination != null)
                     {
                         SelectStage(destination);
                         selectedFortress = i;
@@ -443,7 +444,7 @@ namespace StellarSystem
                         selectedPlanet = fort.planetIndex;
                         selectedFortress = i;
                         selectedStage = null;
-                        sortieMessage = "主人公拠点は出撃先に選択できません。";
+                        sortieMessage = "ステージ情報が見つかりません。";
                     }
                 }
             GUILayout.Space(12);
@@ -509,7 +510,7 @@ namespace StellarSystem
 
         private void SelectStage(StageManager stage)
         {
-            if (stage == null || stage.isBase) return;
+            if (stage == null) return;
             stage.Select(OnStageSelected);
         }
 
@@ -542,7 +543,7 @@ namespace StellarSystem
             if (selectedStage == null)
             {
                 GUILayout.Label("惑星またはL1～L5を選択してください。", body);
-                GUILayout.Label("第4惑星L2の主人公拠点のみ出撃先にできません。敵側の拠点は選択可能です。", small);
+                GUILayout.Label("第4惑星L2では建造、それ以外の地点では出撃できます。", small);
             }
             else
             {
@@ -560,24 +561,60 @@ namespace StellarSystem
 
             // 下端固定：ステージ情報が長くても出撃操作が隠れない。
             var currentFleet = GetComponent<FleetManager>();
-            bool canSortie = selectedStage != null && selectedStage.allowSortie && !selectedStage.isBase &&
-                             (currentFleet == null || !currentFleet.IsTraveling);
+            bool isConstructionBase = selectedStage != null &&
+                selectedStage.planetID == PlayerBasePlanetID && selectedStage.lagrangeID == PlayerBaseLagrangeID;
+            bool canAct = selectedStage != null && (isConstructionBase || selectedStage.allowSortie) &&
+                          (currentFleet == null || !currentFleet.IsTraveling);
             GUILayout.BeginArea(new Rect(x + 14, footerY, contentWidth, footerHeight));
             string status = !string.IsNullOrEmpty(sortieMessage)
                 ? sortieMessage
                 : selectedStage == null ? "目的地を選択してください。"
-                : !canSortie ? "この地点へは現在出撃できません。" : "";
+                : !canAct ? "この地点では現在操作できません。" : "";
             GUILayout.Label(status, small, GUILayout.Height(36));
             bool previousEnabled = GUI.enabled;
-            GUI.enabled = previousEnabled && canSortie;
-            if (GUILayout.Button("出撃", GUILayout.Height(42))) RequestSortie();
+            GUI.enabled = previousEnabled && canAct;
+            if (GUILayout.Button(isConstructionBase ? "建造" : "出撃", GUILayout.Height(42)))
+            {
+                if (isConstructionBase)
+                {
+                    if (!SceneTransitionManager.OpenConstruction(this, systemController, out string error))
+                        sortieMessage = error;
+                }
+                else RequestSortie();
+            }
             GUI.enabled = previousEnabled;
             GUILayout.EndArea();
         }
 
+        // シーン遷移用。表示と選択の状態だけを保存する（航行中は建造に遷移できない）。
+        public MapViewState CaptureViewState() => new MapViewState
+        {
+            planetID = selectedStage != null ? selectedStage.planetID : PlayerBasePlanetID,
+            lagrangeID = selectedStage != null ? selectedStage.lagrangeID : PlayerBaseLagrangeID,
+            centerX = center.X, centerY = center.Y, halfHeightAU = halfHeightAU,
+            follow = follow, rotatingView = rotatingView, showPoints = showPoints
+        };
+
+        public void RestoreViewState(MapViewState state)
+        {
+            if (state == null || planetStages == null || lagrangeStages == null) return;
+            int index = state.planetID - 1;
+            if (index < 0 || index >= planetStages.Length) return;
+            StageManager stage = state.lagrangeID >= 1 && state.lagrangeID <= 5
+                ? lagrangeStages[index, state.lagrangeID - 1] : planetStages[index];
+            if (stage != null) SelectStage(stage);
+            center = new Position2D(state.centerX, state.centerY);
+            if (state.halfHeightAU > 0) halfHeightAU = state.halfHeightAU;
+            follow = state.follow;
+            rotatingView = state.rotatingView;
+            showPoints = state.showPoints;
+            SyncCamera();
+        }
+
         private void RequestSortie()
         {
-            if (selectedStage == null || selectedStage.isBase || !selectedStage.allowSortie) return;
+            if (selectedStage == null || !selectedStage.allowSortie ||
+                (selectedStage.planetID == PlayerBasePlanetID && selectedStage.lagrangeID == PlayerBaseLagrangeID)) return;
             if (SortieRequested == null)
             {
                 sortieMessage = "出撃先は選択済みです。艦隊航行処理はまだ接続されていません。";

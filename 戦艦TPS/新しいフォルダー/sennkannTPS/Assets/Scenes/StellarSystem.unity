@@ -181,39 +181,39 @@ MonoBehaviour:
   m_EditorClassIdentifier: Assembly-CSharp::StellarSystem.StellarSystemMap
   starMassSolar: 1
   planets:
-  - name: "\u7B2C1\u60D1\u661F\u30FB\u5CA9\u77F3\u60D1\u661F"
+  - name: "\u7B2C1\u60D1\u661F\u30FB\u30AC\u30B9\u60D1\u661F"
     orbitData:
       semiMajorAxis: 0.4
       eccentricity: 0.02
       periapsisDeg: 110
-      periodDays: 92
+      periodDays: 92.34
       initialMeanAnomalyDeg: 120
-    massSolar: 0.000001
+    massSolar: 0.0013
     color: {r: 0.7, g: 0.6, b: 0.5, a: 1}
-  - name: "\u7B2C2\u60D1\u661F\u30FB\u5CA9\u77F3\u60D1\u661F"
+  - name: "\u7B2C2\u60D1\u661F\u30FB\u30AC\u30B9\u60D1\u661F"
     orbitData:
       semiMajorAxis: 0.5
       eccentricity: 0.01
       periapsisDeg: 240
-      periodDays: 129
+      periodDays: 129.02
       initialMeanAnomalyDeg: 60
-    massSolar: 0.000002
+    massSolar: 0.0018
     color: {r: 0.95, g: 0.7, b: 0.35, a: 1}
-  - name: "\u7B2C3\u60D1\u661F\u30FB\u30AC\u30B9\u60D1\u661F"
+  - name: "\u7B2C3\u60D1\u661F\u30FB\u5CA9\u77F3\u60D1\u661F"
     orbitData:
       semiMajorAxis: 1.5
       eccentricity: 0.03
       periapsisDeg: 30
-      periodDays: 515
+      periodDays: 671.02
       initialMeanAnomalyDeg: 0
-    massSolar: 0.7
+    massSolar: 0.000007
     color: {r: 0.8, g: 0.65, b: 0.9, a: 1}
   - name: "\u7B2C4\u60D1\u661F\u30FB\u5CA9\u77F3\u60D1\u661F"
     orbitData:
       semiMajorAxis: 4
       eccentricity: 0.05
       periapsisDeg: 0
-      periodDays: 2922
+      periodDays: 2922.01
       initialMeanAnomalyDeg: 0
     massSolar: 0.00003
     color: {r: 0.4, g: 0.8, b: 1, a: 1}
@@ -222,36 +222,36 @@ MonoBehaviour:
       semiMajorAxis: 6
       eccentricity: 0.08
       periapsisDeg: 15
-      periodDays: 5366
+      periodDays: 5367.88
       initialMeanAnomalyDeg: 35
-    massSolar: 0.001
+    massSolar: 0.0001
     color: {r: 0.9, g: 0.65, b: 0.35, a: 1}
   - name: "\u7B2C6\u60D1\u661F\u30FB\u6C37\u5DE8\u5927\u60D1\u661F"
     orbitData:
       semiMajorAxis: 12
       eccentricity: 0.03
       periapsisDeg: 195
-      periodDays: 12397
+      periodDays: 15183.04
       initialMeanAnomalyDeg: 80
-    massSolar: 0.5
+    massSolar: 0.00005
     color: {r: 0.4, g: 0.95, b: 0.9, a: 1}
   - name: "\u7B2C7\u60D1\u661F\u30FB\u8910\u8272\u77EE\u661F"
     orbitData:
       semiMajorAxis: 24
       eccentricity: 0.2
       periapsisDeg: 200
-      periodDays: 42722
+      periodDays: 42522.09
       initialMeanAnomalyDeg: 170
-    massSolar: 0.0105
+    massSolar: 0.02
     color: {r: 0.9, g: 0.4, b: 0.3, a: 1}
   - name: "\u7B2C?\u60D1\u661F\u30FB\u5F57\u661F"
     orbitData:
       semiMajorAxis: 40
       eccentricity: 0.95
       periapsisDeg: 20
-      periodDays: 92357
+      periodDays: 92403.37
       initialMeanAnomalyDeg: 20
-    massSolar: 0.001
+    massSolar: 0.000000000000001
     color: {r: 0.9, g: 0.4, b: 0.3, a: 1}
   fortresses:
   - name: "\u5185\u7E01\u76E3\u8996\u8981\u585E\uFF08\u4EEE\uFF09"

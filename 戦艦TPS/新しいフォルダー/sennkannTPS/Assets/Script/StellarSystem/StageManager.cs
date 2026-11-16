@@ -18,7 +18,7 @@ namespace StellarSystem
         public StageProgress progress = StageProgress.Unknown;
         public bool allowSortie = true;
 
-        public bool IsSelectable => !isBase;
+        public bool IsSelectable => true; // 拠点も選択可能。出撃先かどうかはマップ側で判定する。
 
         // 表示上のクリック判定は StellarSystemMap のGUIボタンが担当する。
         // ここでは選択通知を責務として持つ。
