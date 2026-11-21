@@ -36,12 +36,17 @@ namespace Script
         [SerializeField] private double emAccumulation;
         public double HeatAccumulation => heatAccumulation;
         public double EmAccumulation => emAccumulation;
-        public bool EmpActive => emAccumulation > 100d;
+        private bool empActive;
+        public bool EmpActive => empActive;
         public bool CanFireRailgun => emAccumulation <= 0d;
+        public float RadarCorrection => constructionData == null ? 1 : Mathf.Clamp(constructionData.radarCorrection, 1, 100);
         internal void AccumulateImpact(double heat, double em)
         {
-            heatAccumulation += Math.Max(0, heat);
-            emAccumulation += Math.Max(0, em);
+            heatAccumulation += Math.Max(0, heat) * (1 - (constructionData?.heatGainReduction ?? 0));
+            emAccumulation += Math.Max(0, em) * (1 - (constructionData?.emGainReduction ?? 0));
+            if (constructionData != null) heatAccumulation = Math.Min(150 + constructionData.heatCapOffset, heatAccumulation);
+            emAccumulation = Math.Min(150 + (constructionData?.emCapOffset ?? 0), emAccumulation);
+            if (emAccumulation > 100) empActive = true;
         }
 
         [SerializeField] private BattleshipClass shipClass;
@@ -58,6 +63,19 @@ namespace Script
         private bool dying;
         private bool stationaryTestTarget;
         private float nextTargetScan;
+        private ShipMovement constructionMovement;
+        private ShipBuildData constructionData;
+        public ShipBuildData ConstructionSnapshot => constructionData?.Snapshot();
+        public bool HasConstructionData => constructionData != null;
+
+        internal void ApplyConstruction(ShipBuildData data, bool playerControlled)
+        {
+            constructionData = data.Snapshot();
+            coreHealthLimit = coreHealth = ShipBuildData.CoreHP[data.coreHPSettingID];
+            constructionMovement = GetComponent<ShipMovement>();
+            if (constructionMovement == null) constructionMovement = gameObject.AddComponent<ShipMovement>();
+            constructionMovement.Initialize(data.CalculatePerformance(), playerControlled);
+        }
 
         public static IReadOnlyList<BattleshipInstance> Active => active;
         public BattleshipClass ShipClass => shipClass;
@@ -101,6 +119,8 @@ namespace Script
         {
             heatAccumulation = Math.Max(0, heatAccumulation - 5d * Time.deltaTime);
             emAccumulation = Math.Max(0, emAccumulation - 5d * Time.deltaTime);
+            if (emAccumulation > 100) empActive = true;
+            if (emAccumulation <= 0) empActive = false;
             if (stationaryTestTarget || !IsAlive || Time.deltaTime <= 0) return;
             float dt = Time.deltaTime;
             if (!IsAlive) return;
@@ -110,7 +130,7 @@ namespace Script
                 nextTargetScan = Time.time + 0.2f;
                 SelectAttackTarget();
             }
-            Move(dt);
+            if (constructionMovement == null) Move(dt);
             TickTurrets(dt);
         }
 

@@ -43,7 +43,7 @@ public static class ScriptRegressionChecks
 
     public static void RunEffectsInPlayMode()
     {
-        EditorSceneManager.OpenScene("Assets/Scenes/TilingTest.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/ShipConstruction.unity");
         SessionState.SetBool("ScriptRegressionChecks.Effects", true);
         SessionState.SetBool("ScriptRegressionChecks.PlayMode", true);
         InstallPlayModeCheck();
@@ -53,7 +53,7 @@ public static class ScriptRegressionChecks
     // Batch entry point without -quit: wait for the actual Play Mode physics world.
     public static void RunInPlayMode()
     {
-        EditorSceneManager.OpenScene("Assets/Scenes/TilingTest.unity");
+        EditorSceneManager.OpenScene("Assets/Scenes/ShipConstruction.unity");
         SessionState.SetBool("ScriptRegressionChecks.PlayMode", true);
         InstallPlayModeCheck();
         EditorApplication.EnterPlaymode();
@@ -123,7 +123,7 @@ public static class ScriptRegressionChecks
             created.Clear();
 
             var scene = Application.isPlaying ? UnityEngine.SceneManagement.SceneManager.GetActiveScene()
-                : EditorSceneManager.OpenScene("Assets/Scenes/TilingTest.unity");
+                : EditorSceneManager.OpenScene("Assets/Scenes/ShipConstruction.unity");
             foreach (var root in scene.GetRootGameObjects())
                 Check(GameObjectUtility.GetMonoBehavioursWithMissingScriptCount(root) == 0, "Scene script reference");
             var test = UnityEngine.Object.FindFirstObjectByType<TilingTestScene>();
@@ -133,6 +133,8 @@ public static class ScriptRegressionChecks
             test.GetType().GetField("eraVectorMagnitude", Private).SetValue(test, 50f);
             test.GetType().GetField("armorInterception", Private).SetValue(test, .1d);
             test.GetType().GetField("testBarrierEnabled", Private).SetValue(test, false);
+            test.GetType().GetField("manualWeaponAllocation", Private).SetValue(test, false);
+            test.GetType().GetField("manualArmorAllocation", Private).SetValue(test, false);
             test.GenerateForValidation();
             var target = (BattleshipInstance)Field(test, "testTarget");
             Check(target != null && target.IsAlive && target.LivingSectionCount == test.DisplayedTileCount,

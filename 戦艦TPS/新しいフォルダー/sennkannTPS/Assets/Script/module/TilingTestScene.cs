@@ -1,4 +1,4 @@
-﻿using System.Collections;
+using System.Collections;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -6,7 +6,7 @@ using UnityEngine.InputSystem;
 
 namespace Script
 {
-    public sealed class TilingTestScene : MonoBehaviour
+    public sealed partial class TilingTestScene : MonoBehaviour
     {
         private enum ShipClass { Frigate, Destroyer, Cruiser, Battleship }
         private enum SectionRole { Core, Armor, Turret }
@@ -178,12 +178,15 @@ namespace Script
         }
         private void Regenerate()
         {
-            if (!int.TryParse(seedText, out seed)) seed = 3;
-            if (!int.TryParse(targetText, out targetSections)) targetSections = 24;
-            if (!int.TryParse(attemptsText, out maximumAttempts)) maximumAttempts = 160;
-            targetSections = Mathf.Clamp(targetSections, 1, 128); maximumAttempts = Mathf.Clamp(maximumAttempts, 1, 2000);
+            if (!int.TryParse(seedText, out int nextSeed) || !int.TryParse(targetText, out int nextTarget) ||
+                !int.TryParse(attemptsText, out int nextAttempts) || nextTarget < 1 || nextTarget > 128 || nextAttempts < 1 || nextAttempts > 2000)
+            {
+                generationInputError = "シードは整数、目安区画数は1～128、試行上限は1～2000で入力してください。";
+                return;
+            }
+            generationInputError = null;
+            seed = nextSeed; targetSections = nextTarget; maximumAttempts = nextAttempts;
             seedText = seed.ToString(); targetText = targetSections.ToString(); attemptsText = maximumAttempts.ToString();
-            SaveShipBuildSettings();
             if (generation != null) StopCoroutine(generation);
             generator = new TilingGenerator(seed, targetSections, maximumAttempts, triangleStart,
                 (int)(triangleStart ? triangleStartAngle : squareStartAngle));
@@ -224,6 +227,7 @@ namespace Script
         }
         private void ClearDrawing()
         {
+            StopMovementTrial();
             ClearTestProjectiles();
             testTarget = null;
             hitLog.Clear();
@@ -300,6 +304,30 @@ namespace Script
             maximumShipSp = Mathf.Max(0f, spPerSection) * tiles.Length;
             shipSp = maximumShipSp;
             if (tiles.Length == 0) return;
+            if (manualWeaponAllocation && manualArmorAllocation && TryGetBuild(out var build, out _, false))
+            {
+                testTarget = ShipBuilder.Attach(build, drawing, tiles, sectionObjects, true, false);
+                armorCount = testTarget.GetComponentsInChildren<BattleshipSection>().Count(s => s.Role == BattleshipSectionRole.Armor);
+                foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
+                {
+                    section.GetComponent<Collider2D>().isTrigger = false;
+                    section.HitResolved += ShowFloatingHit;
+                    RefreshArmorMarker(section.gameObject, section);
+                    var weapon = section.ConstructionWeapon;
+                    if (weapon != null)
+                    {
+                        var point = Centroid(tiles[section.SectionId]) * sectionWorldSize;
+                        turrets.Add(new TurretRuntime { Position = point, Kind = (WeaponKind)weapon.Kind,
+                            Grade = 1, Power = weapon.Power, Interval = weapon.Interval, Speed = weapon.Speed,
+                            GuidanceTurnSpeed = weapon.GuidanceTurnSpeed, NavigationConstant = weapon.NavigationConstant,
+                            Timer = weapon.Interval });
+                        AddMarker(section.gameObject, point, Color.white, .12f * sectionWorldSize);
+                    }
+                }
+                SetupBarrierOutline();
+                Physics2D.SyncTransforms();
+                return;
+            }
             testTarget = drawing.AddComponent<BattleshipInstance>();
             var sections = new List<BattleshipSection>(tiles.Length);
 
@@ -377,6 +405,12 @@ namespace Script
             }
             testTarget.Initialize((BattleshipClass)shipClass, targetSections, tiles.Length,
                 seed, sections, stationary: true);
+            SetupBarrierOutline();
+            Physics2D.SyncTransforms();
+        }
+
+        private void SetupBarrierOutline()
+        {
             var barrierObject = new GameObject("電磁バリア");
             barrierObject.transform.SetParent(testTarget.transform, false);
             barrierOutline = barrierObject.AddComponent<LineRenderer>();
@@ -387,7 +421,6 @@ namespace Script
             barrierOutline.startColor = barrierOutline.endColor = new Color(.1f, .8f, 1f, .5f);
             barrierOutline.widthMultiplier = 1f;
             UpdateBarrier();
-            Physics2D.SyncTransforms();
         }
 
         #region marker
@@ -749,7 +782,6 @@ namespace Script
             if (nextManual != manualWeaponAllocation)
             {
                 manualWeaponAllocation = nextManual;
-                SaveShipBuildSettings();
                 if (HasFinished) DrawFrame();
             }
             if (!manualWeaponAllocation) return;
@@ -765,18 +797,17 @@ namespace Script
                 GUILayout.EndHorizontal();
                 if (!minus && !plus) continue;
                 requestedWeaponCounts[i] = Mathf.Clamp(requestedWeaponCounts[i] + (plus ? 1 : -1), 0, 128);
-                SaveShipBuildSettings();
                 if (HasFinished) DrawFrame();
             }
             int available = Mathf.Max(0, DisplayedTileCount - 1);
             GUILayout.Label($"指定砲塔数：{RequestedTurretTotal} ／ 現在の使用可能区画：{available}", labelStyle);
             if (RequestedTurretTotal > available)
                 GUILayout.Label("注意：指定数が区画数を超過しています。現状は区画数を上限とし、表の上から優先して配置します。", labelStyle);
-            GUILayout.Label("各兵装のグレードは既存の艦種別候補からシードに従って選びます。候補がない場合はグレード1です。", labelStyle);
+            GUILayout.Label("兵装・装甲の手動指定時はMVP固定性能を使用。データは7枠対応、現在の選択肢はMVP4種。", labelStyle);
         }
 
         // Construction armor quantities are independent from the protection test's global preset.
-        private bool manualArmorAllocation;
+        private bool manualArmorAllocation = true;
         private readonly int[] requestedArmorCounts = new int[3]; // Basic, ERA, AntiEM
         private static readonly string[] armorBuildLabels = { "Basic", "ERA", "AEM（対電磁）" };
         private int RequestedArmorTotal => requestedArmorCounts.Sum();
@@ -785,14 +816,8 @@ namespace Script
         {
             GUILayout.Space(8);
             GUILayout.Label("装甲区画の建造設定", labelStyle);
-            bool nextManual = GUILayout.Toggle(manualArmorAllocation, "装甲の種類・数を指定する（OFFは従来の一括装甲モード）");
-            if (nextManual != manualArmorAllocation)
-            {
-                manualArmorAllocation = nextManual;
-                SaveShipBuildSettings();
-                if (HasFinished) DrawFrame();
-            }
-            if (!manualArmorAllocation) return;
+            GUILayout.BeginHorizontal();
+            GUILayout.BeginVertical(GUILayout.Width(250));
             for (int i = 0; i < requestedArmorCounts.Length; i++)
             {
                 GUILayout.BeginHorizontal();
@@ -806,21 +831,34 @@ namespace Script
                 bool plus = GUILayout.Button("＋", GUILayout.Width(36));
                 GUILayout.EndHorizontal();
                 if (!minus && !plus) continue;
-                requestedArmorCounts[i] = Mathf.Clamp(requestedArmorCounts[i] + (plus ? 1 : -1), 0, 128);
-                SaveShipBuildSettings();
+                requestedArmorCounts[i] = Mathf.Clamp(requestedArmorCounts[i] + (plus ? 1 : -1), 0, 60);
                 if (HasFinished) DrawFrame();
             }
+            GUILayout.EndVertical();
+            GUILayout.BeginVertical(GUI.skin.box);
+            GUILayout.Label($"指定装甲 {RequestedArmorTotal} ＋ 指定砲塔 {RequestedTurretTotal} ＝ {RequestedArmorTotal + RequestedTurretTotal}", labelStyle);
+            if (!manualWeaponAllocation)
+                GUILayout.Label("差分：砲塔数を手動指定してください", labelStyle);
+            else if (int.TryParse(targetText, out int referenceCount) && referenceCount >= 1 && referenceCount <= 128)
+            {
+                int difference = RequestedArmorTotal + RequestedTurretTotal - referenceCount;
+                GUILayout.Label($"目安区画数 {referenceCount} ／ 差分 {difference:+0;-0;0}", labelStyle);
+                GUILayout.Label(difference == 0 ? "一致" : difference > 0 ? $"指定数が {difference} 区画多い" : $"指定数が {-difference} 区画少ない", labelStyle);
+            }
+            else GUILayout.Label("差分：目安区画数を1～128で入力してください", labelStyle);
+            GUILayout.EndVertical();
+            GUILayout.EndHorizontal();
+            for (int presetIndex = 0; presetIndex < 3; presetIndex++) { GUILayout.Label(armorBuildLabels[presetIndex]); DrawArmorPresets(presetIndex); }
             GUILayout.Label($"指定数：{RequestedArmorTotal} ／ 実際の装甲区画：{armorCount}", labelStyle);
             if (RequestedArmorTotal > armorCount)
                 GUILayout.Label("注意：指定数が装甲区画数を超えています。Basic → ERA → AEMの順で上限まで割り当てます。", labelStyle);
             if (RequestedArmorTotal < armorCount)
                 GUILayout.Label("未指定の装甲区画はBasicで補完します。", labelStyle);
-            GUILayout.Label("装甲種の割当位置はシードで固定します。試験用の一括装甲モードは手動設定中は無効です。", labelStyle);
+            GUILayout.Label("装甲種の割当位置はシードで固定します。", labelStyle);
         }
 
         private enum ConstructionTab { Hull, Weapons, Armor, Facilities, Performance }
         private ConstructionTab constructionTab = ConstructionTab.Hull;
-        private bool shipBuildSettingsLoaded;
         private const string ShipBuildPrefix = "ShipBuild.";
 
         private void LoadShipBuildSettings()
@@ -841,44 +879,19 @@ namespace Script
             manualWeaponAllocation = PlayerPrefs.GetInt(ShipBuildPrefix + "ManualWeaponAllocation", 0) != 0;
             for (int i = 0; i < requestedWeaponCounts.Length; i++)
                 requestedWeaponCounts[i] = Mathf.Clamp(PlayerPrefs.GetInt(ShipBuildPrefix + "WeaponCount" + i, 0), 0, 128);
-            manualArmorAllocation = PlayerPrefs.GetInt(ShipBuildPrefix + "ManualArmorAllocation", 0) != 0;
+            manualArmorAllocation = true;
             for (int i = 0; i < requestedArmorCounts.Length; i++)
                 requestedArmorCounts[i] = Mathf.Clamp(PlayerPrefs.GetInt(ShipBuildPrefix + "ArmorCount" + i, 0), 0, 128);
-            shipBuildSettingsLoaded = true;
+            if (ShipBuildStore.TryLoad(out var saved, out savedBuildError)) ApplySavedBuild(saved);
+            else if (savedBuildError == null && !PlayerPrefs.HasKey(ShipBuildPrefix + "Seed")) ApplySavedBuild(new ShipBuildData());
         }
 
-        private void SaveShipBuildSettings()
-        {
-            if (!shipBuildSettingsLoaded) return;
-            if (int.TryParse(seedText, out int parsedSeed)) seed = parsedSeed;
-            if (int.TryParse(targetText, out int parsedSections)) targetSections = Mathf.Clamp(parsedSections, 1, 128);
-            if (int.TryParse(attemptsText, out int parsedAttempts)) maximumAttempts = Mathf.Clamp(parsedAttempts, 1, 2000);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "Seed", seed);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "ShipClass", (int)shipClass);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "TargetSections", targetSections);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "MaxAttempts", maximumAttempts);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "TriangleStart", triangleStart ? 1 : 0);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "SquareAngle", (int)squareStartAngle);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "TriangleAngle", (int)triangleStartAngle);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "FormEnds", formEnds ? 1 : 0);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "EndSearchDepth", endSearchDepth);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "EndSearchLimit", endSearchLimit);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "ManualWeaponAllocation", manualWeaponAllocation ? 1 : 0);
-            for (int i = 0; i < requestedWeaponCounts.Length; i++)
-                PlayerPrefs.SetInt(ShipBuildPrefix + "WeaponCount" + i, requestedWeaponCounts[i]);
-            PlayerPrefs.SetInt(ShipBuildPrefix + "ManualArmorAllocation", manualArmorAllocation ? 1 : 0);
-            for (int i = 0; i < requestedArmorCounts.Length; i++)
-                PlayerPrefs.SetInt(ShipBuildPrefix + "ArmorCount" + i, requestedArmorCounts[i]);
-            PlayerPrefs.Save();
-        }
-
-        private void OnDisable() => SaveShipBuildSettings();
-        private void OnApplicationPause(bool paused) { if (paused) SaveShipBuildSettings(); }
-        private void OnApplicationQuit() => SaveShipBuildSettings();
 
         private void DrawHullTab()
         {
             GUILayout.Label("船体設計 / タイリング生成", labelStyle);
+            if (!string.IsNullOrEmpty(generationInputError)) GUILayout.Label(generationInputError, labelStyle);
+            DrawBuildPresets();
             GUILayout.BeginHorizontal();
             GUILayout.Label("シード", GUILayout.Width(52));
             seedText = GUILayout.TextField(seedText, GUILayout.Width(75));
@@ -887,21 +900,33 @@ namespace Script
             GUILayout.Label("試行上限", GUILayout.Width(72));
             attemptsText = GUILayout.TextField(attemptsText, GUILayout.Width(60));
             GUILayout.EndHorizontal();
-            var previousClass = shipClass;
-            shipClass = (ShipClass)GUILayout.SelectionGrid((int)shipClass,
-                new[] { "フリゲート", "駆逐艦", "巡洋艦", "戦艦" }, 4);
-            if (shipClass != previousClass && HasFinished) DrawFrame();
             triangleStart = GUILayout.Toggle(triangleStart, "初期形状：三角形（OFFは正方形）");
             int angleIndex = (int)(triangleStart ? triangleStartAngle : squareStartAngle);
             var angleOptions = System.Enum.GetValues(typeof(StartAngle)).Cast<StartAngle>().ToArray();
-            string[] labels = angleOptions.Select(a => ((int)a).ToString() + "°").ToArray();
-            int index = System.Array.IndexOf(angleOptions, (StartAngle)angleIndex);
-            int newIndex = GUILayout.SelectionGrid(Mathf.Max(0, index), labels, 8);
-            if (newIndex >= 0 && newIndex < angleOptions.Length)
+            bool anglesEnabled = GUI.enabled;
+            Color angleColor = GUI.color;
+            for (int row = 0; row < angleOptions.Length; row += 8)
             {
-                if (triangleStart) triangleStartAngle = angleOptions[newIndex];
-                else squareStartAngle = angleOptions[newIndex];
+                GUILayout.BeginHorizontal();
+                for (int column = 0; column < 8; column++)
+                {
+                    int optionIndex = row + column;
+                    if (optionIndex >= angleOptions.Length) { GUILayout.Label("", GUILayout.MinWidth(0), GUILayout.ExpandWidth(true)); continue; }
+                    var option = angleOptions[optionIndex];
+                    bool valid = ShipBuildData.IsValidStartAngle(triangleStart, (int)option);
+                    GUI.enabled = anglesEnabled && valid;
+                    GUI.color = new Color(angleColor.r, angleColor.g, angleColor.b, angleColor.a * (valid ? 1f : .4f));
+                    if (GUILayout.Toggle(angleIndex == (int)option, ((int)option) + "°", GUI.skin.button,
+                        GUILayout.MinWidth(0), GUILayout.ExpandWidth(true)) && valid && angleIndex != (int)option)
+                    {
+                        if (triangleStart) triangleStartAngle = option;
+                        else squareStartAngle = option;
+                    }
+                }
+                GUILayout.EndHorizontal();
             }
+            GUI.enabled = anglesEnabled;
+            GUI.color = angleColor;
             formEnds = GUILayout.Toggle(formEnds, "艦首・艦尾を形成");
             if (formEnds)
             {
@@ -913,7 +938,7 @@ namespace Script
                 GUILayout.EndHorizontal();
             }
             GUI.enabled = !generating;
-            if (GUILayout.Button("設定を保存して再生成")) Regenerate();
+            if (GUILayout.Button("編集中の設定で再生成")) Regenerate();
             GUI.enabled = true;
             GUILayout.Label(formEnds
                 ? $"端部：上 {generator.UpperEndStatus} / 下 {generator.LowerEndStatus} / 追加 {generator.EndTilesAdded} 区画"
@@ -948,8 +973,6 @@ namespace Script
                 if (HasFinished) DrawFrame();
             }
             GUILayout.Label($"艦種 {shipClass} / 砲塔 {turrets.Count} / 装甲区画 {armorCount}", labelStyle);
-            GUILayout.Label($"SP {shipSp:0.0} / {maximumShipSp:0.0}", labelStyle);
-            if (GUILayout.Button("SPを全回復", GUILayout.Width(150))) shipSp = maximumShipSp;
             GUILayout.Label(protectionTestMode ? "防護分析が有効な間は砲塔の自動射撃を停止" : "砲塔はマウス位置へ自動射撃", labelStyle);
             GUILayout.Label(
     enableTurretTest ? "砲塔試験：ON（マウス位置へ自動射撃）"
@@ -975,27 +998,6 @@ namespace Script
             if (GUILayout.Button("試験弾を消去")) ClearTestProjectiles();
             if (GUILayout.Button("標的を復元")) DrawFrame();
             GUILayout.EndHorizontal();
-            GUILayout.Label("装甲モード", labelStyle);
-            bool previousGuiEnabled = GUI.enabled;
-            GUI.enabled = previousGuiEnabled && !manualArmorAllocation;
-            var selectedArmor = (ArmorMode)GUILayout.SelectionGrid((int)armorMode,
-                new[] { "ベーシック", "ERA", "対電磁" }, 3);
-            GUI.enabled = previousGuiEnabled;
-            if (selectedArmor != armorMode)
-            {
-                armorMode = selectedArmor;
-
-                if (testTarget != null)
-                {
-                    foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())
-                    {
-                        if (section.Role == BattleshipSectionRole.Armor)
-                            section.Mode = armorMode;
-                    }
-
-                    RefreshAllArmorMarkers();
-                }
-            }
             GUILayout.Label($"装甲厚 {armorThickness:0.#} / ERAベクトル {eraVectorMagnitude:0.#} / 迎撃力 {armorInterception:0.###}", labelStyle);
             testBarrierEnabled = GUILayout.Toggle(testBarrierEnabled, "電磁バリア有効");
             GUILayout.Label($"試験弾：威力 {testProjectilePower:0.##} / 貫通力 {testProjectilePenetration:0.##}（詳細値はInspectorで変更）", labelStyle);
@@ -1011,8 +1013,8 @@ namespace Script
         private void DrawFacilitiesTab()
         {
             GUILayout.Label("施設設定", labelStyle);
-            GUILayout.Label("エンジン、バウスラスター、レーダー、装填装置などの建造入力は未実装です。", labelStyle);
-            GUILayout.Label("このタブは現段階では確認用です。", labelStyle);
+            DrawEngineSettings();
+
         }
 
         private void DrawPerformanceTab()
@@ -1020,12 +1022,11 @@ namespace Script
             GUILayout.Label("艦船性能確認", labelStyle);
             GUILayout.Label($"艦種：{shipClass} / シード：{seed} / 目標区画数：{targetSections}", labelStyle);
             GUILayout.Label($"実際の区画数：{DisplayedTileCount} / 砲塔：{TurretCount} / 装甲区画：{armorCount}", labelStyle);
-            GUILayout.Label($"SP：{shipSp:0.0}/{maximumShipSp:0.0}", labelStyle);
             GUILayout.Label(manualWeaponAllocation ? $"指定兵装：{RequestedTurretTotal} 基（区画上限適用後 {TurretCount} 基）" : "兵装：従来のランダム構成", labelStyle);
-            GUILayout.Label(manualArmorAllocation ? $"装甲：手動指定（Basic {requestedArmorCounts[0]}, ERA {requestedArmorCounts[1]}, AEM {requestedArmorCounts[2]}、不足分Basic）" : $"装甲：一括 {armorMode}", labelStyle);
+            GUILayout.Label($"装甲：指定数 Basic {requestedArmorCounts[0]}, ERA {requestedArmorCounts[1]}, AEM {requestedArmorCounts[2]}（不足分Basic）", labelStyle);
             if (testTarget != null)
                 GUILayout.Label($"コアHP：{testTarget.CoreHealth:0.##}/{testTarget.CoreHealthLimit:0.##}", labelStyle);
-            GUILayout.Label("最大速力・旋回速度：建造性能計算への接続待ち", labelStyle);
+            DrawBuildPerformance();
             GUILayout.Label("※戦闘中の損傷値は建造設定として保存しません。", labelStyle);
         }
 
@@ -1042,12 +1043,13 @@ namespace Script
             float scale = Mathf.Clamp(Screen.width / 850f, .55f, 1.4f);
             var oldMatrix = GUI.matrix; GUI.matrix = Matrix4x4.Scale(new Vector3(scale, scale, 1));
             GUILayout.BeginArea(new Rect(12, 8, Screen.width / scale - 24, Screen.height * .33f / scale - 8));
-            panelScroll = GUILayout.BeginScrollView(panelScroll);
             GUILayout.Label("艦船建造 / Ship Construction", labelStyle);
             int selectedTab = GUILayout.Toolbar((int)constructionTab,
                 new[] { "船体", "兵装", "装甲", "施設", "性能確認" });
+            if (selectedTab != (int)constructionTab) { StopMovementTrial(); panelScroll = Vector2.zero; }
             constructionTab = (ConstructionTab)Mathf.Clamp(selectedTab, 0, 4);
             GUILayout.Space(7);
+            panelScroll = GUILayout.BeginScrollView(panelScroll);
             switch (constructionTab)
             {
                 case ConstructionTab.Hull: DrawHullTab(); break;
@@ -1065,7 +1067,7 @@ namespace Script
         private void Update()
         {
             UpdateBarrier();
-            if (testTarget != null && (appliedArmorThickness != armorThickness || appliedEraVectorMagnitude != eraVectorMagnitude ||
+            if (testTarget != null && !testTarget.HasConstructionData && (appliedArmorThickness != armorThickness || appliedEraVectorMagnitude != eraVectorMagnitude ||
                 appliedArmorInterception != armorInterception))
             {
                 foreach (var section in testTarget.GetComponentsInChildren<BattleshipSection>())

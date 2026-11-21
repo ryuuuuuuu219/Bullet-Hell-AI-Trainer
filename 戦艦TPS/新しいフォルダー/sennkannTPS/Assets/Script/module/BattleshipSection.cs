@@ -60,6 +60,7 @@ namespace Script
         public double Interception => Role == BattleshipSectionRole.Armor ? ArmorInterception : 0.0d;
         public bool IsAttached { get; private set; } = true;
         public BattleshipInstance Owner => owner;
+        internal BattleshipWeaponRuntime ConstructionWeapon => weapon;
         public IReadOnlyList<BattleshipSection> Neighbors => neighbors;
 
         internal void Initialize(BattleshipInstance value, int id, BattleshipSectionRole role,
@@ -80,6 +81,14 @@ namespace Script
         internal void AddNeighbor(BattleshipSection neighbor)
         {
             if (neighbor != null && neighbor != this && !neighbors.Contains(neighbor)) neighbors.Add(neighbor);
+        }
+
+        internal void SetConstructionHealth(double health)
+        {
+            if (double.IsNaN(health) || double.IsInfinity(health) || health <= 0)
+                throw new ArgumentOutOfRangeException(nameof(health));
+            CurrentHealth = MaximumHealth = health;
+            UpdateOpacity();
         }
 
         internal void ApplyDamage(double amount)
