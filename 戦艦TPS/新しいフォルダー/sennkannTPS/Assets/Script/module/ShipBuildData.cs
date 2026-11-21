@@ -59,7 +59,7 @@ namespace Script
             else if (weaponIDs == null || weaponCounts == null || weaponIDs.Length != 7 || weaponCounts.Length != 7 ||
                 armor == null || armor.Length != 3 || armor.Any(a => a == null))
                 error = "兵装は7枠、装甲はBasic・ERA・AEMの3枠で指定してください。";
-            else if (weaponIDs.Where((id, i) => id < -1 || id > 3 || (id == -1 && weaponCounts[i] != 0)).Any() ||
+            else if (weaponIDs.Where((id, i) => (id != -1 && !MvpWeaponCatalog.Contains(id)) || (id == -1 && weaponCounts[i] != 0)).Any() ||
                 weaponCounts.Any(n => n < 0 || n > 128) ||
                 armor.Any(a => a.count < 0 || a.count > 60 || a.hpSettingID < 0 || a.hpSettingID > 4 ||
                     a.defenseThicknessSettingID < 0 || a.defenseThicknessSettingID > 4) || armor.Sum(a => a.count) > 60)

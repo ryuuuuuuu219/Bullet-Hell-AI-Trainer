@@ -9,6 +9,7 @@ namespace Script
         [SerializeField] private double penetration = 1.0;
         [SerializeField] private double explosionRadius = 1.0;
         public double Penetration => penetration;
+        public MvpWeaponDefinition WeaponDefinition { get; private set; }
 
         private BattleshipInstance owner;
         private BattleshipClass sourceClass;
@@ -23,6 +24,9 @@ namespace Script
         private float guidanceTurnSpeed;
         private float navigationConstant;
         private Vector2 previousLineOfSight;
+        private Vector2? fixedAimPoint;
+        private WeaponTarget guidanceTarget;
+        private bool tracksTarget, targetLost;
 
         public enum Affect
         {
@@ -33,19 +37,30 @@ namespace Script
 
         [field: SerializeField] public Affect ProjectileAffect { get; set; } = Affect.AP;
 
-        internal static void Fire(BattleshipSection source, BattleshipWeaponRuntime weapon, Vector2 direction)
+        internal static void Fire(BattleshipSection source, BattleshipWeaponRuntime weapon, Vector2 direction,
+            Vector2? aimPoint = null, Transform projectileParent = null)
+            => FireTracked(source, weapon, direction, aimPoint, projectileParent, null);
+
+        internal static void FireTracked(BattleshipSection source, BattleshipWeaponRuntime weapon, Vector2 direction,
+            Vector2? aimPoint, Transform projectileParent, WeaponTarget missileTarget)
         {
             var obj = new GameObject($"{weapon.Kind} {weapon.Grade} Bullet");
-            obj.transform.position = new Vector3(source.transform.position.x, source.transform.position.y, -0.05f);
+            obj.transform.position = new Vector3(source.FiringPosition.x, source.FiringPosition.y, -0.05f);
+            if (projectileParent != null) obj.transform.SetParent(projectileParent, true);
             if (weapon.Affect == Affect.Photon || weapon.Affect == Affect.Neutron)
             {
                 obj.AddComponent<ProtectionTestProjectile>().Initialize(source.GetComponent<Renderer>()?.sharedMaterial,
-                    source.transform.position, direction.normalized, 1f, weapon.Effects.beamDuration, null,
-                    weapon.Power, 1d, null, weapon.Affect, (float)weapon.ExplosionRadius, weapon.Effects, source.Owner);
+                    source.FiringPosition, direction.normalized, 1f, weapon.Effects.beamDuration, null,
+                    weapon.Power, weapon.Penetration, null, weapon.Affect, (float)weapon.ExplosionRadius, weapon.Effects, source.Owner);
                 return;
             }
             var projectile = obj.AddComponent<BattleshipProjectile>();
             projectile.owner = source.Owner;
+            projectile.WeaponDefinition = weapon.Definition;
+            projectile.penetration = weapon.Penetration;
+            projectile.fixedAimPoint = aimPoint;
+            projectile.guidanceTarget = missileTarget;
+            projectile.tracksTarget = missileTarget != null;
             projectile.sourceClass = source.Owner.ShipClass;
             projectile.kind = weapon.Kind;
             projectile.direction = direction.sqrMagnitude > 0 ? direction.normalized : Vector2.up;
@@ -54,11 +69,17 @@ namespace Script
             projectile.explosionRadius = weapon.ExplosionRadius;
             projectile.effects = weapon.Effects.Snapshot();
             projectile.speed = weapon.Speed;
+            if (weapon.Definition != null && weapon.Kind != BattleshipWeaponKind.AntiShipMissile)
+            {
+                Vector2 worldVelocity = source.Owner.TranslationVelocity + projectile.direction * weapon.Speed;
+                projectile.speed = worldVelocity.magnitude;
+                projectile.direction = projectile.speed > 0 ? worldVelocity / projectile.speed : Vector2.zero;
+            }
             projectile.decay = weapon.Decay;
             projectile.radius = RadiusFor(weapon.Kind);
             projectile.guidanceTurnSpeed = weapon.GuidanceTurnSpeed;
             projectile.navigationConstant = weapon.NavigationConstant;
-            Vector2 lineOfSight = source.Owner.CurrentTargetPosition - (Vector2)obj.transform.position;
+            Vector2 lineOfSight = (missileTarget != null ? missileTarget.Position : aimPoint ?? source.Owner.CurrentTargetPosition) - (Vector2)obj.transform.position;
             projectile.previousLineOfSight = lineOfSight.sqrMagnitude > 0.000001f
                 ? lineOfSight.normalized : projectile.direction;
             projectile.CreateDisplay(source.GetComponent<Renderer>()?.sharedMaterial, ColorFor(weapon.Kind), weapon.Kind != BattleshipWeaponKind.MachineGun);
@@ -98,7 +119,10 @@ namespace Script
 
         private void Guide(float dt)
         {
-            Vector2 desired = owner.CurrentTargetPosition - (Vector2)transform.position;
+            if (dt <= 0 || targetLost) return;
+            if (tracksTarget && (guidanceTarget == null || !guidanceTarget.Alive))
+            { targetLost = true; return; }
+            Vector2 desired = (tracksTarget ? guidanceTarget.Position : fixedAimPoint ?? owner.CurrentTargetPosition) - (Vector2)transform.position;
             if (desired.sqrMagnitude <= 0.000001f) return;
             Vector2 lineOfSight = desired.normalized;
             float sightRate = Vector2.SignedAngle(previousLineOfSight, lineOfSight) / dt;
@@ -184,12 +208,11 @@ namespace Script
                 var section = collider.GetComponentInParent<BattleshipSection>();
                 if (section != null)
                 {
-                    if (!section.IsAttached || section.Owner == null || !section.Owner.IsAlive ||
-                        (onlyTarget != null ? section.Owner != onlyTarget :
-                        section.Owner == owner || section.Owner.ShipClass >= sourceClass)) continue;
+                    if (!section.IsAttached || !CombatHitRules.Eligible(section.Owner, owner, sourceClass, onlyTarget)) continue;
                     var polygon = section.GetComponent<PolygonCollider2D>();
                     if (polygon == null || !polygon.enabled ||
                         (polygon.ClosestPoint(position) - position).sqrMagnitude > radius * radius || !sections.Add(section)) continue;
+                    if (!CombatHitRules.Allows(section.Owner, affect, settings)) continue;
                     // Each section gets an independent copy; interception must not change the blast radius
                     // or the penetration available to another section.
                     double localPenetration = penetration;
@@ -254,6 +277,9 @@ namespace Script
     [System.Serializable]
     public sealed class ProjectileEffectSettings
     {
+        [Min(0), InspectorName("基本命中係数H")] public float basicHitCoefficient = 1;
+        // Nonserialized, per-attack deterministic sampler for verification. Production uses Unity RNG.
+        [System.NonSerialized] public System.Func<double> hitSample;
         [Min(0), InspectorName("光子ビーム秒間ダメージ")] public float photonDps = 50f;
         [Min(.001f), InspectorName("光子ビーム判定間隔")] public float photonInterval = .2f;
         [Min(.01f), InspectorName("ビーム照射時間")] public float beamDuration = 1f;
@@ -356,12 +382,14 @@ namespace Script
         internal System.Action<string> Report;
         internal readonly List<Vector3> Path = new List<Vector3>();
         private readonly HashSet<BattleshipSection> damaged = new HashSet<BattleshipSection>();
+        private readonly HashSet<BattleshipInstance> evadedShips = new HashSet<BattleshipInstance>();
+        private readonly Dictionary<BattleshipInstance, bool> hitShips = new Dictionary<BattleshipInstance, bool>();
         private readonly HashSet<Player> hitPlayers = new HashSet<Player>();
         private bool firstContact = true;
         private float plasmaTimer = Random.Range(.1f, .5f);
         internal bool Stopped => Power <= 1e-9 || Penetration <= 0;
         private bool Eligible(BattleshipInstance ship)
-            => ship != null && ship.IsAlive && (OnlyTarget != null ? ship == OnlyTarget : ship != Owner && ship.ShipClass < SourceClass);
+            => !evadedShips.Contains(ship) && CombatHitRules.Eligible(ship, Owner, SourceClass, OnlyTarget);
 
         internal void Advance(float seconds, float speed, double decay = 0)
         {
@@ -470,6 +498,21 @@ namespace Script
                     }
                     if (section != null)
                     {
+                        if (!ProjectileEffects.IsEnergy(Affect))
+                        {
+                            if (!hitShips.TryGetValue(section.Owner, out bool hit))
+                            {
+                                hit = CombatHitRules.Allows(section.Owner, Affect, Settings);
+                                hitShips.Add(section.Owner, hit);
+                            }
+                            if (!hit)
+                            {
+                                // One direct-hit roll per ship per projectile: do not reroll through its other sections.
+                                evadedShips.Add(section.Owner);
+                                Report?.Invoke("回避：損傷・貫通・弾種効果を適用せず通過");
+                                continue;
+                            }
+                        }
                         if (Affect == BattleshipProjectile.Affect.Neutron)
                             Direction = ProjectileEffects.Refract(Direction, normal, 1f / 1.1f).normalized;
                         if (damaged.Add(section))

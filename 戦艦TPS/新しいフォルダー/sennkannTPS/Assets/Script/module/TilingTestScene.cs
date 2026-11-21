@@ -770,7 +770,7 @@ namespace Script
         // Order follows WeaponKind: SmallGun, HeavyGun, AntiShipMissile, MachineGun.
         private bool manualWeaponAllocation;
         private readonly int[] requestedWeaponCounts = new int[4];
-        private static readonly string[] weaponKindLabels = { "小口径砲", "大口径砲", "対艦ミサイル", "機関砲" };
+        private static readonly string[] weaponKindLabels = MvpWeaponCatalog.Entries.Select(definition => definition.Name).ToArray();
 
         private int RequestedTurretTotal => requestedWeaponCounts.Sum();
 

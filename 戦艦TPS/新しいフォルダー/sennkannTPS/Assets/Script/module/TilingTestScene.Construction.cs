@@ -12,6 +12,8 @@ namespace Script
         private string speedText = "250", turnText = "25", generatorSpeedText = "1", generatorTurnText = "1";
         private string radarText = "1", heatReductionText = "0", emReductionText = "0", heatCapText = "0", emCapText = "0";
         private BattleshipInstance movementTrial;
+        private GameObject movementTrialProjectiles;
+        private BattleshipSection[] movementTrialTurrets;
         private string generationInputError;
         private string savedBuildError;
 
@@ -136,16 +138,12 @@ namespace Script
             if (movementTrial == null) {
                 bool old = GUI.enabled; GUI.enabled = old && valid && !generating;
                 if (GUILayout.Button("現在の設計で操艦試験を開始")) {
-                    protectionTestMode = enableTurretTest = false;
-                    ClearTestProjectiles();
-                    movementTrial = ShipBuilder.Build(data, material, Vector2.zero, 0, true, true, stationary: true);
-                    movementTrial.GetComponent<ShipMovement>().enabled = true;
-                    drawing.SetActive(false);
-                    viewCamera.orthographicSize = 2500;
+                    BeginMovementTrial(data);
                 }
                 GUI.enabled = old;
             } else {
                 var motor = movementTrial.GetComponent<ShipMovement>();
+                GUILayout.Label("左クリック：マウス位置へ砲撃（長押しで連射）");
                 GUILayout.Label($"↑/W・↓/S：速度段階　←/A・→/D：旋回　Space：停止　指示 {motor.Command} / 適用 {motor.AppliedThrottle}");
                 GUILayout.Label($"位置 {movementTrial.transform.position} / EM {movementTrial.EmAccumulation:0.0} / 遅延 {motor.PendingSeconds:0.00}s");
                 if (GUILayout.Button("電磁障害を試験（EM +150）")) movementTrial.AccumulateImpact(0, 150);
@@ -153,8 +151,42 @@ namespace Script
             }
         }
 
+        private void BeginMovementTrial(ShipBuildData data)
+        {
+            StopMovementTrial();
+            protectionTestMode = enableTurretTest = false;
+            ClearTestProjectiles();
+            movementTrial = ShipBuilder.Build(data, material, Vector2.zero, 0, true, true, stationary: true);
+            movementTrial.GetComponent<ShipMovement>().enabled = true;
+            movementTrialTurrets = movementTrial.GetComponentsInChildren<BattleshipSection>();
+            // World-space container: fired rounds must not follow the moving ship.
+            movementTrialProjectiles = new GameObject("Movement trial projectiles");
+            drawing.SetActive(false);
+            viewCamera.orthographicSize = 2500;
+        }
+
+        private void TickMovementTrialFire(float seconds, bool pressed, Vector2 screenPosition)
+        {
+            if (movementTrial == null || !movementTrial.IsAlive || movementTrialTurrets == null || viewCamera == null) return;
+            Vector2? aimPoint = null;
+            var guiPosition = new Vector2(screenPosition.x, Screen.height - screenPosition.y);
+            if (pressed && viewCamera.pixelRect.Contains(screenPosition) &&
+                !StellarSystem.ShipConstructionReturnUI.PanelRect.Contains(guiPosition) && GUIUtility.hotControl == 0)
+            {
+                var plane = new Plane(Vector3.forward, Vector3.zero);
+                var ray = viewCamera.ScreenPointToRay(screenPosition);
+                if (plane.Raycast(ray, out float distance)) aimPoint = ray.GetPoint(distance);
+            }
+            foreach (var turret in movementTrialTurrets)
+                if (turret != null) turret.TickManualWeapon(seconds, aimPoint, movementTrialProjectiles.transform);
+        }
+
         private void StopMovementTrial()
         {
+            if (movementTrialProjectiles != null) {
+                movementTrialProjectiles.SetActive(false); Release(movementTrialProjectiles); movementTrialProjectiles = null;
+            }
+            movementTrialTurrets = null;
             if (movementTrial == null) return;
             var obj = movementTrial.gameObject; movementTrial = null; obj.SetActive(false); Release(obj);
             if (drawing != null) drawing.SetActive(true);
@@ -163,8 +195,12 @@ namespace Script
 
         private void LateUpdate()
         {
-            if (movementTrial != null && viewCamera != null)
+            if (movementTrial != null && viewCamera != null) {
                 viewCamera.transform.position = new Vector3(movementTrial.transform.position.x, movementTrial.transform.position.y, -10);
+                var mouse = UnityEngine.InputSystem.Mouse.current;
+                TickMovementTrialFire(Time.deltaTime, mouse != null && mouse.leftButton.isPressed,
+                    mouse == null ? Vector2.zero : mouse.position.ReadValue());
+            }
         }
     }
 }

@@ -7,6 +7,16 @@ namespace Script
 {
     public static class ShipBuilder
     {
+        public static BattleshipInstance BuildWithAI(ShipBuildData source, Material material, Vector2 position,
+            float headingDegrees, bool friend, ShipSteeringSettings steering)
+        {
+            if (steering == null) throw new ArgumentNullException(nameof(steering));
+            steering.Validate();
+            var ship = Build(source, material, position, headingDegrees, friend, false);
+            ship.gameObject.AddComponent<ShipSteeringAI>().Configure(steering);
+            return ship;
+        }
+
         public static TilingGenerator GenerateHull(ShipBuildData data)
         {
             if (!data.Validate(out string error)) throw new ArgumentException(error);
@@ -67,6 +77,8 @@ namespace Script
             for (int i = 0; i < 7; i++)
                 for (int j = 0; j < data.weaponCounts[i] && weapons.Count < turretCount; j++) weapons.Add(data.weaponIDs[i]);
             Shuffle(weapons, random);
+            // Count mounted turret sections, merging duplicate build slots of the same kind.
+            var mountedCounts = weapons.GroupBy(id => id).ToDictionary(group => group.Key, group => group.Count());
             var armorKinds = new List<int>();
             for (int i = 0; i < 3; i++)
                 for (int j = 0; j < data.armor[i].count && armorKinds.Count < armorCount; j++) armorKinds.Add(i);
@@ -80,7 +92,12 @@ namespace Script
                 var polygon = objects[i].AddComponent<PolygonCollider2D>();
                 polygon.SetPath(0, tiles[i].Vertices.Select(p => new Vector2((float)p.X, (float)p.Y) * data.sectionSize).ToArray());
                 var section = objects[i].AddComponent<BattleshipSection>();
-                var weapon = role == BattleshipSectionRole.Turret ? CreateWeapon(weapons[weaponIndex++], data.seed + i) : null;
+                BattleshipWeaponRuntime weapon = null;
+                if (role == BattleshipSectionRole.Turret)
+                {
+                    int weaponId = weapons[weaponIndex++];
+                    weapon = MvpWeaponCatalog.CreateRuntime(weaponId, data.seed + i, mountedCounts[weaponId]);
+                }
                 section.Initialize(ship, i, role, weapon);
                 if (role == BattleshipSectionRole.Armor)
                 {
@@ -108,6 +125,8 @@ namespace Script
             ship.Initialize((BattleshipClass)data.shipClass, data.referenceSections, tiles.Length, data.seed, sections, stationary);
             ship.ApplyConstruction(data, playerControlled);
             ship.GetComponent<ShipMovement>().enabled = !stationary;
+            root.AddComponent<WeaponTarget>();
+            root.AddComponent<ShipFiringAI>().enabled = !stationary && !playerControlled;
             return ship;
         }
 
@@ -116,14 +135,5 @@ namespace Script
             for (int i = values.Count - 1; i > 0; i--) { int j = random.Next(i + 1); (values[i], values[j]) = (values[j], values[i]); }
         }
 
-        private static BattleshipWeaponRuntime CreateWeapon(int kind, int seed)
-        {
-            float[] power = { 20, 50, 200, 5 }, speed = { 300, 450, 300, 500 }, reload = { 2, 3.5f, 5, .4f };
-            return new BattleshipWeaponRuntime { Kind = (BattleshipWeaponKind)kind, Grade = 1,
-                Power = power[kind], Speed = speed[kind], Interval = reload[kind], Timer = reload[kind],
-                GuidanceTurnSpeed = 35, NavigationConstant = 2.8f, Random = new System.Random(seed),
-                Affect = kind == 2 ? BattleshipProjectile.Affect.HE : BattleshipProjectile.Affect.AP,
-                ExplosionRadius = kind == 2 ? 300 : 0 };
-        }
     }
 }

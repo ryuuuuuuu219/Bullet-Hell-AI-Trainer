@@ -87,6 +87,7 @@ namespace Script
         public double CoreHealthLimit => coreHealthLimit;
         public bool IsAlive => isActiveAndEnabled && !dying && coreHealth > 0 && LivingSectionCount > 0;
         public Vector2 ObservedVelocity => observedVelocity;
+        public Vector2 TranslationVelocity => constructionMovement != null ? constructionMovement.Velocity : observedVelocity;
         internal object AttackTarget => ValidTarget(attackTarget) && WithinEncounterRange(attackTarget) ? attackTarget : null;
 
         [RuntimeInitializeOnLoadMethod(RuntimeInitializeLoadType.SubsystemRegistration)]
@@ -215,6 +216,7 @@ namespace Script
 
         private void TickTurrets(float seconds)
         {
+            if (HasConstructionData) return; // Constructed mounts are updated by ShipFiringAI after movement.
             foreach (BattleshipSection section in sections)
                 if (section != null && section.IsAttached) section.TickWeapon(seconds);
         }

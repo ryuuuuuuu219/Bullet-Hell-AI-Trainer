@@ -21,6 +21,8 @@ namespace Script
         public float TurnInput { get; set; }
         public float PendingSeconds { get; private set; }
         private BattleshipInstance ship;
+        public float EffectiveMaximumTurnSpeed => Performance.MaximumTurnSpeed *
+            (ship != null && ship.EmpActive ? 1 - Mathf.Clamp((float)ship.EmAccumulation, 0, 100) / 100f : 1);
         public static float ThrottleFraction(ShipThrottle throttle) => throttle switch
         { ShipThrottle.ReverseSlow => -.25f, ShipThrottle.Stop => 0, ShipThrottle.AheadSlow => .25f, _ => 1 };
 
@@ -64,9 +66,8 @@ namespace Script
         public void Tick(float seconds)
         {
             if (seconds <= 0 || float.IsNaN(seconds) || float.IsInfinity(seconds)) return;
-            float effectiveTurn = Performance.MaximumTurnSpeed;
+            float effectiveTurn = EffectiveMaximumTurnSpeed;
             bool emp = ship != null && ship.EmpActive;
-            if (emp) effectiveTurn *= 1 - Mathf.Clamp((float)ship.EmAccumulation, 0, 100) / 100f;
             // Split a long frame at the delayed command boundary.
             float oldDuration = emp ? Mathf.Min(seconds, PendingSeconds) : 0;
             if (oldDuration > 0) Advance(oldDuration, effectiveTurn);

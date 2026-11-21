@@ -10,6 +10,9 @@ namespace Script
 
     internal sealed class BattleshipWeaponRuntime
     {
+        public MvpWeaponDefinition Definition;
+        public WeaponTargetCategory TargetCategories;
+        public double Penetration = 1;
         public BattleshipWeaponKind Kind;
         public int Grade;
         public float Power;
@@ -33,6 +36,9 @@ namespace Script
         private readonly List<BattleshipSection> neighbors = new List<BattleshipSection>();
         private BattleshipInstance owner;
         private BattleshipWeaponRuntime weapon;
+        public WeaponTarget LockedWeaponTarget { get; private set; }
+        public WeaponTarget ManualMissileTarget { get; set; }
+        public Vector2 FiringPosition => GetComponent<Renderer>() != null ? (Vector2)GetComponent<Renderer>().bounds.center : (Vector2)transform.position;
         private Renderer sectionRenderer;
         private Collider2D sectionCollider;
         private MaterialPropertyBlock opacityProperties;
@@ -189,6 +195,34 @@ namespace Script
             return remaining;
         }
 
+        internal void TickAutomaticWeapon(float seconds, ShipFiringAI firing)
+        {
+            if (!IsAttached || CurrentHealth <= 0 || weapon?.Definition == null || owner == null || !owner.IsAlive) return;
+            int id = weapon.Definition.LocalId;
+            var categories = firing.weaponCategories != null && id < firing.weaponCategories.Length
+                ? firing.weaponCategories[id] : WeaponTargetCategory.None;
+            LockedWeaponTarget = firing.FindTarget(FiringPosition, weapon.Definition.Range, categories, LockedWeaponTarget);
+            if (weapon.Interval <= 0 || float.IsNaN(weapon.Interval) || float.IsInfinity(weapon.Interval)) return;
+            weapon.Timer += seconds;
+            if (LockedWeaponTarget == null)
+            { weapon.Timer = Mathf.Min(weapon.Timer, weapon.Interval); return; }
+            while (weapon.Timer >= weapon.Interval)
+            {
+                if (!firing.TryAim(LockedWeaponTarget, weapon.Random, out Vector2 point))
+                { weapon.Timer = weapon.Interval; return; }
+                Vector2 direction = weapon.Kind == BattleshipWeaponKind.AntiShipMissile
+                    ? (point - FiringPosition).normalized
+                    : FiringSolution.Direction(FiringPosition, point, owner.TranslationVelocity,
+                        LockedWeaponTarget.Velocity, weapon.Speed, out _);
+                if (float.IsNaN(direction.x) || float.IsNaN(direction.y) || direction.sqrMagnitude == 0)
+                { weapon.Timer = weapon.Interval; return; }
+                weapon.Timer -= weapon.Interval;
+                float scatter = ((float)weapon.Random.NextDouble() - .5f) * weapon.Spread;
+                direction = Quaternion.Euler(0, 0, scatter) * direction;
+                BattleshipProjectile.FireTracked(this, weapon, direction, point, firing.ProjectileRoot, LockedWeaponTarget);
+            }
+        }
+
         internal void TickWeapon(float seconds)
         {
             if (weapon == null || owner == null || !owner.IsAlive) return;
@@ -202,6 +236,20 @@ namespace Script
                 direction = Quaternion.Euler(0, 0, scatter) * direction.normalized;
                 BattleshipProjectile.Fire(this, weapon, direction);
             }
+        }
+
+        internal void TickManualWeapon(float seconds, Vector2? aimPoint, Transform projectileRoot)
+        {
+            if (!IsAttached || weapon == null || owner == null || !owner.IsAlive || weapon.Interval <= 0) return;
+            // Idle time loads one shot, never a backlog of volleys.
+            weapon.Timer = Mathf.Min(weapon.Interval, weapon.Timer + Mathf.Max(0, seconds));
+            if (!aimPoint.HasValue || weapon.Timer < weapon.Interval) return;
+            weapon.Timer = 0;
+            Vector2 direction = aimPoint.Value - FiringPosition;
+            if (direction.sqrMagnitude <= .000001f) direction = owner.transform.up;
+            float scatter = weapon.Spread <= 0 ? 0 : ((float)weapon.Random.NextDouble() - .5f) * weapon.Spread;
+            direction = Quaternion.Euler(0, 0, scatter) * direction.normalized;
+            BattleshipProjectile.FireTracked(this, weapon, direction, aimPoint, projectileRoot, ManualMissileTarget);
         }
 
         internal void Detach()

@@ -42,6 +42,10 @@ public static class ConstructionMovementChecks
         try
         {
             Run();
+            ShipSteeringChecks.Run();
+            MvpWeaponCatalogChecks.Run();
+            ShipFiringChecks.Run();
+            CombatHitChecks.Run();
             ScriptRegressionChecks.Run();
             var go = new GameObject("Input path check");
             var oldInputBehavior = InputSystem.settings.editorInputBehaviorInPlayMode;
@@ -251,6 +255,46 @@ public static class ConstructionMovementChecks
             ui.GenerateForValidation();
             Check(ui.TryGetBuild(out var uiData, out _), "UI captures valid build");
             Check(uiData.seed == 0 && uiData.coreHPSettingID == 2 && ui.TurretCount > 0, "UI build connection");
+            var firingBuild = new ShipBuildData();
+            firingBuild.weaponCounts = new[] { 2, 2, 2, 4, 0, 0, 0 };
+            Call(ui, "BeginMovementTrial", firingBuild);
+            var trial = (BattleshipInstance)typeof(TilingTestScene).GetField("movementTrial", Hidden).GetValue(ui);
+            var rounds = (GameObject)typeof(TilingTestScene).GetField("movementTrialProjectiles", Hidden).GetValue(ui);
+            var camera = (Camera)typeof(TilingTestScene).GetField("viewCamera", Hidden).GetValue(ui);
+            var screenPoint = new Vector2(camera.pixelRect.center.x, camera.pixelRect.yMin + camera.pixelRect.height * .7f);
+            foreach (var section in trial.GetComponentsInChildren<BattleshipSection>()) {
+                var runtime = typeof(BattleshipSection).GetField("weapon", Hidden).GetValue(section);
+                if (runtime != null) runtime.GetType().GetField("Spread").SetValue(runtime, 0f);
+            }
+            Call(ui, "TickMovementTrialFire", 0f, false, screenPoint);
+            Check(rounds.transform.childCount == 0, "manual fire requires mouse press");
+            Call(ui, "TickMovementTrialFire", 0f, true, new Vector2(20, Screen.height - 10));
+            var returnRect = StellarSystem.ShipConstructionReturnUI.PanelRect;
+            Call(ui, "TickMovementTrialFire", 0f, true, new Vector2(returnRect.center.x, Screen.height - returnRect.center.y));
+            Check(rounds.transform.childCount == 0, $"UI clicks do not fire (screen {Screen.width}x{Screen.height}, viewport {camera.pixelRect}, return {returnRect}, rounds {rounds.transform.childCount})");
+            Call(ui, "TickMovementTrialFire", 0f, true, screenPoint);
+            int volleyCount = rounds.transform.childCount;
+            Check(volleyCount == trial.GetComponentsInChildren<BattleshipSection>().Count(s => s.Role == BattleshipSectionRole.Turret), "ready turrets fire one volley");
+            Check(volleyCount > 0, "volley contains rounds");
+            var aimRay = camera.ScreenPointToRay(screenPoint);
+            new Plane(Vector3.forward, Vector3.zero).Raycast(aimRay, out float aimDistance);
+            Vector2 aim = aimRay.GetPoint(aimDistance);
+            foreach (var round in rounds.GetComponentsInChildren<BattleshipProjectile>()) {
+                var shotDirection = (Vector2)typeof(BattleshipProjectile).GetField("direction", Hidden).GetValue(round);
+                Near(Vector2.Dot(shotDirection, (aim - (Vector2)round.transform.position).normalized), 1, "round aims at mouse world position");
+                Check((Vector2)typeof(BattleshipProjectile).GetField("fixedAimPoint", Hidden).GetValue(round) == aim, "fixed missile aim point");
+            }
+            Call(ui, "TickMovementTrialFire", 0f, true, screenPoint);
+            Check(rounds.transform.childCount == volleyCount, "held fire respects reload");
+            Call(ui, "TickMovementTrialFire", 10f, false, screenPoint);
+            Call(ui, "TickMovementTrialFire", 0f, true, screenPoint);
+            Check(rounds.transform.childCount == volleyCount * 2, "idle reload stores only one volley");
+            Vector3 shotPosition = rounds.transform.GetChild(0).position;
+            trial.transform.position += Vector3.right * 100;
+            Check(rounds.transform.GetChild(0).position == shotPosition, "fired rounds do not follow ship transform");
+            Call(ui, "StopMovementTrial");
+            Check(!rounds.activeSelf, "ending trial clears its projectiles");
+            Debug.Log("CONSTRUCTION_MOUSE_FIRE_PASS: always available, click/UI gating, world aim, reload, projectile independence and cleanup.");
             Debug.Log("CONSTRUCTION_MOVEMENT_CHECKS_PASS: formulas, validation, save isolation, reproducible hull, section presets, UI generation, four speeds, turn, damage, EMP, boundary.");
         }
         finally
