@@ -1,8 +1,18 @@
 ﻿using System;
 
-// Damage and remaining projectile power use the pre-impact penetration.
+// Section penetration uses AfterArmor; RemainingPower is the legacy non-ship adapter.
 public static class ProjectilePenetration
 {
+    // Version 2: armor consumes penetration, never projectile power. Equality fails.
+    public static double AfterArmor(double power, double penetration, double effectiveArmor)
+    {
+        if (!IsValid(penetration) || power <= 0 || double.IsNaN(power) ||
+            double.IsInfinity(power) || double.IsNaN(effectiveArmor) || effectiveArmor < 0)
+            return 0;
+        double effectivePenetration = power * penetration;
+        return effectivePenetration <= effectiveArmor ? 0
+            : Math.Max(0, penetration * (1 - effectiveArmor / effectivePenetration));
+    }
 
     public static bool IsValid(double penetration)
         => penetration > 0 && !double.IsNaN(penetration) && !double.IsInfinity(penetration);

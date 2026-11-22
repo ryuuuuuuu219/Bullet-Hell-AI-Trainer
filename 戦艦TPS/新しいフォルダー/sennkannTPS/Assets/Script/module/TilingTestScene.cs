@@ -88,7 +88,8 @@ namespace Script
         [SerializeField, Min(1), InspectorName("バリア目安区画数（試験設定）")] private int barrierReferenceSections = 24;
         [SerializeField, InspectorName("バリア退出時にも軽減（未確定・試験設定）")] private bool barrierReduceOnExit;
         private LineRenderer barrierOutline;
-        [SerializeField, Min(.01f), InspectorName("HE爆発半径")] private float testExplosionRadius = 100f;
+        // Legacy serialized value; radius is now derived from launch power for all explosive ammo.
+        [SerializeField, HideInInspector] private float testExplosionRadius = 100f;
         [SerializeField, InspectorName("試験標的の装甲モード")] private ArmorMode armorMode = ArmorMode.Basic;
         [SerializeField, Min(0f), InspectorName("試験標的の実装甲厚")] private float armorThickness = 50f;
         [SerializeField, Min(0f), InspectorName("ERA印加ベクトルの絶対値")] private float eraVectorMagnitude = 50f;

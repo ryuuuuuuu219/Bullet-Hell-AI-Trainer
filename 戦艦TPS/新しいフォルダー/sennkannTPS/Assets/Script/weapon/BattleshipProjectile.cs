@@ -45,11 +45,13 @@ namespace Script
             Vector2? aimPoint, Transform projectileParent, WeaponTarget missileTarget)
         {
             var obj = new GameObject($"{weapon.Kind} {weapon.Grade} Bullet");
+            var sourceRenderer = source.GetComponent<Renderer>();
+            Material sourceMaterial = sourceRenderer != null ? sourceRenderer.sharedMaterial : null;
             obj.transform.position = new Vector3(source.FiringPosition.x, source.FiringPosition.y, -0.05f);
             if (projectileParent != null) obj.transform.SetParent(projectileParent, true);
             if (weapon.Affect == Affect.Photon || weapon.Affect == Affect.Neutron)
             {
-                obj.AddComponent<ProtectionTestProjectile>().Initialize(source.GetComponent<Renderer>()?.sharedMaterial,
+                obj.AddComponent<ProtectionTestProjectile>().Initialize(sourceMaterial,
                     source.FiringPosition, direction.normalized, 1f, weapon.Effects.beamDuration, null,
                     weapon.Power, weapon.Penetration, null, weapon.Affect, (float)weapon.ExplosionRadius, weapon.Effects, source.Owner);
                 return;
@@ -66,7 +68,7 @@ namespace Script
             projectile.direction = direction.sqrMagnitude > 0 ? direction.normalized : Vector2.up;
             projectile.power = weapon.Power;
             projectile.ProjectileAffect = weapon.Affect;
-            projectile.explosionRadius = weapon.ExplosionRadius;
+            projectile.explosionRadius = ProjectileEffects.ExplosionRadius(weapon.Power, weapon.Affect);
             projectile.effects = weapon.Effects.Snapshot();
             projectile.speed = weapon.Speed;
             if (weapon.Definition != null && weapon.Kind != BattleshipWeaponKind.AntiShipMissile)
@@ -82,7 +84,11 @@ namespace Script
             Vector2 lineOfSight = (missileTarget != null ? missileTarget.Position : aimPoint ?? source.Owner.CurrentTargetPosition) - (Vector2)obj.transform.position;
             projectile.previousLineOfSight = lineOfSight.sqrMagnitude > 0.000001f
                 ? lineOfSight.normalized : projectile.direction;
-            projectile.CreateDisplay(source.GetComponent<Renderer>()?.sharedMaterial, ColorFor(weapon.Kind), weapon.Kind != BattleshipWeaponKind.MachineGun);
+            projectile.CreateDisplay(sourceMaterial, ColorFor(weapon.Kind), weapon.Kind != BattleshipWeaponKind.MachineGun);
+            projectile.EnsureFlight();
+            if (projectile.ProjectileAffect == Affect.HE)
+                projectile.flight.FuseDistance = Vector2.Distance(source.FiringPosition,
+                    aimPoint ?? source.Owner.CurrentTargetPosition);
         }
 
         private void Update()
@@ -94,22 +100,32 @@ namespace Script
                 return;
             }
             float dt = Time.deltaTime;
-            if (dt <= 0 || power <= 0 || owner == null || !owner.IsAlive) { Destroy(gameObject); return; }
+            if (dt <= 0) return;
+            if (owner == null || !owner.IsAlive) { Destroy(gameObject); return; }
+            if (flight != null && flight.Stopped) { Destroy(gameObject); return; }
             if (kind == BattleshipWeaponKind.AntiShipMissile) Guide(dt);
 
             Advance(dt);
         }
 
-        private void Advance(float dt)
+        private void EnsureFlight()
         {
-            if (dt <= 0) return;
             if (flight == null)
+            {
                 flight = new ProjectileFlight {
                     Position = transform.position, Direction = direction, Power = power, Penetration = penetration,
                     Affect = ProjectileAffect, Settings = effects ?? new ProjectileEffectSettings(), Radius = radius,
                     BlastRadius = (float)explosionRadius, Owner = owner, SourceClass = sourceClass,
                     Material = GetComponent<LineRenderer>()?.sharedMaterial
                 };
+                gameObject.AddComponent<ProjectileContact>().Initialize(flight);
+            }
+        }
+
+        private void Advance(float dt)
+        {
+            if (dt <= 0) return;
+            EnsureFlight();
             flight.Direction = direction;
             flight.Advance(dt, speed, decay);
             power = flight.Power; penetration = flight.Penetration; direction = flight.Direction;
@@ -188,8 +204,7 @@ namespace Script
             ProjectileEffectSettings settings = null)
         {
             if (double.IsNaN(radius) || double.IsInfinity(radius) || radius <= 0 || radius > float.MaxValue ||
-                double.IsNaN(power) || double.IsInfinity(power) || power <= 0 ||
-                !ProjectilePenetration.IsValid(penetration)) return;
+                double.IsNaN(power) || double.IsInfinity(power) || power < 0) return;
             var sections = new HashSet<BattleshipSection>();
             var players = new HashSet<Player>();
             var filter = new ContactFilter2D().NoFilter();
@@ -216,17 +231,21 @@ namespace Script
                     // Each section gets an independent copy; interception must not change the blast radius
                     // or the penetration available to another section.
                     double localPenetration = penetration;
-                    double localPower = affect == BattleshipProjectile.Affect.HE
-                        ? ProjectileEffects.BlastPower(power, Vector2.Distance(position, section.transform.position)) : power;
-                    section.HitEffect(localPower, ref localPenetration, polygon.ClosestPoint(position),
-                        Vector2.zero, Vector2.zero, out _, affect, false, null);
+                    double localPower = ProjectileEffects.IsHE(affect)
+                        ? ProjectileEffects.BlastPower(power, Vector2.Distance(position, section.WorldCenter)) : power;
+                    if (ProjectileEffects.IsHE(affect))
+                        section.HitBlast(localPower, polygon.ClosestPoint(position));
+                    else
+                        section.HitEffect(localPower, ref localPenetration, polygon.ClosestPoint(position),
+                            Vector2.zero, Vector2.zero, out _, affect, false, null);
                     if (settings != null) section.Owner.AccumulateImpact(settings.heat, settings.em);
                     continue;
                 }
                 var player = collider.GetComponentInParent<Player>();
                 if (onlyTarget == null && player != null && players.Add(player))
-                    player.Hit(affect == BattleshipProjectile.Affect.HE
-                        ? ProjectileEffects.BlastPower(power, Vector2.Distance(position, player.transform.position)) : power, penetration);
+                    player.Hit(ProjectileEffects.IsHE(affect)
+                        ? ProjectileEffects.BlastPower(power, Vector2.Distance(position, player.transform.position)) : power,
+                        ProjectilePenetration.IsValid(penetration) ? penetration : 1d);
             }
 
             var effect = new GameObject("HE Explosion").AddComponent<ExplosionEffect>();
@@ -303,6 +322,12 @@ namespace Script
 
     public static class ProjectileEffects
     {
+        public static bool IsHE(BattleshipProjectile.Affect affect)
+            => affect == BattleshipProjectile.Affect.HE || affect == BattleshipProjectile.Affect.HEAT || affect == BattleshipProjectile.Affect.HESH;
+        public static bool Explodes(BattleshipProjectile.Affect affect)
+            => IsHE(affect) || affect == BattleshipProjectile.Affect.Plasma;
+        public static double ExplosionRadius(double initialPower, BattleshipProjectile.Affect affect)
+            => Explodes(affect) ? System.Math.Max(0d, initialPower) * 1.5d : 0d;
         public static bool IsEnergy(BattleshipProjectile.Affect affect)
             => affect >= BattleshipProjectile.Affect.Photon;
 
@@ -321,7 +346,7 @@ namespace Script
         }
 
         public static double BlastPower(double power, double distance)
-            => distance <= 0 ? power : System.Math.Max(0d, System.Math.Min(power / distance, power));
+            => System.Math.Max(0d, power); // Range is checked against the section polygon; no distance falloff.
 
         internal static bool CircleBoundary(Vector2 start, Vector2 direction, Vector2 center, float radius,
             float limit, out float distance, out Vector2 normal, out bool entering)
@@ -380,6 +405,10 @@ namespace Script
         internal float Radius, BlastRadius;
         internal Material Material;
         internal System.Action<string> Report;
+        internal ProjectileContact Contact;
+        internal double FuseDistance = double.PositiveInfinity;
+        internal double TravelledDistance;
+        private bool finished;
         internal readonly List<Vector3> Path = new List<Vector3>();
         private readonly HashSet<BattleshipSection> damaged = new HashSet<BattleshipSection>();
         private readonly HashSet<BattleshipInstance> evadedShips = new HashSet<BattleshipInstance>();
@@ -387,18 +416,30 @@ namespace Script
         private readonly HashSet<Player> hitPlayers = new HashSet<Player>();
         private bool firstContact = true;
         private float plasmaTimer = Random.Range(.1f, .5f);
-        internal bool Stopped => Power <= 1e-9 || Penetration <= 0;
+        internal bool Stopped => finished || Power <= 0 || Penetration <= 0;
+        internal void Finish(double blastPower)
+        {
+            if (finished) return;
+            finished = true;
+            Contact?.StopContact();
+            if (ProjectileEffects.Explodes(Affect))
+                ExplosionEffect.Detonate(Position, BlastRadius, System.Math.Max(0, blastPower), Penetration,
+                    Owner, SourceClass, Material, OnlyTarget, Affect, Settings);
+            Power = 0;
+        }
         private bool Eligible(BattleshipInstance ship)
             => !evadedShips.Contains(ship) && CombatHitRules.Eligible(ship, Owner, SourceClass, OnlyTarget);
 
         internal void Advance(float seconds, float speed, double decay = 0)
         {
+            if (Stopped) { Finish(Power); return; }
             int slices = 0;
             while (seconds > .000001f && !Stopped && slices++ < 10000)
             {
                 float step = Affect == BattleshipProjectile.Affect.Plasma ? Mathf.Min(seconds, plasmaTimer) : seconds;
                 Sweep(speed * step);
                 Power = System.Math.Max(0, Power - decay * step);
+                if (Stopped) Finish(Power);
                 seconds -= step;
                 if (Affect == BattleshipProjectile.Affect.Plasma)
                 {
@@ -414,6 +455,9 @@ namespace Script
 
         internal void Sweep(float distance)
         {
+            if (Stopped) { Finish(Power); return; }
+            if (TravelledDistance >= FuseDistance) { Finish(Power); return; }
+            distance = (float)System.Math.Min(distance, FuseDistance - TravelledDistance);
             Direction.Normalize();
             Path.Clear(); Path.Add(Position);
             Physics2D.SyncTransforms();
@@ -424,6 +468,7 @@ namespace Script
                 float nearest = distance;
                 Vector2 normal = Vector2.zero, point = Position + Direction * distance;
                 BattleshipSection section = null;
+                ProjectileContact projectile = null;
                 Player player = null;
                 BattleshipInstance barrier = null;
                 bool entering = false;
@@ -465,6 +510,9 @@ namespace Script
                     hits.Sort((a,b) => a.distance.CompareTo(b.distance));
                     foreach (var hit in hits)
                     {
+                        var bullet = hit.collider.GetComponent<ProjectileContact>();
+                        if (bullet != null && bullet.CanContact(this))
+                        { nearest = hit.distance; projectile = bullet; point = hit.point; break; }
                         var part = hit.collider.GetComponentInParent<BattleshipSection>();
                         if (part != null && part.IsAttached && Eligible(part.Owner) && !damaged.Contains(part))
                         { nearest = hit.distance; section = part; normal = hit.normal; point = hit.point; break; }
@@ -480,6 +528,7 @@ namespace Script
                                 out float d, out Vector2 n, out bool inward))
                         { nearest = d; barrier = ship; entering = inward; normal = n; }
                 Position += Direction * nearest;
+                TravelledDistance += nearest;
                 distance -= nearest;
                 Path.Add(Position);
                 if (barrier != null)
@@ -489,12 +538,16 @@ namespace Script
                         Power *= 1d - Mathf.Clamp01(barrier.barrierReduction * Settings.BarrierMultiplier(Affect));
                     Report?.Invoke($"バリア{(entering ? "進入" : "退出")} / 威力 {Power:0.##}");
                 }
+                else if (projectile != null)
+                {
+                    projectile.Resolve(this);
+                }
                 else if (section != null || player != null)
                 {
                     if (Affect == BattleshipProjectile.Affect.HE || Affect == BattleshipProjectile.Affect.Plasma)
                     {
-                        ExplosionEffect.Detonate(point, BlastRadius, Power, Penetration, Owner, SourceClass, Material, OnlyTarget, Affect, Settings);
-                        Report?.Invoke($"{Affect}着弾 / 半径 {BlastRadius:0.##}"); Power = 0; break;
+                        Position = point;
+                        Report?.Invoke($"{Affect}着弾 / 半径 {BlastRadius:0.##}"); Finish(Power); break;
                     }
                     if (section != null)
                     {
@@ -521,6 +574,7 @@ namespace Script
                             Power = section.HitEffect(Power, ref Penetration, point, Direction, normal, out Vector2 next,
                                 Affect, firstContact, Settings);
                             firstContact = false;
+                            if (Stopped) Finish(beforePower);
                             if (!Stopped) Direction = next.normalized;
                             Report?.Invoke($"{Affect} 区画{section.SectionId + 1} / HP {beforeHP:0.##} → {section.CurrentHealth:0.##} / 威力 {beforePower:0.##} → {Power:0.##} / 貫通力 {beforeP:0.##} → {Penetration:0.##} / 入射角 {section.LastImpactAngle:0.##}° / 実効装甲厚 {section.LastEffectiveArmor:0.##} / {(Stopped ? "停止" : "通過")}");
                         }
@@ -536,7 +590,10 @@ namespace Script
                 // Leave the processed boundary on its outgoing side, avoiding a zero-distance loop.
                 float epsilon = Mathf.Min(.001f, distance);
                 Position += Direction * epsilon; distance -= epsilon;
+                TravelledDistance += epsilon;
             }
+            if (!Stopped && TravelledDistance + .00001 >= FuseDistance) Finish(Power);
+            if (Contact != null) Contact.transform.position = new Vector3(Position.x, Position.y, Contact.transform.position.z);
             Path.Add(Position);
         }
     }

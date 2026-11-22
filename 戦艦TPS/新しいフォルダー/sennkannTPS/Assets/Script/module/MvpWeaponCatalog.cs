@@ -28,7 +28,8 @@ namespace Script
         public float MissileTurnSpeed => IsMissile ? 35 : 0;
         public float NavigationConstant => IsMissile ? 2.8f : 0;
         public float? DistanceLifetime => IsMissile ? 10000f : (float?)null;
-        public double ExplosionRadius => IsMissile ? Power * 1.5d : 0;
+        // Potential blast radius; the projectile affect determines whether it explodes.
+        public double ExplosionRadius => Power * 1.5d;
 
         internal MvpWeaponDefinition(int id, string name, float power, double penetration,
             float speed, float range, float reload, float heat, float em, float coreMultiplier)

@@ -1,0 +1,4 @@
+HE_SECTION_CENTER_PASS: offset polygons, hull rotation, triangle centroid, blast damage 20 at both distances
+HE_SECTION_CALCULATION_PASS C:\Bullet-Hell-AI-Trainer\戦艦TPS\ValidationWork\HESectionDamage.tsv
+PENETRATION_V2_PASS: armor boundaries, HP before gate, unchanged power, interception, IFF, beams, HE armor bypass, fuse and one-shot explosions.
+PROJECTILE_EFFECTS_CHECKS_PASS

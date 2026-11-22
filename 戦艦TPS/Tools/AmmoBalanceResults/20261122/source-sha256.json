@@ -1,0 +1,210 @@
+[
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\IFF.cs",
+    "Hash": "F0CD0CFC450630734F9CA8BD1EB26DE8F85F6A2FA8FA9E457DA707C4BDB4D014"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\ObjectManager.cs",
+    "Hash": "78BF84E24CC36E15E8290EE0AF74198CE043B7EE3295B3ECF7637D4313BD5238"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\Player.cs",
+    "Hash": "8A0B09C51822AAFE8880245C1C0C46C2CA71FB66D96E88D066439B69AC7CC2F9"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\BattleshipInstance.cs",
+    "Hash": "0B0390CD59DB96768228CDA7AF8B88C387D4FE2F5A41ABFB3B68C07A3A548B39"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\BattleshipSection.cs",
+    "Hash": "2737DB0CE4E4018F4A585A0CC1D70E9E7FB961794FB5E399F34C82277553F0E5"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\DuelSandbox.cs",
+    "Hash": "DD894A50F2C648589538B28CA91C3C3481E8E655F2756EEB15AA8BE53F9F1321"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\DuelSandbox.Settings.cs",
+    "Hash": "846FEC36ABECB0ADA4F4643811EAD119D2218DD1D3424BE8B998B70D6C402D64"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\MvpWeaponCatalog.cs",
+    "Hash": "223915649C6909A45958888BCBFA2B6514CA0D7F30FF5FC8CE23BEFB2091A2B9"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipBuildData.cs",
+    "Hash": "4600F61BF41FFE5F3C9E2348876F607E205667403ABF20D581EA4F32CF93CB33"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipBuilder.cs",
+    "Hash": "1E27DF1F44A91E55DDBC3DEB5A177FA801CF0FB81358286A9C0D670BE2BDE85C"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipConstructionReturnUI.cs",
+    "Hash": "FB966C7FA10B6581C02900FFD6451E5ED6A0247D62730BEEBEDCBC2F0F7E5E5A"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipEquipmentValues.cs",
+    "Hash": "69E1113BA854B678BE4EEE1C626450BB33B6F00276B781096EEBDB1AB5039F25"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipFiringAI.cs",
+    "Hash": "D4300841EE51AD7D001ED68DB6C0BF331A38321F0571E602DE77038A46D65B1C"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipGeneratedMeshes.cs",
+    "Hash": "BAE601FD9B443BE84410FC8AA4BAD8FD66379DC1F98FEC741AF2BCF1AA1F23ED"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipMovement.cs",
+    "Hash": "46F83246D35F1BCC200EC7E977996A6CDF9EFC34764F3D64C4BC12F1ABF39000"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipSteeringAI.cs",
+    "Hash": "D88AB1FE3D336ABD3A8FAAE0E7390A36748379B7F6BBCB7F213A89FB45A6BDE2"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\ShipSteeringSandbox.cs",
+    "Hash": "ADD8F02AC2D32D1EFC35A62D79CAEB37328B49407D9FEC305BE434D17CFB80B3"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\TilingEnds.cs",
+    "Hash": "30800090382227B26273BA319016ABAE19E9B3BFFE460315711CAAF73A2EC5F8"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\TilingGenerator.cs",
+    "Hash": "C41ABC8DA90739B3DA951FD0EDEB2AE5A8F76689431F715D291707FC20B7D761"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\TilingTestScene.Construction.cs",
+    "Hash": "4018F5161D9B161A8B7D9E68802186D518CB90344AB0E07BDA052890FFAFF05B"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\TilingTestScene.cs",
+    "Hash": "A1EFAF1653AB3CADA5721700F5C86C2DCF03E9E1871EBA0E2E1D2BCD4123FB23"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\TilingTurretProjectile.cs",
+    "Hash": "0D8E2DAF50EA9062AFAA7DE69A22ADDF0DF4BCE95628DE2D3F97182998FF28D0"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\module\\WeaponTarget.cs",
+    "Hash": "2F75862CE63CCE0D9E5D71E4ACD4904ABE3FF181CFCA16E65076F541E041247A"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\EncounterManager.cs",
+    "Hash": "75C70440DD2469709875239C8F0B907A030EFFC3187A05BE331C0861653C66AE"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\EnemyFleet.cs",
+    "Hash": "CDE95F005C8336FF246F7777E014EA6A0E77EFDD0A55BDF1C88A18C235FD8ACE"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\EngageCollider.cs",
+    "Hash": "8D5F1F077D23702B66673E1B736F960ED36E8FE6F1390364D93FF64764C256B9"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\FleetManager.cs",
+    "Hash": "7E28A3F9C04849A172A12B16B233B1C10D380178DEE2625E51229C28C51948B7"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\MapSetup.cs",
+    "Hash": "16BE040753F9AA559BE6A89572B4CEFDF5A5CBF94FB6DFD1E49338A8AC2E0430"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\OrbitMath.cs",
+    "Hash": "E980DBA9BE279BF592C3A1CBAA0CCC355A468A58C165295A16690C4D96BD5987"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\SceneTransitionManager.cs",
+    "Hash": "A5C3023838B450756B0BE899189757694C09EDC80E691FA6F61BD5E133A97DB4"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\StageManager.cs",
+    "Hash": "31D41B53483802B0E6556516AB07BAD53AAFDB34184995DBA12E5E0A3E3396BE"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\StellarSystemMap.cs",
+    "Hash": "14460DA5D879BA69857C414FD4515499B1F50CA95EDF45057A435BC5125DF8DA"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\StellarSystem\\SystemController.cs",
+    "Hash": "4B1C3518F9CECA51AC6958AD168EC36E577DB0BC1FEE75EC201B3C129433DD23"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\BattleshipProjectile.cs",
+    "Hash": "F150CEEDDE2BCE88C2111DB036F59A5B5BEF20D93B48860F39E5BDBE617EF1A3"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\CombatHitRules.cs",
+    "Hash": "A6717C72E86CC1BDB6B160E052F39F0DF6407D8305CEEF65BB93C811757DC836"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\ProjectileContact.cs",
+    "Hash": "BB630A43DC64295D82B257C7E63A70383A619287105C17B48E2499C97D4FAFF0"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\ProjectilePenetration.cs",
+    "Hash": "D4ADDAD0DB712D09FE87BE0461A7E1044CA63858ABAC4986E2789705AE24559B"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\ProtectionTestLauncher.cs",
+    "Hash": "DF07AC47C00EDFD9F3C0A0B7FB19F00AB0CE46AE0BAA2B19AA4C2C45FCCE08FD"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Script\\weapon\\ProtectionTestProjectile.cs",
+    "Hash": "75E21EEF48B214076F1EF5907E7C0FEB2CE5F69E8A165E0E68A312355C6075CC"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\AmmoBalanceChecks.cs",
+    "Hash": "DFF3D5D03DBEF1969AC5725A0BFA91E133262F4E9005D7FEA9E0D3E2E8A338E0"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\CombatHitChecks.cs",
+    "Hash": "6B861574A0C2D1A3C57085005F19870221947BAC05D9E2BC1B93CF1EB43D4812"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ConstructionMovementChecks.cs",
+    "Hash": "50A34E73E2D4B455E475D9568523B32AAC676E05C9A2025F1148771EC071C501"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ConstructionSceneFlowChecks.cs",
+    "Hash": "A4F4C9BAC3311D92D6341351D20809F65D3D4670D915B9CDC852000034502EEC"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ConstructionVisualChecks.cs",
+    "Hash": "37374FF14ACC8C0F0C2F4C1D831A425BFC0A5BCB1D63AD0645970070CD1E772F"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\DuelSandboxChecks.cs",
+    "Hash": "DF3D75E26E576DE9C8A0F89259277F98434BB3A63718659AED5391E722FBBEB7"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\DuelSandboxMenu.cs",
+    "Hash": "457555518A332A7A7AD5EC930C85CC2DAA556D22119C1C0FD1B30F1DB787A72E"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\MvpWeaponCatalogChecks.cs",
+    "Hash": "B66AF1DC00A3A1023E9B5CF13E5AE5F7D20A6422504B3411B2677D86CDE3E14D"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\PenetrationV2Checks.cs",
+    "Hash": "E0F662A3ECE6DD2FF4B51A650E77427E849A8120A4540329B9580B1A2E89A7BD"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ScriptRegressionChecks.cs",
+    "Hash": "C5A4A7662E7C7761303C27076E8857E55DE6729A8B697A939CDDF2484876F17B"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ShipFiringChecks.cs",
+    "Hash": "8AF128C24F053A4DD07476A577B96B2078E9C6C5D43D0FEA97600C74A876F382"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ShipSteeringChecks.cs",
+    "Hash": "7F3B5421DAADE37FC3FF526DD88E2E76702F16D8602EFDE1BE4D796DA8A7BF84"
+  },
+  {
+    "Path": "C:\\Bullet-Hell-AI-Trainer\\戦艦TPS\\新しいフォルダー\\sennkannTPS\\Assets\\Editor\\ShipSteeringSandboxMenu.cs",
+    "Hash": "D6A36BD97CC3878ACCAA41C8C7266CE4CAFDFE0163CFAFB81A2ECFFAD294D69B"
+  }
+]

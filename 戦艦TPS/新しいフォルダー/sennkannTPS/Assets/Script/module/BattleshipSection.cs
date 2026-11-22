@@ -39,6 +39,29 @@ namespace Script
         public WeaponTarget LockedWeaponTarget { get; private set; }
         public WeaponTarget ManualMissileTarget { get; set; }
         public Vector2 FiringPosition => GetComponent<Renderer>() != null ? (Vector2)GetComponent<Renderer>().bounds.center : (Vector2)transform.position;
+        // Construction stores section placement in polygon vertices, not in the child Transform.
+        public Vector2 WorldCenter
+        {
+            get
+            {
+                var polygon = GetComponent<PolygonCollider2D>();
+                if (polygon != null && polygon.pathCount > 0)
+                {
+                    var points = polygon.GetPath(0);
+                    double area2 = 0, x = 0, y = 0;
+                    for (int i = 0; i < points.Length; i++)
+                    {
+                        Vector2 a = points[i], b = points[(i + 1) % points.Length];
+                        double cross = (double)a.x * b.y - (double)b.x * a.y;
+                        area2 += cross; x += (a.x + b.x) * cross; y += (a.y + b.y) * cross;
+                    }
+                    if (Math.Abs(area2) > 1e-12)
+                        return transform.TransformPoint(new Vector2((float)(x / (3 * area2)),
+                            (float)(y / (3 * area2))) + polygon.offset);
+                }
+                return FiringPosition;
+            }
+        }
         private Renderer sectionRenderer;
         private Collider2D sectionCollider;
         private MaterialPropertyBlock opacityProperties;
@@ -47,7 +70,8 @@ namespace Script
         private float armorThickness = 50f;
         [SerializeField, Min(0f), InspectorName("ERA印加ベクトルの絶対値")]
         private float eraVectorMagnitude = 50f;
-        [SerializeField, Min(0f), InspectorName("装甲区画の迎撃力")]
+        // Serialized for existing builds; version 2 no longer consumes this value on section hits.
+        [SerializeField, Min(0f), InspectorName("旧装甲迎撃力（第2版では未使用）")]
         private double armorInterception = 0.1d;
         public double ArmorInterception { get => Math.Max(0d, armorInterception); set => armorInterception = Math.Max(0d, value); }
         public float ArmorThickness { get => armorThickness; set => armorThickness = Mathf.Max(0f, value); }
@@ -158,24 +182,21 @@ namespace Script
             LastImpactAngle = Mathf.Acos(cosine) * Mathf.Rad2Deg;
             LastEffectiveArmor = Armor <= 0 ? 0 : cosine <= .000001f ? double.PositiveInfinity : Armor / cosine;
             double before = CurrentHealth;
-            // Thickness >= current power blocks the projectile, including equality.
+            // Version 2 applies HP damage even when armor stops the projectile.
             double gateArmor = affect == BattleshipProjectile.Affect.HESH ? Armor : LastEffectiveArmor;
-            if (gateArmor >= power || (affect == BattleshipProjectile.Affect.HEAT && LastImpactAngle >= 50f))
-            {
-                outgoingDirection = Vector2.zero;
-                HitResolved?.Invoke(position, CurrentHealth, 0d, MaximumHealth);
-                return 0d;
-            }
-            double interception = Interception * (!physical && armorMode == ArmorMode.AntiEM ? 1.5d : 1d);
             bool bonus = affect == BattleshipProjectile.Affect.APCR && firstContact;
             double workingPenetration = penetration * (bonus ? 2d : 1d);
-            double remaining = ProjectilePenetration.RemainingPower(power, workingPenetration, interception, before,
-                out double afterHealth, out double afterPenetration);
-            // Armor is only a passage gate; apply the shared HP calculation without subtracting it again.
-            double damage = Role == BattleshipSectionRole.Core
-                ? power
-                : before - afterHealth;
+            double afterPenetration = ProjectilePenetration.AfterArmor(power, workingPenetration, gateArmor);
+            double damage = power;
             bool singleSection = affect == BattleshipProjectile.Affect.HEAT || affect == BattleshipProjectile.Affect.HESH;
+            if (singleSection && (afterPenetration <= 0 ||
+                (affect == BattleshipProjectile.Affect.HEAT && LastImpactAngle >= 50f)))
+            {
+                penetration = 0;
+                outgoingDirection = Vector2.zero;
+                HitResolved?.Invoke(position, CurrentHealth, 0d, MaximumHealth);
+                return power;
+            }
             if (affect == BattleshipProjectile.Affect.HEAT)
                 damage = armorMode == ArmorMode.ERA && Role == BattleshipSectionRole.Armor ? 50d : 100d;
             if (affect == BattleshipProjectile.Affect.HESH) damage = Armor;
@@ -189,10 +210,20 @@ namespace Script
             penetration = afterPenetration / (bonus ? 2d : 1d);
             if (penetration <= 0d || singleSection || affect == BattleshipProjectile.Affect.Electron)
             {
+                penetration = 0d;
                 outgoingDirection = Vector2.zero;
-                return 0d;
+                return power;
             }
-            return remaining;
+            return power;
+        }
+
+        internal void HitBlast(double power, Vector2 position)
+        {
+            if (!IsAttached || owner == null || power <= 0) return;
+            double before = CurrentHealth;
+            owner.ReceiveHitWithArmor(this, power, 0d);
+            UpdateOpacity();
+            HitResolved?.Invoke(position, CurrentHealth, before - CurrentHealth, MaximumHealth);
         }
 
         internal void TickAutomaticWeapon(float seconds, ShipFiringAI firing)

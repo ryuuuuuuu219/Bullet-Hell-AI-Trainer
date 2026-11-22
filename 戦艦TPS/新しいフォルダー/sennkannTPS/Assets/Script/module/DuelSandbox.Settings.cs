@@ -128,8 +128,7 @@ namespace Script
                 if (weapon == null) continue;
                 bool missile = weapon.Kind == BattleshipWeaponKind.AntiShipMissile;
                 weapon.Affect = missile ? MissileAmmo : ShellAmmo;
-                // Non-missile HE radius is a local test value, not a new catalogue specification.
-                weapon.ExplosionRadius = missile ? weapon.Definition.ExplosionRadius : weapon.Power * 1.5;
+                weapon.ExplosionRadius = ProjectileEffects.ExplosionRadius(weapon.Power, weapon.Affect);
             }
         }
 

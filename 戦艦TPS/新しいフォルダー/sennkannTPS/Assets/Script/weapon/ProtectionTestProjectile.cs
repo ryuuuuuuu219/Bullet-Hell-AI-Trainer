@@ -38,7 +38,8 @@ namespace Script
             sourceOwner = source;
             penetration = penetrationValue;
             affect = projectileAffect;
-            explosionRadius = blastRadius;
+            // Keep the legacy argument for callers, but use the same rule as normal firing.
+            explosionRadius = (float)ProjectileEffects.ExplosionRadius(power, projectileAffect);
             effects = (effectSettings ?? new ProjectileEffectSettings()).Snapshot();
             RemainingPower = power;
             collisionRadius = radius;
@@ -69,6 +70,7 @@ namespace Script
             trail.endWidth = 0f;
             trail.startColor = trail.endColor = affect == BattleshipProjectile.Affect.Plasma ? new Color(.7f, 0f, 1f) : Color.cyan;
             flight = NewFlight(power, penetrationValue);
+            gameObject.AddComponent<ProjectileContact>().Initialize(flight);
             if (affect == BattleshipProjectile.Affect.Photon || affect == BattleshipProjectile.Affect.Neutron) { trail.emitting = false; line.loop = false; line.useWorldSpace = true; line.positionCount = 2; line.SetPosition(0, position); line.SetPosition(1, position); }
             if (affect == BattleshipProjectile.Affect.Neutron) TraceNeutron();
         }
