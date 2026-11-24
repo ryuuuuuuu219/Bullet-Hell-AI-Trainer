@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using UnityEngine;
 
 namespace Script
@@ -6,14 +6,14 @@ namespace Script
     public static class FiringSolution
     {
         // Double precision and a stable quadratic root avoid cancellation near equal velocities.
-        public static Vector2 Direction(Vector2 origin, Vector2 target, Vector2 sourceVelocity,
+        public static Vector2 Direction(Vector2 origin, Vector2 target, 
             Vector2 targetVelocity, float speed, out double time)
         {
             time = 0;
             Vector2 r = target - origin;
             if (float.IsNaN(speed) || speed <= 0) return Vector2.zero;
             if (float.IsPositiveInfinity(speed) || r.magnitude / speed <= .2f) return r.normalized;
-            Vector2 v = targetVelocity - sourceVelocity;
+            Vector2 v = targetVelocity;
             double a = (double)v.x * v.x + (double)v.y * v.y - (double)speed * speed;
             double b = 2 * ((double)r.x * v.x + (double)r.y * v.y);
             double c = (double)r.x * r.x + (double)r.y * r.y;

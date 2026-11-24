@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using UnityEngine;
 
@@ -243,7 +243,7 @@ namespace Script
                 { weapon.Timer = weapon.Interval; return; }
                 Vector2 direction = weapon.Kind == BattleshipWeaponKind.AntiShipMissile
                     ? (point - FiringPosition).normalized
-                    : FiringSolution.Direction(FiringPosition, point, owner.TranslationVelocity,
+                    : FiringSolution.Direction(FiringPosition, point, 
                         LockedWeaponTarget.Velocity, weapon.Speed, out _);
                 if (float.IsNaN(direction.x) || float.IsNaN(direction.y) || direction.sqrMagnitude == 0)
                 { weapon.Timer = weapon.Interval; return; }

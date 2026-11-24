@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Linq;
 using System.Reflection;
 using Script;
@@ -13,21 +13,21 @@ public static class ShipFiringChecks
     [MenuItem("戦艦TPS/検証/共通射撃AI（工程06）")]
     public static void Run()
     {
-        Vector2 r = new Vector2(1000, 300), vs = new Vector2(50, -20), vt = new Vector2(-10, 40);
-        var direction = FiringSolution.Direction(Vector2.zero, r, vs, vt, 300, out double time);
+        Vector2 r = new Vector2(1000, 300), vt = new Vector2(-10, 40);
+        var direction = FiringSolution.Direction(Vector2.zero, r,  vt, 300, out double time);
         Check(time > 0, "positive meeting time");
-        Near(((vs + direction * 300) * (float)time - (r + vt * (float)time)).magnitude, 0, "intercept equation");
-        direction = FiringSolution.Direction(Vector2.zero, Vector2.right * 60, Vector2.zero, Vector2.up * 100, 300, out time);
+        Near(((direction * 300) * (float)time - (r + vt * (float)time)).magnitude, 0, "intercept equation");
+        direction = FiringSolution.Direction(Vector2.zero, Vector2.right * 60, Vector2.up * 100, 300, out time);
         Check(time == 0 && direction == Vector2.right, "0.2 second direct aim inclusive");
-        FiringSolution.Direction(Vector2.zero, r, vs, vt, float.PositiveInfinity, out time);
+        FiringSolution.Direction(Vector2.zero, r, vt, float.PositiveInfinity, out time);
         Check(time == 0, "instant beam bypass");
-        direction = FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.zero, Vector2.right * 400, 300, out time);
+        direction = FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.right * 400, 300, out time);
         Check(time == 0 && direction == Vector2.right, "no meeting solution direct aim");
-        FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.zero, Vector2.left * 300, 300, out time);
+        FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.left * 300, 300, out time);
         Near((float)time, 1000f / 600, "linear degenerate equation");
-        FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.zero, Vector2.left * 400, 300, out time);
+        FiringSolution.Direction(Vector2.zero, Vector2.right * 1000, Vector2.left * 400, 300, out time);
         Near((float)time, 1000f / 700, "smallest positive root");
-        Check(FiringSolution.Direction(Vector2.zero, r, vs, vt, 0, out _) == Vector2.zero, "invalid speed blocks shot");
+        Check(FiringSolution.Direction(Vector2.zero, r, vt, 0, out _) == Vector2.zero, "invalid speed blocks shot");
         if (Application.isPlaying) Runtime();
         Debug.Log("SHIP_FIRING_CHECKS_PASS: interception, direct aim boundaries, roots and runtime firing.");
     }
@@ -76,7 +76,7 @@ public static class ShipFiringChecks
             Vector2 shotDirection = (Vector2)typeof(BattleshipProjectile).GetField("direction", hidden).GetValue(bullet);
             float worldSpeed = (float)typeof(BattleshipProjectile).GetField("speed", hidden).GetValue(bullet);
             Vector2 expectedDirection = FiringSolution.Direction(mount.FiringPosition, b.GetComponentsInChildren<BattleshipSection>().Single(s => s.Role == BattleshipSectionRole.Core).GetComponent<Renderer>().bounds.center,
-                source.TranslationVelocity, b.TranslationVelocity, 300, out _);
+                 b.TranslationVelocity, 300, out _);
             Near((shotDirection * worldSpeed - (source.TranslationVelocity + expectedDirection * 300)).magnitude, 0, "actual projectile inherits source velocity");
             var adapter = extra.AddComponent<WeaponTarget>(); adapter.category = WeaponTargetCategory.Aircraft;
             extra.transform.position = source.transform.position + Vector3.right * 1000;

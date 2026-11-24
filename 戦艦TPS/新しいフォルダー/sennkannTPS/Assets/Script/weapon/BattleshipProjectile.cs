@@ -1,4 +1,4 @@
-using System.Collections.Generic;
+﻿using System.Collections.Generic;
 using UnityEngine;
 
 namespace Script
@@ -71,12 +71,6 @@ namespace Script
             projectile.explosionRadius = ProjectileEffects.ExplosionRadius(weapon.Power, weapon.Affect);
             projectile.effects = weapon.Effects.Snapshot();
             projectile.speed = weapon.Speed;
-            if (weapon.Definition != null && weapon.Kind != BattleshipWeaponKind.AntiShipMissile)
-            {
-                Vector2 worldVelocity = source.Owner.TranslationVelocity + projectile.direction * weapon.Speed;
-                projectile.speed = worldVelocity.magnitude;
-                projectile.direction = projectile.speed > 0 ? worldVelocity / projectile.speed : Vector2.zero;
-            }
             projectile.decay = weapon.Decay;
             projectile.radius = RadiusFor(weapon.Kind);
             projectile.guidanceTurnSpeed = weapon.GuidanceTurnSpeed;
