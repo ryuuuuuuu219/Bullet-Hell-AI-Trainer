@@ -1,4 +1,4 @@
-using System;
+﻿using System;
 using System.Collections.Generic;
 using System.Linq;
 using UnityEngine;
@@ -226,34 +226,37 @@ namespace Script
             if (!IsAlive || section == null || !section.IsAttached || damage <= 0) return;
             double before = section.CurrentHealth;
             section.ApplyDamage(damage);
-            coreHealth -= before - section.CurrentHealth;
+
+            if (section.Role == BattleshipSectionRole.Core)
+                coreHealth = Math.Max(0, coreHealth - (before - section.CurrentHealth));
+
             ProcessDestroyedSections();
         }
 
         internal void ReceiveHit(BattleshipSection hitSection, double power)
             => ReceiveHitWithArmor(hitSection, power, hitSection != null ? hitSection.Armor : 0d);
 
-        internal void ReceiveHitWithArmor(BattleshipSection hitSection, double power, double effectiveArmor)
+        internal void ReceiveHitWithArmor(
+    BattleshipSection hitSection,
+    double power,
+    double effectiveArmor)
         {
-            if (!IsAlive || hitSection == null || !hitSection.IsAttached || power <= 0) return;
-            if (hitSection.Role == BattleshipSectionRole.Core)
-            {
+            if (!IsAlive || hitSection == null ||
+                !hitSection.IsAttached || power <= 0)
+                return;
 
-                var living = sections.Where(x => x != null && x.IsAttached).ToList();
-                double share = living.Count == 0 ? 0 : power / living.Count;
-                foreach (BattleshipSection section in living)
-                {
-                    double before = section.CurrentHealth;
-                    section.ApplyDamage(share);
-                    coreHealth -= before - section.CurrentHealth;
-                }
-            }
-            else
-            {
-                double damage = Math.Min(hitSection.CurrentHealth, Math.Max(0, power - effectiveArmor));
-                hitSection.ApplyDamage(damage);
-                coreHealth -= damage;
-            }
+            double damage = Math.Min(
+                hitSection.CurrentHealth,
+                Math.Max(0, power - effectiveArmor));
+
+            double before = hitSection.CurrentHealth;
+            hitSection.ApplyDamage(damage);
+
+            if (hitSection.Role == BattleshipSectionRole.Core)
+                coreHealth = Math.Max(
+                    0,
+                    coreHealth - (before - hitSection.CurrentHealth));
+
             ProcessDestroyedSections();
         }
 
@@ -281,7 +284,6 @@ namespace Script
         {
             int before = LivingSectionCount;
             if (before <= 0 || !section.IsAttached) return;
-            if (disconnected) coreHealth -= Math.Max(0, section.CurrentHealth);
             section.Detach();
         }
         
