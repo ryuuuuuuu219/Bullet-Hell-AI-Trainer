@@ -77,7 +77,7 @@ public static class ShipFiringChecks
             float worldSpeed = (float)typeof(BattleshipProjectile).GetField("speed", hidden).GetValue(bullet);
             Vector2 expectedDirection = FiringSolution.Direction(mount.FiringPosition, b.GetComponentsInChildren<BattleshipSection>().Single(s => s.Role == BattleshipSectionRole.Core).GetComponent<Renderer>().bounds.center,
                  b.TranslationVelocity, 300, out _);
-            Near((shotDirection * worldSpeed - (source.TranslationVelocity + expectedDirection * 300)).magnitude, 0, "actual projectile inherits source velocity");
+            Near((shotDirection * worldSpeed - (expectedDirection * 300)).magnitude, 0, "actual projectile inherits source velocity");
             var adapter = extra.AddComponent<WeaponTarget>(); adapter.category = WeaponTargetCategory.Aircraft;
             extra.transform.position = source.transform.position + Vector3.right * 1000;
             ai.weaponCategories[0] = WeaponTargetCategory.Aircraft;
